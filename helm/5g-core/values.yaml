@@ -38,11 +38,11 @@ secondaryNetworks:
 images:
   core:
     repository: ""        # e.g. "youruser/oran-5gcore"  — set via Ansible group_vars
-    tag: "latest"
+    tag: "2.7.7"
     pullPolicy: IfNotPresent
   webui:
     repository: ""        # e.g. "youruser/oran-webui"
-    tag: "latest"
+    tag: "2.7.7"
     pullPolicy: IfNotPresent
 
 # Docker Hub credentials secret name (created by Ansible before helm install)
@@ -101,6 +101,10 @@ logLevel: info
 # ----------------------------------------------------------------------------
 mongodb:
   port: "27017"
+  image:
+    repository: mongo
+    tag: "8.0.29"
+    pullPolicy: IfNotPresent
   # URI used by all NFs. 'mongodb' resolves via Kubernetes DNS to the
   # mongodb Service in the same namespace.
   uri: "mongodb://mongodb:27017/open5gs"

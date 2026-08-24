@@ -34,7 +34,7 @@
     build:
       path: "{{ playbook_dir }}/../../{{ build_contexts.core }}"
       dockerfile: "{{ dockerfiles.core }}"
-      pull: true          # always pull the latest base image
+      pull: true          # refresh the explicitly versioned base image
       nocache: false
   register: build_core
 

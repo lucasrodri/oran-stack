@@ -1,17 +1,17 @@
 FROM ubuntu:22.04
 
+ARG OPEN5GS_VERSION=v2.7.7
+
+# Kubernetes runs MongoDB as a separate StatefulSet. Keep the NF image focused
+# on Open5GS and use the external database by default.
+ENV SKIP_MONGODB=true
+
 # NOTE: This container must be run with the following flags:
 #   --device=/dev/net/tun \
 #   --cap-add=NET_ADMIN \
 # These are required for TUN interface creation (e.g. ip tuntap add name ogstun mode tun)
 
-RUN apt-get update && apt-get install -y curl gnupg iproute2 gettext-base
-
-RUN curl -fsSL https://pgp.mongodb.com/server-8.0.asc | gpg -o /usr/share/keyrings/mongodb-server-8.0.gpg --dearmor
-
-RUN echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-8.0.gpg] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/8.0 multiverse" | tee /etc/apt/sources.list.d/mongodb-org-8.0.list
-
-RUN apt-get update && apt-get install -y mongodb-org
+RUN apt-get update && apt-get install -y curl iproute2 gettext-base
 
 RUN apt-get install -y \
     python3-pip python3-setuptools python3-wheel ninja-build \
@@ -27,7 +27,7 @@ RUN if apt-cache show libidn-dev > /dev/null 2>&1; then \
         apt-get install -y --no-install-recommends libidn11-dev; \
     fi
 
-RUN git clone https://github.com/open5gs/open5gs
+RUN git clone --depth 1 --branch ${OPEN5GS_VERSION} https://github.com/open5gs/open5gs
 
 WORKDIR /open5gs
 

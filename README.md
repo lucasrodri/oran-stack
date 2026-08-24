@@ -4,6 +4,10 @@ A Kubernetes-native O-RAN 5G Standalone network running on a kubeadm cluster pro
 
 The RAN CU/DU is [OCUDU](https://ocudu.org/) (the Linux Foundation successor to srsRAN Project), pinned to the `release_26_04` tag. The UE simulator remains srsUE from srsRAN_4G, connected over ZMQ virtual radio.
 
+Fresh installations use the supported baseline recorded in
+[`docs/VERSIONS.md`](docs/VERSIONS.md). Existing clusters are upgraded
+separately; in particular, kubeadm minor versions must not be skipped.
+
 ## Architecture
 
 ```
@@ -216,11 +220,13 @@ ansible-playbook ansible/playbooks/gcp-vm-delete.yml
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `kubernetes_version` | `1.30` | K8s apt channel |
+| `kubernetes_version` | `1.36` | K8s apt channel for fresh installations |
 | `pod_cidr` | `10.244.0.0/16` | Flannel pod network |
 | `service_cidr` | `10.96.0.0/12` | K8s service network |
-| `flannel_manifest_url` | flannel v0.25.4 | Flannel DaemonSet manifest |
-| `cnao_version` | `0.101.0-rc-0` | Cluster Network Addons Operator |
+| `flannel_version` | `v0.28.8` | Flannel release asset |
+| `multus_version` | `v4.3.0` | Multus manifest and immutable container tag |
+| `cnao_version` | `v0.102.0` | Cluster Network Addons Operator |
+| `local_path_provisioner_version` | `v0.0.36` | Local Path Provisioner |
 | `secondary_networks.n2.amf_ip` | `10.200.1.2` | AMF static IP on n2br |
 | `secondary_networks.n2.cu_ip` | `10.200.1.3` | CU static IP on n2br |
 | `secondary_networks.f1c.cu_ip` | `10.200.2.2` | CU static IP on f1cbr |

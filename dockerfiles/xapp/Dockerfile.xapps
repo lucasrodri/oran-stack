@@ -1,4 +1,4 @@
-ARG XAPP_RUNNER_IMAGE=oran-xapp-runner:latest
+ARG XAPP_RUNNER_IMAGE=oran-xapp-runner:i-release
 FROM ${XAPP_RUNNER_IMAGE}
 
 COPY xapps/python/ /opt/xApps/

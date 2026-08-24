@@ -34,7 +34,8 @@ spec:
       {{- end }}
       containers:
         - name: mongodb
-          image: mongo:7.0
+          image: {{ .Values.mongodb.image.repository }}:{{ .Values.mongodb.image.tag }}
+          imagePullPolicy: {{ .Values.mongodb.image.pullPolicy }}
           # Use args (not command) so the official entrypoint runs init scripts
           # in /docker-entrypoint-initdb.d/ on first startup with an empty PVC.
           # deploy_5g_core also runs rs.initiate + seed idempotently after deploy.

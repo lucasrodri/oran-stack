@@ -27,7 +27,8 @@ spec:
       {{- include "5g-core.imagePullSecrets" . | nindent 6 }}
       initContainers:
         - name: wait-for-mongodb
-          image: mongo:7.0
+          image: {{ .Values.mongodb.image.repository }}:{{ .Values.mongodb.image.tag }}
+          imagePullPolicy: {{ .Values.mongodb.image.pullPolicy }}
           command:
             - sh
             - -c

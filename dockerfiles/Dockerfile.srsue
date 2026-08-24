@@ -16,6 +16,8 @@
 
 FROM ubuntu:22.04 AS builder
 
+ARG SRSRAN_4G_VERSION=release_25_10
+
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Install build dependencies
@@ -36,7 +38,7 @@ RUN apt-get update && apt-get install -y \
 
 # Clone srsRAN 4G (provides srsue binary)
 WORKDIR /opt
-RUN git clone --depth 1 https://github.com/srsran/srsRAN_4G.git
+RUN git clone --depth 1 --branch ${SRSRAN_4G_VERSION} https://github.com/srsran/srsRAN_4G.git
 
 # Build srsRAN 4G
 WORKDIR /opt/srsRAN_4G

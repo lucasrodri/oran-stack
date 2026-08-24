@@ -205,8 +205,23 @@
 
 # ── Multus (meta-CNI) ──────────────────────────────────────────────────────────
 
-- name: Apply Multus DaemonSet manifest
-  command: kubectl apply -f {{ multus_manifest_url }}
+- name: Download pinned Multus DaemonSet manifest
+  get_url:
+    url: "{{ multus_manifest_url }}"
+    dest: "/tmp/multus-daemonset-{{ multus_version }}.yml"
+    mode: '0644'
+    force: true
+
+# Upstream's manifest at a release tag still references the moving `snapshot`
+# container tag. Rewrite both the main and init container before applying it.
+- name: Pin Multus container image in downloaded manifest
+  replace:
+    path: "/tmp/multus-daemonset-{{ multus_version }}.yml"
+    regexp: 'ghcr\.io/k8snetworkplumbingwg/multus-cni:snapshot'
+    replace: "{{ multus_image }}"
+
+- name: Apply pinned Multus DaemonSet manifest
+  command: kubectl apply -f /tmp/multus-daemonset-{{ multus_version }}.yml
   environment:
     KUBECONFIG: /etc/kubernetes/admin.conf
   register: multus_apply
@@ -345,7 +360,7 @@
 - name: Install Rancher local-path-provisioner
   command: >
     kubectl apply -f
-    https://raw.githubusercontent.com/rancher/local-path-provisioner/v0.0.28/deploy/local-path-storage.yaml
+    https://raw.githubusercontent.com/rancher/local-path-provisioner/{{ local_path_provisioner_version }}/deploy/local-path-storage.yaml
   environment:
     KUBECONFIG: /etc/kubernetes/admin.conf
   register: lpp_apply

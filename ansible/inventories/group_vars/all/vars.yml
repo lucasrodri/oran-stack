@@ -14,7 +14,9 @@
 # ----------------------------------------------------------------------------
 # kubeadm / Cluster
 # ----------------------------------------------------------------------------
-kubernetes_version: "1.30"
+# Latest supported stable minor for new clusters. Existing clusters must be
+# upgraded one minor at a time; see docs/VERSIONS.md.
+kubernetes_version: "1.36"
 
 pod_cidr:     "10.244.0.0/16"
 service_cidr: "10.96.0.0/12"
@@ -28,11 +30,16 @@ storage_provisioner: "local-path"
 # ----------------------------------------------------------------------------
 # CNI: Flannel (primary) + Multus (meta) + OVS-CNI (secondary)
 # ----------------------------------------------------------------------------
-flannel_manifest_url: "https://raw.githubusercontent.com/flannel-io/flannel/v0.25.4/Documentation/kube-flannel.yml"
+flannel_version: "v0.28.8"
+flannel_manifest_url: "https://github.com/flannel-io/flannel/releases/download/{{ flannel_version }}/kube-flannel.yml"
 
-multus_manifest_url: "https://raw.githubusercontent.com/k8snetworkplumbingwg/multus-cni/master/deployments/multus-daemonset.yml"
+multus_version: "v4.3.0"
+multus_manifest_url: "https://raw.githubusercontent.com/k8snetworkplumbingwg/multus-cni/{{ multus_version }}/deployments/multus-daemonset.yml"
+multus_image: "ghcr.io/k8snetworkplumbingwg/multus-cni:{{ multus_version }}"
 
-cnao_version: "v0.101.0-rc-0"
+cnao_version: "v0.102.0"
+
+local_path_provisioner_version: "v0.0.36"
 
 # OVS bridges for 3GPP / O-RAN SCTP reference points.
 ovs_bridges:
@@ -81,22 +88,22 @@ dockerhub_password: "{{ vault_dockerhub_password | default('') }}"
 images:
   core:
     repository: "{{ dockerhub_username }}/oran-5gcore"
-    tag: "latest"
+    tag: "2.7.7"
   webui:
     repository: "{{ dockerhub_username }}/oran-webui"
-    tag: "latest"
+    tag: "2.7.7"
   ocudu:
     repository: "{{ dockerhub_username }}/oran-ocudu"
-    tag: "latest"
+    tag: "26.04"
   srsue:
     repository: "{{ dockerhub_username }}/oran-srsue"
-    tag: "latest"
+    tag: "25.10"
   xapp_runner:
     repository: "{{ dockerhub_username }}/oran-xapp-runner"
-    tag: "latest"
+    tag: "i-release"
   xapps:
     repository: "{{ dockerhub_username }}/oran-xapps"
-    tag: "latest"
+    tag: "0.1.0"
 
 dockerfiles:
   core:   "dockerfiles/Dockerfile.5gscore"

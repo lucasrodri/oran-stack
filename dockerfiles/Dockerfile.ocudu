@@ -23,6 +23,8 @@
 
 FROM ubuntu:22.04 AS builder
 
+ARG OCUDU_VERSION=release_26_04
+
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Install build dependencies
@@ -43,7 +45,7 @@ RUN apt-get update && apt-get install -y \
 
 # Clone OCUDU (5G NR CU/DU stack - provides ocu, odu, gnb)
 WORKDIR /opt
-RUN git clone --depth 1 --branch release_26_04 https://gitlab.com/ocudu/ocudu.git
+RUN git clone --depth 1 --branch ${OCUDU_VERSION} https://gitlab.com/ocudu/ocudu.git
 
 # Build OCUDU with ZMQ virtual radio support
 WORKDIR /opt/ocudu

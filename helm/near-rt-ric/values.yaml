@@ -21,8 +21,10 @@ secondaryNetworks:
     e2termIP: "10.200.3.4"
 
 # ----------------------------------------------------------------------------
-# RIC Component Images (pre-built from O-RAN SC Nexus3 registry)
-# These are public images; no authentication required to pull them.
+# RIC Component Images (pre-built from the O-RAN SC Nexus3 registry)
+# The pinned versions below are the images validated in the NMI lab. The
+# current upstream M-release tags are recorded in docs/VERSIONS.md, but must
+# first be rebuilt or mirrored because Nexus currently returns HTTP 402.
 # ----------------------------------------------------------------------------
 images:
   dbaas:
