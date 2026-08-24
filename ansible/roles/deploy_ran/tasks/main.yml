@@ -55,6 +55,7 @@
             }
           }) | to_json | b64encode }}
   no_log: true
+  when: dockerhub_password | length > 0
 
 # ----------------------------------------------------------------------------
 # 3. Helm upgrade --install ran
@@ -71,6 +72,7 @@
     create_namespace: false
     wait:             false
     values:
+      imagePullSecretName: "{{ image_pull_secret_name }}"
       images:
         ocudu:
           repository: "{{ images.ocudu.repository }}"

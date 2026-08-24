@@ -50,8 +50,10 @@ spec:
             }
           ]
     spec:
+      {{- if .Values.imagePullSecretName }}
       imagePullSecrets:
         - name: {{ .Values.imagePullSecretName }}
+      {{- end }}
       initContainers:
         {{ if .Values.e2Readiness.enabled }}
         - name: wait-for-e2t
@@ -215,8 +217,10 @@ spec:
             }
           ]
     spec:
+      {{- if .Values.imagePullSecretName }}
       imagePullSecrets:
         - name: {{ .Values.imagePullSecretName }}
+      {{- end }}
       initContainers:
         - name: render-config
           image: alpine:3.19
@@ -389,8 +393,10 @@ spec:
       labels:
         app: srsue
     spec:
+      {{- if .Values.imagePullSecretName }}
       imagePullSecrets:
         - name: {{ .Values.imagePullSecretName }}
+      {{- end }}
       initContainers:
         - name: wait-for-du
           image: busybox:1.36

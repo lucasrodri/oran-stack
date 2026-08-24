@@ -4,7 +4,7 @@
 
 namespace: ran
 
-imagePullSecretName: dockerhub-secret
+imagePullSecretName: ""
 
 images:
   ocudu:

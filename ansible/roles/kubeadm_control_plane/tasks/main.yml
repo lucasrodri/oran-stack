@@ -180,6 +180,29 @@
   until: node_ready.stdout == "True"
   changed_when: false
 
+# A one-node lab has no worker on which regular workloads can be scheduled.
+# Keep the default control-plane taint for multi-node clusters, but remove it
+# when the inventory intentionally contains no workers.
+- name: Check control-plane taint for a single-node cluster
+  command: >
+    kubectl get node {{ inventory_hostname }}
+    -o jsonpath='{.spec.taints[?(@.key=="node-role.kubernetes.io/control-plane")].key}'
+  environment:
+    KUBECONFIG: /etc/kubernetes/admin.conf
+  register: _single_node_control_plane_taint
+  changed_when: false
+  when: (groups['workers'] | default([]) | length) == 0
+
+- name: Allow workloads on a single-node control-plane
+  command: >
+    kubectl taint node {{ inventory_hostname }}
+    node-role.kubernetes.io/control-plane-
+  environment:
+    KUBECONFIG: /etc/kubernetes/admin.conf
+  when:
+    - (groups['workers'] | default([]) | length) == 0
+    - (_single_node_control_plane_taint.stdout | default('')) | length > 0
+
 # ── Multus (meta-CNI) ──────────────────────────────────────────────────────────
 
 - name: Apply Multus DaemonSet manifest

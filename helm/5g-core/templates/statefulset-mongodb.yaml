@@ -28,8 +28,10 @@ spec:
       labels:
         app: mongodb
     spec:
+      {{- if .Values.imagePullSecretName }}
       imagePullSecrets:
         - name: {{ .Values.imagePullSecretName }}
+      {{- end }}
       containers:
         - name: mongodb
           image: mongo:7.0

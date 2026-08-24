@@ -153,6 +153,8 @@ Common volumes for NF pods.
 imagePullSecrets block.
 */}}
 {{- define "5g-core.imagePullSecrets" -}}
+{{- if .Values.imagePullSecretName }}
 imagePullSecrets:
   - name: {{ .Values.imagePullSecretName }}
+{{- end }}
 {{- end }}

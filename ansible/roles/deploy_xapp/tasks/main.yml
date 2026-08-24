@@ -59,6 +59,7 @@
             }
           }) | to_json | b64encode }}
   no_log: true
+  when: dockerhub_password | length > 0
 
 # ----------------------------------------------------------------------------
 # 3. Helm upgrade --install simple-mon xApp
@@ -75,6 +76,7 @@
     values_files:
       - "{{ playbook_dir }}/../../{{ helm_charts.xapp }}/values/simple-mon.yaml"
     values:
+      imagePullSecrets: "{{ [{'name': image_pull_secret_name}] if (image_pull_secret_name | length > 0) else [] }}"
       image:
         repository: "{{ images.xapps.repository }}"
         tag:        "{{ images.xapps.tag }}"

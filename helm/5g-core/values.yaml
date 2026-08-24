@@ -46,7 +46,7 @@ images:
     pullPolicy: IfNotPresent
 
 # Docker Hub credentials secret name (created by Ansible before helm install)
-imagePullSecretName: dockerhub-secret
+imagePullSecretName: ""
 
 # ----------------------------------------------------------------------------
 # PLMN (Public Land Mobile Network identity)

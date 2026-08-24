@@ -6,8 +6,7 @@ image:
   tag: latest
   pullPolicy: IfNotPresent
 
-imagePullSecrets:
-  - name: dockerhub-secret
+imagePullSecrets: []
 
 ric:
   namespace: near-rt-ric

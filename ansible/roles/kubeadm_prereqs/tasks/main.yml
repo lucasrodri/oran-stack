@@ -27,9 +27,8 @@
     mode: '0644'
 
 - name: Load kernel modules now
-  modprobe:
-    name: "{{ item }}"
-    state: present
+  command: "modprobe {{ item }}"
+  changed_when: false
   loop:
     - overlay
     - br_netfilter
@@ -77,6 +76,14 @@
     state: present
     update_cache: true
 
+- name: Prefer IPv4 when the host has no IPv6 default route
+  lineinfile:
+    path: /etc/gai.conf
+    regexp: '^#?\s*precedence\s+::ffff:0:0/96\s+'
+    line: 'precedence ::ffff:0:0/96  100'
+    state: present
+  when: ansible_default_ipv6 is not defined or ansible_default_ipv6.gateway is not defined
+
 - name: Create /etc/apt/keyrings
   file:
     path: /etc/apt/keyrings
@@ -85,7 +92,7 @@
 
 - name: Add Docker apt GPG key
   get_url:
-    url: https://download.docker.com/linux/ubuntu/gpg
+    url: "https://download.docker.com/linux/{{ ansible_distribution | lower }}/gpg"
     dest: /etc/apt/keyrings/docker.asc
     mode: '0644'
 
@@ -93,7 +100,7 @@
   apt_repository:
     repo: >-
       deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc]
-      https://download.docker.com/linux/ubuntu
+      https://download.docker.com/linux/{{ ansible_distribution | lower }}
       {{ ansible_distribution_release }} stable
     filename: docker
     state: present

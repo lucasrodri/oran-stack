@@ -4,7 +4,7 @@
 
 namespace: near-rt-ric
 
-imagePullSecretName: dockerhub-secret
+imagePullSecretName: ""
 
 # RollingUpdate needs spare CPU for old+new pods on a single worker; Recreate
 # avoids Pending pods when the worker is near its CPU request limit.
@@ -29,24 +29,24 @@ images:
     # OSC dbaas ships Redis + SDL redismodule (MSETMPUB). Plain redis:6-alpine
     # lacks MSETMPUB, so e2mgr ChangeStatus(CONNECTED) fails with RNIB error and
     # never sends E2SetupResponse (12002).
-    repository: nexus3.o-ran-sc.org:10001/o-ran-sc/ric-plt-dbaas
-    tag: "0.6.5"
+    repository: nexus3.o-ran-sc.org:10002/o-ran-sc/ric-plt-dbaas
+    tag: "0.6.4"
     pullPolicy: IfNotPresent
   e2term:
-    repository: nexus3.o-ran-sc.org:10001/o-ran-sc/ric-plt-e2
-    tag: "6.0.8"
+    repository: nexus3.o-ran-sc.org:10002/o-ran-sc/ric-plt-e2
+    tag: "6.0.6"
     pullPolicy: IfNotPresent
   e2mgr:
-    repository: nexus3.o-ran-sc.org:10001/o-ran-sc/ric-plt-e2mgr
-    tag: "6.0.8"
+    repository: nexus3.o-ran-sc.org:10002/o-ran-sc/ric-plt-e2mgr
+    tag: "6.0.4"
     pullPolicy: IfNotPresent
   appmgr:
-    repository: nexus3.o-ran-sc.org:10001/o-ran-sc/ric-plt-appmgr
-    tag: "0.5.4"
+    repository: nexus3.o-ran-sc.org:10002/o-ran-sc/ric-plt-appmgr
+    tag: "0.5.7"
     pullPolicy: IfNotPresent
   submgr:
-    repository: nexus3.o-ran-sc.org:10001/o-ran-sc/ric-plt-submgr
-    tag: "0.10.4"
+    repository: nexus3.o-ran-sc.org:10002/o-ran-sc/ric-plt-submgr
+    tag: "0.10.1"
     pullPolicy: IfNotPresent
   rtmgr:
     repository: nexus3.o-ran-sc.org:10001/o-ran-sc/ric-plt-rtmgr
@@ -56,6 +56,18 @@ images:
     repository: nexus3.o-ran-sc.org:10001/o-ran-sc/ric-plt-a1
     tag: "3.2.2"
     pullPolicy: IfNotPresent
+
+# The Linux Foundation Nexus currently returns HTTP 402 for uncached O-RAN SC
+# images. The NMI deployment can run the E2/KPM data path with static RMR seed
+# routes while optional components are rebuilt or mirrored locally.
+rtmgr:
+  enabled: false
+  # Minimal HTTP acknowledgement used only for E2T registration while the
+  # official RTMgr image is unavailable. Dynamic xApp routing remains off.
+  stubEnabled: true
+
+a1mediator:
+  enabled: false
 
 # ----------------------------------------------------------------------------
 # RIC Identity (must match the DU's E2 setup request)

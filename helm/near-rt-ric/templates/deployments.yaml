@@ -354,6 +354,7 @@ spec:
       targetPort: 4561
 ---
 # --- RTMGR (Routing Manager) -------------------------------------------------
+{{- if .Values.rtmgr.enabled }}
 # hostAliases replaces the extra_hosts hack from docker-compose.ric.yml.
 # rtmgr hardcodes the submgr URL as
 #   "service-ricplt-submgr-http.ricplt:<port>"
@@ -498,6 +499,71 @@ spec:
       port: 4561
       targetPort: 4561
 ---
+{{- end }}
+{{- if and (not .Values.rtmgr.enabled) .Values.rtmgr.stubEnabled }}
+# Temporary RTMgr HTTP acknowledgement stub. e2mgr requires a successful POST
+# before it persists a newly announced E2T. RMR traffic itself uses the static
+# seed tables mounted in e2mgr, e2term, and submgr.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ric-rtmgr-stub
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: ric-rtmgr-stub
+    app.kubernetes.io/part-of: oran-stack
+spec:
+  replicas: 1
+  strategy:
+    type: {{ .Values.deploymentStrategy }}
+  selector:
+    matchLabels:
+      app: ric-rtmgr-stub
+  template:
+    metadata:
+      labels:
+        app: ric-rtmgr-stub
+    spec:
+      containers:
+        - name: http-stub
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              while true; do
+                printf 'HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 2\r\nConnection: close\r\n\r\n{}' \
+                  | nc -l -p 3800 >/dev/null
+              done
+          ports:
+            - name: http
+              containerPort: 3800
+          readinessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 1
+            periodSeconds: 2
+          resources:
+            requests:
+              cpu: 5m
+              memory: 8Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ric-rtmgr
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: ric-rtmgr-stub
+spec:
+  selector:
+    app: ric-rtmgr-stub
+  ports:
+    - name: http
+      port: 3800
+      targetPort: http
+---
+{{- end }}
 # --- E2TERM (E2 Termination) --------------------------------------------------
 # Two Services:
 #   1. ric-e2term (ClusterIP) — RMR ports for internal RIC communication
@@ -708,6 +774,7 @@ spec:
       protocol: SCTP
 ---
 # --- A1MEDIATOR (A1 Policy Interface) ----------------------------------------
+{{- if .Values.a1mediator.enabled }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -785,3 +852,4 @@ spec:
     - name: rmr
       port: 4562
       targetPort: 4562
+{{- end }}

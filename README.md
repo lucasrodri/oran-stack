@@ -141,6 +141,24 @@ ansible-playbook ansible/playbooks/deploy.yml \
   -i ansible/inventories/hosts.ini --ask-vault-pass
 ```
 
+### Option C: NMI single-node lab
+
+The NMI deployment runs the complete lab stack on one kubeadm node. The
+control-plane taint is removed automatically only when the inventory has no
+workers; multi-node inventories keep the normal taint and OVS VXLAN topology.
+See [docs/NMI_DEPLOYMENT.md](docs/NMI_DEPLOYMENT.md) for the verified VM,
+operational status, image-registry workaround, and restore points.
+
+Run the playbooks from `oran-k8s-01` so both node provisioning and the
+localhost Helm deployment use the same host:
+
+```bash
+cd ansible
+
+ansible-playbook -i inventories/nmi-single.ini playbooks/provision.yml
+ansible-playbook -i inventories/nmi-single.ini playbooks/deploy.yml
+```
+
 ---
 
 ## Verify

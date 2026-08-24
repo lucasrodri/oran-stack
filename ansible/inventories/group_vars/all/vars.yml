@@ -73,7 +73,7 @@ nad_namespaces:
 # Docker Hub — image push & imagePullSecret
 # ----------------------------------------------------------------------------
 dockerhub_username: "x0tok"
-dockerhub_password: "{{ vault_dockerhub_password }}"
+dockerhub_password: "{{ vault_dockerhub_password | default('') }}"
 
 # ----------------------------------------------------------------------------
 # Container image names & tags
@@ -141,7 +141,7 @@ namespaces:
   monitoring: "monitoring"
   xapp:       "ricxapp"
 
-image_pull_secret_name: "dockerhub-secret"
+image_pull_secret_name: "{{ 'dockerhub-secret' if (dockerhub_password | length > 0) else '' }}"
 
 # ----------------------------------------------------------------------------
 # PLMN (must stay in sync with helm/5g-core/values.yaml and helm/ran/values.yaml)
