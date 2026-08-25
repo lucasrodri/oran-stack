@@ -29,6 +29,32 @@
           pod-security.kubernetes.io/warn:    privileged
           pod-security.kubernetes.io/audit:   privileged
 
+- name: Validate test subscriber credentials
+  ansible.builtin.assert:
+    that:
+      - subscriber_credentials.k is match('^[0-9A-Fa-f]{32}$')
+      - subscriber_credentials.opc is match('^[0-9A-Fa-f]{32}$')
+    fail_msg: >-
+      Define vault_subscriber_k and vault_subscriber_opc in the encrypted
+      vault.yml file.
+  no_log: true
+
+- name: Create test subscriber Secret in ran namespace
+  kubernetes.core.k8s:
+    kubeconfig: "{{ _kubeconfig }}"
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: "{{ subscriber_credentials_secret_name }}"
+        namespace: "{{ namespaces.ran }}"
+      type: Opaque
+      stringData:
+        k: "{{ subscriber_credentials.k }}"
+        opc: "{{ subscriber_credentials.opc }}"
+  no_log: true
+
 # ----------------------------------------------------------------------------
 # 2. Create Docker Hub imagePullSecret in ran namespace
 # ----------------------------------------------------------------------------
@@ -87,6 +113,8 @@
         mcc: "{{ plmn.mcc }}"
         mnc: "{{ plmn.mnc }}"
         tac: "{{ plmn.tac }}"
+      ue:
+        credentialsSecretName: "{{ subscriber_credentials_secret_name }}"
       secondaryNetworks:
         n2:
           nadName:  "{{ secondary_networks.n2.nad_name }}"

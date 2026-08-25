@@ -34,6 +34,7 @@ data:
         server:
           - address: 0.0.0.0
             port: ${NRF_SBI_PORT}
+            advertise: "nrf.{{ .Values.namespace }}.svc.cluster.local:${NRF_SBI_PORT}"
     db_uri: ${MONGODB_URI}
     logger:
       file:
@@ -50,6 +51,7 @@ data:
         server:
           - address: 0.0.0.0
             port: ${SCP_SBI_PORT}
+            advertise: "scp.{{ .Values.namespace }}.svc.cluster.local:${SCP_SBI_PORT}"
         client:
           nrf:
             - uri: http://nrf:${NRF_SBI_PORT}
@@ -68,6 +70,7 @@ data:
         server:
           - address: 0.0.0.0
             port: ${SEPP_SBI_PORT}
+            advertise: "sepp.{{ .Values.namespace }}.svc.cluster.local:${SEPP_SBI_PORT}"
         client:
           nrf:
             - uri: http://nrf:${NRF_SBI_PORT}
@@ -93,6 +96,7 @@ data:
         server:
           - address: 0.0.0.0
             port: ${AMF_SBI_PORT}
+            advertise: "amf.{{ .Values.namespace }}.svc.cluster.local:${AMF_SBI_PORT}"
         client:
           nrf:
             - uri: http://nrf:${NRF_SBI_PORT}
@@ -155,6 +159,7 @@ data:
         server:
           - address: 0.0.0.0
             port: ${SMF_SBI_PORT}
+            advertise: "smf.{{ .Values.namespace }}.svc.cluster.local:${SMF_SBI_PORT}"
         client:
           nrf:
             - uri: http://nrf:${NRF_SBI_PORT}
@@ -162,7 +167,7 @@ data:
             - uri: http://scp:${SCP_SBI_PORT}
       pfcp:
         server:
-          - address: 0.0.0.0
+          - dev: eth0
             port: ${SMF_PFCP_PORT}
         client:
           upf:
@@ -174,7 +179,7 @@ data:
             port: ${SMF_GTP_C_PORT}
       gtpu:
         server:
-          - address: 0.0.0.0
+          - dev: eth0
             port: ${SMF_GTP_U_PORT}
       metrics:
         server:
@@ -182,7 +187,11 @@ data:
             port: ${SMF_METRICS_PORT}
       session:
         - subnet: ${SMF_SUBNET4}
+          gateway: {{ .Values.ue.gateway4 }}
+          dnn: {{ .Values.ue.dnn }}
         - subnet: ${SMF_SUBNET6}
+          gateway: {{ .Values.ue.gateway6 }}
+          dnn: {{ .Values.ue.dnn }}
       dns:
         - 8.8.8.8
         - 8.8.4.4
@@ -200,15 +209,21 @@ data:
     upf:
       pfcp:
         server:
-          - address: 0.0.0.0
+          - dev: eth0
             port: ${UPF_PFCP_PORT}
       gtpu:
         server:
-          - address: 0.0.0.0
+          - dev: eth0
             port: ${UPF_GTP_U_PORT}
       session:
         - subnet: ${SMF_SUBNET4}
+          gateway: {{ .Values.ue.gateway4 }}
+          dnn: {{ .Values.ue.dnn }}
+          dev: ogstun
         - subnet: ${SMF_SUBNET6}
+          gateway: {{ .Values.ue.gateway6 }}
+          dnn: {{ .Values.ue.dnn }}
+          dev: ogstun
       metrics:
         server:
           - address: 0.0.0.0
@@ -228,6 +243,7 @@ data:
         server:
           - address: 0.0.0.0
             port: ${AUSF_SBI_PORT}
+            advertise: "ausf.{{ .Values.namespace }}.svc.cluster.local:${AUSF_SBI_PORT}"
         client:
           nrf:
             - uri: http://nrf:${NRF_SBI_PORT}
@@ -248,6 +264,7 @@ data:
         server:
           - address: 0.0.0.0
             port: ${UDM_SBI_PORT}
+            advertise: "udm.{{ .Values.namespace }}.svc.cluster.local:${UDM_SBI_PORT}"
         client:
           nrf:
             - uri: http://nrf:${NRF_SBI_PORT}
@@ -269,6 +286,7 @@ data:
         server:
           - address: 0.0.0.0
             port: ${PCF_SBI_PORT}
+            advertise: "pcf.{{ .Values.namespace }}.svc.cluster.local:${PCF_SBI_PORT}"
         client:
           nrf:
             - uri: http://nrf:${NRF_SBI_PORT}
@@ -294,6 +312,7 @@ data:
         server:
           - address: 0.0.0.0
             port: ${NSSF_SBI_PORT}
+            advertise: "nssf.{{ .Values.namespace }}.svc.cluster.local:${NSSF_SBI_PORT}"
         client:
           nrf:
             - uri: http://nrf:${NRF_SBI_PORT}
@@ -318,6 +337,7 @@ data:
         server:
           - address: 0.0.0.0
             port: ${BSF_SBI_PORT}
+            advertise: "bsf.{{ .Values.namespace }}.svc.cluster.local:${BSF_SBI_PORT}"
         client:
           nrf:
             - uri: http://nrf:${NRF_SBI_PORT}
@@ -339,6 +359,7 @@ data:
         server:
           - address: 0.0.0.0
             port: ${UDR_SBI_PORT}
+            advertise: "udr.{{ .Values.namespace }}.svc.cluster.local:${UDR_SBI_PORT}"
         client:
           nrf:
             - uri: http://nrf:${NRF_SBI_PORT}

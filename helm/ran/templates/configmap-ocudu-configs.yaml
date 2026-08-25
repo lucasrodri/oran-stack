@@ -19,6 +19,8 @@ metadata:
 data:
   cu.yml.tpl: |
     cu_cp:
+      request_pdu_session_timeout: {{ .Values.pduSessionRequestTimeoutSec }}
+      inactivity_timer: {{ .Values.ueInactivityTimerSec }}
       amf:
         addr: ${AMF_IP}
         bind_addr: ${N2_IP}
@@ -106,7 +108,9 @@ data:
       filename: /dev/stdout
       all_level: debug
 
-  ue.conf: |
+  # UE authentication fields are placeholders populated from the
+  # oran-subscriber Secret by the render-ue-config init container.
+  ue.conf.tpl: |
     [rf]
     freq_offset = 0
     tx_gain = 50
@@ -143,8 +147,8 @@ data:
     [usim]
     mode = soft
     algo = milenage
-    opc  = {{ .Values.ue.opc }}
-    k    = {{ .Values.ue.k }}
+    opc  = __UE_OPC__
+    k    = __UE_K__
     imsi = {{ .Values.ue.imsi }}
     imei = 353490069873319
 

@@ -1,37 +1,13 @@
-// MongoDB initialization script for Open5GS WebUI
-// Initializes admin user and sample subscriber data
+// MongoDB initialization script for sample Open5GS subscriber data.
+// WebUI admin provisioning is handled by the Kubernetes init container.
 // This script runs automatically when MongoDB starts for the first time
 
-// Use the 'admin' database for user authentication
-db = db.getSiblingDB('admin');
-
-// Initialize admin user for WebUI access
-try {
-    const adminResult = db.administrators.updateOne(
-        { username: 'admin' },
-        {
-            $setOnInsert: {
-                username: 'admin',
-                // Password: '1423' hashed with bcrypt (pre-computed for testing)
-                // In production, use proper password hashing
-                password: '$2a$10$9D3nYrAb.tF.lL.hzjvJJOTxMTtDZdv/mUwvN8OJZBJLwYMrKvEOq',
-                created_at: new Date(),
-                updated_at: new Date()
-            }
-        },
-        { upsert: true }
-    );
-
-    if (adminResult.upsertedCount === 1) {
-        print('Admin user initialized: admin / 1423');
-    } else {
-        print('Admin user already exists: admin');
-    }
-} catch (e) {
-    print('Admin user info: ' + e.message);
+const subscriberK = process.env.ORAN_SUBSCRIBER_K;
+const subscriberOpc = process.env.ORAN_SUBSCRIBER_OPC;
+if (!subscriberK || !subscriberOpc) {
+    throw new Error('ORAN_SUBSCRIBER_K and ORAN_SUBSCRIBER_OPC are required');
 }
 
-// Switch to the 'open5gs' database for subscriber data
 db = db.getSiblingDB('open5gs');
 
 // Initialize sample 5G subscriber
@@ -53,44 +29,39 @@ try {
                 network_access_mode: 0,
                 // Access restriction data
                 access_restriction_data: 32,
-                // Subscribed RAU/TAU timer
-                subscribed_rau_tau_timer: 12,
-                // PDN (Packet Data Network) configuration
-                pdn: [
-                    {
-                        apn: 'internet',
-                        // Type: 2 = IPv4
-                        type: 2,
-                        dnn: 'internet',
-                        // QoS Class Identifier: 9 = best effort
-                        qci: 9,
-                        arp: {
-                            priority_level: 8,
-                            pre_emption_capability: 0,
-                            pre_emption_vulnerability: 0
-                        },
-                        // Maximum Bit Rate (Mbps)
-                        mbr: {
-                            downlink: 1024,
-                            uplink: 1024
-                        },
-                        // Aggregate Maximum Bit Rate
-                        ambr: {
-                            downlink: 1024000,
-                            uplink: 1024000
-                        }
-                    }
-                ],
-                // Aggregate Maximum Bit Rate
-                ambr: {
-                    downlink: 1024000,
-                    uplink: 1024000
+                operator_determined_barring: 0,
+                security: {
+                    k: subscriberK,
+                    op: null,
+                    opc: subscriberOpc,
+                    amf: '8000',
+                    sqn: NumberLong('0')
                 },
-                // Network Slice Single Assignment (NSSAI)
+                ambr: {
+                    downlink: { value: 1, unit: 3 },
+                    uplink: { value: 1, unit: 3 }
+                },
                 slice: [
                     {
                         sst: 1,
-                        default: true
+                        default_indicator: true,
+                        session: [{
+                            name: 'internet',
+                            type: 3,
+                            pcc_rule: [],
+                            ambr: {
+                                downlink: { value: 1, unit: 3 },
+                                uplink: { value: 1, unit: 3 }
+                            },
+                            qos: {
+                                index: 9,
+                                arp: {
+                                    priority_level: 8,
+                                    pre_emption_capability: 1,
+                                    pre_emption_vulnerability: 1
+                                }
+                            }
+                        }]
                     }
                 ],
                 // Schema version for compatibility
@@ -163,42 +134,6 @@ try {
     print('Sample 4G subscriber info: ' + e.message);
 }
 
-// Initialize security context for 5G subscriber
-// Keys match the srsUE configuration in srsran/configs/ue.conf
-try {
-    const auth5gResult = db.auths.updateOne(
-        { imsi: '001010000000001' },
-        {
-            $setOnInsert: {
-                imsi: '001010000000001',
-                // K (128-bit secret key) - must match ue.conf
-                k: '465B5CE8B199B49FAA5F0A2EE238A6BC',
-                // OPc (Operator-specific key) - must match ue.conf
-                opc: 'E8ED289DEBA952E4283B54E88E6183CA',
-                // AMF (Authentication Management Field) - default 0x8000
-                amf: 32770,
-                // SQN (Sequence Number)
-                sqn: 0,
-                // CK (Confidentiality Key) - optional
-                ck: null,
-                // IK (Integrity Key) - optional
-                ik: null,
-                created_at: new Date(),
-                updated_at: new Date()
-            }
-        },
-        { upsert: true }
-    );
-
-    if (auth5gResult.upsertedCount === 1) {
-        print('Security context initialized for 5G subscriber');
-    } else {
-        print('Security context already exists for 5G subscriber');
-    }
-} catch (e) {
-    print('Security context info: ' + e.message);
-}
-
 // Initialize security context for 4G subscriber
 try {
     const auth4gResult = db.auths.updateOne(
@@ -206,8 +141,8 @@ try {
         {
             $setOnInsert: {
                 imsi: '001010000000002',
-                k: '465B5CE8B199B49FAA5F0A2EE238A6BC',
-                opc: 'E8ED289DEBA952E4283B54E88E6183CA',
+                k: subscriberK,
+                opc: subscriberOpc,
                 amf: 32770,
                 sqn: 0,
                 ck: null,
@@ -235,17 +170,10 @@ print('');
 print('Sample 5G Subscriber:');
 print('  IMSI: 001010000000001');
 print('  APN: internet');
-print('  K: 465B5CE8B199B49FAA5F0A2EE238A6BC');
-print('  OPc: E8ED289DEBA952E4283B54E88E6183CA');
+print('  K/OPc: loaded from environment');
 print('');
 print('Sample 4G Subscriber:');
 print('  IMSI: 001010000000002');
 print('  APN: internet');
-print('  K: 465B5CE8B199B49FAA5F0A2EE238A6BC');
-print('  OPc: E8ED289DEBA952E4283B54E88E6183CA');
-print('');
-print('WebUI Access:');
-print('  URL: http://localhost:9999');
-print('  Username: admin');
-print('  Password: 1423');
+print('  K/OPc: loaded from environment');
 print('');

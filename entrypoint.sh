@@ -108,6 +108,26 @@ if echo "$*" | grep -q "open5gs-upfd"; then
         ip addr add 10.45.0.1/16 dev ogstun 2>/dev/null && echo "[OK] Added IPv4 to ogstun" || echo "[WARN] Failed to add IPv4 to ogstun"
         ip addr add 2001:db8:cafe::1/48 dev ogstun 2>/dev/null && echo "[OK] Added IPv6 to ogstun" || echo "[WARN] Failed to add IPv6 to ogstun"
         ip link set ogstun up 2>/dev/null && echo "[OK] Brought up ogstun" || echo "[WARN] Failed to bring up ogstun"
+
+        # The UPF owns the UE TUN interface, so it must forward and source-NAT
+        # packets leaving the Kubernetes pod network. Rules are idempotent to
+        # support container restarts without accumulating duplicates.
+        echo "[INFO] Enabling IPv4 forwarding and UE egress NAT..."
+        if command -v iptables > /dev/null 2>&1; then
+            sysctl -w net.ipv4.ip_forward=1 > /dev/null 2>&1 \
+                && echo "[OK] IPv4 forwarding enabled" \
+                || echo "[WARN] Failed to enable IPv4 forwarding"
+
+            iptables -C FORWARD -i ogstun -j ACCEPT > /dev/null 2>&1 \
+                || iptables -A FORWARD -i ogstun -j ACCEPT
+            iptables -C FORWARD -o ogstun -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT > /dev/null 2>&1 \
+                || iptables -A FORWARD -o ogstun -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+            iptables -t nat -C POSTROUTING -s "${SMF_SUBNET4:-10.45.0.0/16}" ! -o ogstun -j MASQUERADE > /dev/null 2>&1 \
+                || iptables -t nat -A POSTROUTING -s "${SMF_SUBNET4:-10.45.0.0/16}" ! -o ogstun -j MASQUERADE
+            echo "[OK] UE egress NAT configured for ${SMF_SUBNET4:-10.45.0.0/16}"
+        else
+            echo "[WARN] iptables is unavailable; UE internet egress will not work"
+        fi
     else
         echo "[INFO] ogstun not found (may need to be created on host)"
     fi

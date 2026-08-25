@@ -33,6 +33,48 @@
           pod-security.kubernetes.io/warn:    privileged
           pod-security.kubernetes.io/audit:   privileged
 
+- name: Validate subscriber and WebUI credentials
+  ansible.builtin.assert:
+    that:
+      - subscriber_credentials.k is match('^[0-9A-Fa-f]{32}$')
+      - subscriber_credentials.opc is match('^[0-9A-Fa-f]{32}$')
+      - webui_admin_password | length >= 8
+    fail_msg: >-
+      Define vault_subscriber_k, vault_subscriber_opc, and
+      vault_webui_admin_password in the encrypted vault.yml file.
+  no_log: true
+
+- name: Create test subscriber Secret in 5g-core namespace
+  kubernetes.core.k8s:
+    kubeconfig: "{{ _kubeconfig }}"
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: "{{ subscriber_credentials_secret_name }}"
+        namespace: "{{ namespaces.core }}"
+      type: Opaque
+      stringData:
+        k: "{{ subscriber_credentials.k }}"
+        opc: "{{ subscriber_credentials.opc }}"
+  no_log: true
+
+- name: Create WebUI admin Secret in 5g-core namespace
+  kubernetes.core.k8s:
+    kubeconfig: "{{ _kubeconfig }}"
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: "{{ webui_admin_secret_name }}"
+        namespace: "{{ namespaces.core }}"
+      type: Opaque
+      stringData:
+        password: "{{ webui_admin_password }}"
+  no_log: true
+
 # ----------------------------------------------------------------------------
 # 2. Create Docker Hub imagePullSecret
 # ----------------------------------------------------------------------------
@@ -75,6 +117,8 @@
     wait_timeout:     "{{ helm_timeout }}"
     values:
       imagePullSecretName: "{{ image_pull_secret_name }}"
+      webui:
+        adminSecretName: "{{ webui_admin_secret_name }}"
       images:
         core:
           repository: "{{ images.core.repository }}"

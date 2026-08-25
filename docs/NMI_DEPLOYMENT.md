@@ -31,10 +31,16 @@ later without changing the namespace, service, or pod communication model.
 - CU and DU appear as `CONNECTED` in the e2mgr `/v1/nodeb/states` endpoint.
 - CU logs contain `E2 Setup procedure successful`.
 
-The srsUE process reaches `NAS5G Switching on` but does not yet reach `RRC
-Connected` or `PDU Session Established`. This is the existing P3/ZMQ cell-search
-issue documented in `docs/STATUS.md`, not a Kubernetes scheduling or pod-health
-failure.
+The srsUE completes random access, RRC connection, registration, and PDU session
+establishment. It receives `10.45.0.2` on `tun_srsue`; the UPF creates the
+matching `internet` session and `ping 10.45.0.1` through the simulated radio path
+succeeds. SMF↔UPF PFCP uses direct pod identities through a headless UPF Service.
+The lab profile keeps the RRC bearer for up to 7200 seconds of inactivity so the
+simulated UE remains testable during long observation sessions.
+
+Internet egress from the UE subnet is not yet part of the chart. Reaching the UPF
+gateway proves the end-to-end radio/GTP-U user plane; external egress additionally
+requires forwarding and source NAT policy for `10.45.0.0/16`.
 
 ## O-RAN SC image supply
 
@@ -76,6 +82,11 @@ sudo kubectl run e2-state --rm -i --restart=Never \
 sudo kubectl logs -n ran deployment/ocudu-cu -c ocudu-cu | \
   grep 'E2 Setup procedure successful'
 sudo kubectl logs -n ran deployment/srsue -c srsue -f
+
+sudo kubectl exec -n ran deployment/srsue -- \
+  ip -brief address show tun_srsue
+sudo kubectl exec -n ran deployment/srsue -- \
+  ping -I tun_srsue -c 3 10.45.0.1
 
 sudo kubectl exec -n near-rt-ric deployment/ric-a1mediator -- \
   wget -qO- http://localhost:10000/A1-P/v2/healthcheck

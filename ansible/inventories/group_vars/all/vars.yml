@@ -82,6 +82,16 @@ nad_namespaces:
 dockerhub_username: "x0tok"
 dockerhub_password: "{{ vault_dockerhub_password | default('') }}"
 
+# Test subscriber and WebUI credentials are supplied through Ansible Vault and
+# materialized as Kubernetes Secrets by the deploy roles. Never put their
+# plaintext values in Helm values, ConfigMaps, or Git-tracked files.
+subscriber_credentials_secret_name: "oran-subscriber"
+subscriber_credentials:
+  k: "{{ vault_subscriber_k | default('') }}"
+  opc: "{{ vault_subscriber_opc | default('') }}"
+webui_admin_secret_name: "oran-webui-admin"
+webui_admin_password: "{{ vault_webui_admin_password | default('') }}"
+
 # ----------------------------------------------------------------------------
 # Container image names & tags
 # ----------------------------------------------------------------------------

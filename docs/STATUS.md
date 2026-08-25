@@ -1,10 +1,38 @@
 # O-RAN Lab Stack — Status
 
-_Last updated: 2026-04-14_
+_Last updated: 2026-08-25_
 
 ---
 
 ## 0. Recent Changes
+
+### 2026-08-25 — NMI srsUE attach and PDU session completed
+
+The single-node NMI deployment now completes the full simulated 5G SA attach:
+
+- srsUE completes random access and RRC connection through the OCUDU DU/CU.
+- Open5GS authenticates and registers `imsi-001010000000001`.
+- SMF and UPF complete PFCP association using their pod IPs.
+- The UE establishes DNN `internet` and receives `10.45.0.2`.
+- The CU completes `PDU Session Resource Setup` and the UPF creates the matching
+  GTP-U session.
+- `ping 10.45.0.1` through `tun_srsue` succeeds with 0% loss.
+- The CU inactivity timer is raised from 120 to 7200 seconds because this lab's
+  srsUE does not reliably resume its NR bearer after an idle RRC release.
+
+The final PDU-session blocker was caused by combining a ClusterIP Service with a
+`hostNetwork` UPF. The SMF sent PFCP to the Service IP, while the UPF replied and
+advertised a different node identity. Open5GS consequently logged repeated
+`Cannot find PFCP-Node`, `invalid step`, and `No UPFs are associated` errors.
+
+The UPF now runs on the Kubernetes pod network, binds PFCP/GTP-U to `eth0`, and
+is discovered through a headless Service. SMF and UPF therefore use the same pod
+IP as both the destination and advertised/source identity. Explicit session
+gateway and DNN values were also added to match the Open5GS 2.7.7 schema.
+
+External Internet egress is separate from attach/PDU establishment and is not
+yet declared by this chart; the validated user-plane boundary is UE ↔ UPF
+gateway (`10.45.0.2` ↔ `10.45.0.1`).
 
 ### 2026-04-14 — GCP Deployment + Bug Fixes
 
@@ -30,7 +58,8 @@ _Last updated: 2026-04-14_
 - F1 setup: DU F1SetupRequest → CU F1SetupResponse completed ✓
 - N2: NGSetupRequest → NGSetupResponse completed, AMF connection stable ✓
 - ZMQ: UE ↔ DU TCP link established (`10.244.190.105:2000 ↔ 10.244.190.103`) ✓
-- UE: Cell search in progress (NAS `Switching on`) — P3 investigation ongoing
+- UE: Cell search in progress (NAS `Switching on`) — historical 2026-04 GCP
+  result; P3 was resolved on the NMI deployment on 2026-08-25
 
 ### 2026-04-13 — Pre-Deployment Improvements
 
@@ -82,13 +111,13 @@ The inconsistency suggests the E2 agent initialises only when a specific conditi
 certain startup window). The one successful run occurred with debug logging enabled and on a
 fresh DU pod; subsequent restarts without debug logging produced no E2 activity.
 
-### P3 — UE Never Attaches
+### P3 — UE Never Attaches — **RESOLVED ON NMI**
 
-The srsUE starts, establishes ZMQ connections to the DU, and reaches "Switching on" in the
-NAS layer. It never acquires the cell (no PHY sync, no RRC connection). Root cause is P1:
-the DU's cell scheduling activates only after a successful F1 setup, which in turn depends
-on a stable CU, which depends on a stable N2 link to the AMF. With P1 unresolved the entire
-RAN stack above the CU-CP cannot stabilise.
+The original GCP run stopped at NAS `Switching on`. On NMI, the corrected OCUDU
+ZMQ radio profile reaches random access and RRC, while the corrected Open5GS
+subscriber/SBI/PFCP configuration completes registration and PDU establishment.
+The UE receives `10.45.0.2` and reaches its UPF gateway. See the 2026-08-25
+entry above for the verified result.
 
 ### P4 — Duplicate DU ID Rejection on DU Restart (**RESOLVED**)
 
@@ -188,7 +217,7 @@ the E2 agent from starting.
 | F7 | The DU config is rendered correctly: `enable_du_e2: true`, `addr: e2term.near-rt-ric.svc.cluster.local`, `port: 36421`, `bind_addr: <pod IP>`. The pod IP is a real IP (sed substitution works). | kubectl exec cat |
 | F8 | F1 Setup fails with "Duplicate DU ID" if the new DU pod races ahead of the CU cleaning up the old DU. The CU cleans up the old DU ~23 seconds after SCTP COMM_LOST. The DU's internal retry count is hardcoded to 1 (not configurable). **Fixed (P4):** `wait-for-cu` initContainer now holds off 30 s after the CU is reachable, outlasting the cleanup window. | CU logs / `helm/ran/values.yaml` |
 | F9 | `apk add gettext` fails silently inside the GKE init containers (no internet egress to Alpine mirrors). This was the original cause of `${POD_IP}` not being substituted. Fixed by replacing `envsubst` with `sed`. | init container logs |
-| F10 | The UE never reaches cell sync. It reaches NAS "Switching on" and stops. No PRACH activity is visible in DU logs. Root cause is P1 → P4 cascade. | UE + DU logs |
+| F10 | In the historical GCP run the UE stopped at NAS `Switching on`; the NMI deployment resolved the radio, registration, and PFCP/PDU path on 2026-08-25. | UE + DU + Open5GS logs |
 | F11 | Node pool now uses standard (on-demand) `e2-standard-4` nodes (`preemptible = false`). Previously preemptible — preemption was observed once during a session, causing `sgmm` to be replaced and triggering P1 + P4 simultaneously. P6 resolved. | terraform/variables.tf |
 | F12 | e2term `sed -i` substitutions fail at startup (read-only ConfigMap volume). e2term is still functional (accepts SCTP). The Helm chart's intent to inject pod IP / pod name is not applied. | e2term logs |
 | F13 | Open5GS AMF NRF registration, UDM/AUSF/NSSF subscriptions, and all SBI NF-to-NF links are healthy and stable. The 5G core NFs other than the AMF SCTP path are not the problem. | AMF logs |

@@ -1,7 +1,10 @@
 # vault.yml — Ansible Vault encrypted file
 #
 # Contains:
-#   vault_dockerhub_password:  Docker Hub personal access token
+#   vault_dockerhub_password:    Docker Hub personal access token
+#   vault_subscriber_k:          test UE Milenage K (32 hex characters)
+#   vault_subscriber_opc:        test UE Milenage OPc (32 hex characters)
+#   vault_webui_admin_password:  Open5GS WebUI admin password
 #
 # The old vault_gcp_billing_account variable (GKE era) can be removed
 # if present; it is no longer referenced. To re-create a clean vault:
@@ -10,6 +13,9 @@
 #
 # Paste in:
 #   vault_dockerhub_password: "your-docker-hub-pat"
+#   vault_subscriber_k: "your-32-character-hex-k"
+#   vault_subscriber_opc: "your-32-character-hex-opc"
+#   vault_webui_admin_password: "choose-a-lab-password"
 #
 # Then save ~/.oran_vault_pass with the vault password, or always pass
 # --ask-vault-pass when running playbooks that need Docker Hub access.

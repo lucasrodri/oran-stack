@@ -1,20 +1,26 @@
 // Idempotent replica set initialization for Open5GS lab (single-member rs0).
 // Run via deploy_5g_core after MongoDB pod is Ready.
 
-try {
-  var status = rs.status();
-  if (status.ok === 1) {
+const desiredHost = 'mongodb-0.mongodb:27017';
+const localDb = db.getSiblingDB('local');
+const existingConfig = localDb.system.replset.findOne({ _id: 'rs0' });
+
+if (existingConfig) {
+  if (existingConfig.members[0].host !== desiredHost) {
+    existingConfig.version++;
+    existingConfig.members[0].host = desiredHost;
+    rs.reconfig(existingConfig, { force: true });
+    print('reconfigured');
+  } else {
     print('already_initialized');
-    quit(0);
   }
-} catch (e) {
-  // Replica set not configured yet.
+  quit(0);
 }
 
 try {
   rs.initiate({
     _id: 'rs0',
-    members: [{ _id: 0, host: 'mongodb:27017', priority: 1 }]
+    members: [{ _id: 0, host: desiredHost, priority: 1 }]
   });
   print('initialized');
 } catch (e) {

@@ -74,8 +74,7 @@ plmn:
 # ----------------------------------------------------------------------------
 ue:
   imsi: "001010000000001"
-  k: "465B5CE8B199B49FAA5F0A2EE238A6BC"
-  opc: "E8ED289DEBA952E4283B54E88E6183CA"
+  credentialsSecretName: "oran-subscriber"
   apn: "internet"
 
 # F1 interface port (CU <-> DU user plane)
@@ -100,6 +99,15 @@ zmq:
 # How long (seconds) the UE initContainer waits after the DU ZMQ port opens
 # before starting srsUE. Must exceed duF1SetupHoldOffSec so the cell is active.
 ueStartDelaySec: 40
+
+# OCUDU defaults to 3 seconds, which is too short for the first Open5GS
+# authentication round-trip after NF discovery or MongoDB election.
+pduSessionRequestTimeoutSec: 30
+
+# Keep the simulated UE bearer alive during lab observation. OCUDU defaults to
+# 120 seconds and releases the RRC context after an idle demo UE stops sending
+# packets. srsUE does not reliably resume the NR bearer after that release.
+ueInactivityTimerSec: 7200
 
 # Enable/disable the UE simulator
 deployUE: true

@@ -45,7 +45,7 @@ SCTP traffic (N2/NGAP, F1-C, E2AP) is carried on dedicated OVS secondary interfa
 
 **PLMN:** MCC=001 MNC=01  
 **Test subscriber:** IMSI 001010000000001  
-**WebUI:** `http://<node-ip>:<nodePort>` — admin / 1423
+**WebUI:** `http://<node-ip>:<nodePort>` — user `admin`; password from Ansible Vault
 
 ---
 
@@ -67,7 +67,7 @@ ansible-galaxy collection install -r ansible/requirements.yml
 
 ## Secrets setup
 
-Create the Ansible Vault file with your Docker Hub credentials:
+Create the Ansible Vault file with the deployment credentials:
 
 ```bash
 ansible-vault create ansible/inventories/group_vars/all/vault.yml
@@ -77,6 +77,9 @@ Paste:
 
 ```yaml
 vault_dockerhub_password: "your-docker-hub-pat"
+vault_subscriber_k: "your-32-character-hex-k"
+vault_subscriber_opc: "your-32-character-hex-opc"
+vault_webui_admin_password: "choose-a-lab-password"
 ```
 
 Save the vault password to `~/.oran_vault_pass` (never commit this file):
@@ -303,7 +306,10 @@ Check Flannel pods: `kubectl get pods -n kube-flannel`. Re-run `provision.yml` �
 Verify the imagePullSecret: `kubectl get secret dockerhub-secret -n 5g-core`. Re-run `deploy.yml` to recreate it.
 
 **UPF pod CrashLoops**  
-UPF uses `hostNetwork: true` and creates TUN interfaces. Confirm `net.ipv4.ip_forward=1` is set on the worker: `ssh <node> sysctl net.ipv4.ip_forward`. The `kubeadm_prereqs` role sets this.
+UPF runs as a privileged pod so it can create `ogstun`; PFCP and GTP-U bind to
+the pod's `eth0`, and the headless `upf` Service resolves directly to that pod
+IP. Check `kubectl logs -n 5g-core deploy/upf` for `PFCP associated` and verify
+`kubectl exec -n 5g-core deploy/upf -- ip -brief addr show ogstun`.
 
 **SCTP associations not establishing**  
 Confirm secondary interfaces are attached: `kubectl exec -n ran deploy/ocudu-cu -- ip addr`. You should see interfaces with IPs from the 10.200.x.0/24 ranges. Check OVS bridge and VXLAN tunnels: `sudo ovs-vsctl show` on each node.

@@ -19,16 +19,13 @@
   delay: 5
   changed_when: false
 
-- name: Copy MongoDB init scripts into pod
+- name: Copy MongoDB replica-set init script into pod
   ansible.builtin.command:
     cmd: >
       kubectl --kubeconfig={{ _kubeconfig }} cp
-      {{ role_path }}/files/{{ item }}
-      {{ namespaces.core }}/mongodb-0:/tmp/{{ item }}
+      {{ role_path }}/files/mongodb-init-rs.js
+      {{ namespaces.core }}/mongodb-0:/tmp/mongodb-init-rs.js
       -c mongodb
-  loop:
-    - mongodb-init-rs.js
-    - mongodb-seed.js
   changed_when: false
 
 - name: Initialize MongoDB replica set (idempotent)
@@ -52,17 +49,44 @@
   delay: 2
   changed_when: false
 
-- name: Seed MongoDB admin user and test subscriber (idempotent)
-  ansible.builtin.command:
-    cmd: >
-      kubectl --kubeconfig={{ _kubeconfig }} exec -n {{ namespaces.core }} mongodb-0 -c mongodb --
-      mongosh "mongodb://localhost:27017/?directConnection=true"
-      --quiet --file /tmp/mongodb-seed.js
-  register: mongo_seed
-  changed_when: >-
-    'Admin user initialized' in mongo_seed.stdout or
-    '5G subscriber seeded' in mongo_seed.stdout or
-    '5G auth seeded' in mongo_seed.stdout
+- name: Render and apply subscriber seed without persisting credentials
+  block:
+    - name: Allocate temporary subscriber seed file
+      ansible.builtin.tempfile:
+        state: file
+        suffix: .mongodb-seed.js
+      register: _subscriber_seed_file
+
+    - name: Render subscriber seed from Ansible Vault
+      ansible.builtin.template:
+        src: mongodb-seed.js.j2
+        dest: "{{ _subscriber_seed_file.path }}"
+        mode: "0600"
+
+    - name: Copy subscriber seed into MongoDB pod
+      ansible.builtin.command:
+        cmd: >
+          kubectl --kubeconfig={{ _kubeconfig }} cp
+          {{ _subscriber_seed_file.path }}
+          {{ namespaces.core }}/mongodb-0:/tmp/mongodb-seed.js
+          -c mongodb
+      changed_when: false
+
+    - name: Seed MongoDB test subscriber (idempotent)
+      ansible.builtin.command:
+        cmd: >
+          kubectl --kubeconfig={{ _kubeconfig }} exec -n {{ namespaces.core }} mongodb-0 -c mongodb --
+          mongosh "mongodb://localhost:27017/?directConnection=true"
+          --quiet --file /tmp/mongodb-seed.js
+      register: mongo_seed
+      changed_when: "'5G subscriber seeded' in mongo_seed.stdout"
+  always:
+    - name: Remove temporary subscriber seed file
+      ansible.builtin.file:
+        path: "{{ _subscriber_seed_file.path | default('') }}"
+        state: absent
+      when: _subscriber_seed_file.path | default('') | length > 0
+  no_log: true
 
 - name: Verify test subscriber exists
   ansible.builtin.command:

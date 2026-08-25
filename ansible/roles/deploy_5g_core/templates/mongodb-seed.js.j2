@@ -1,0 +1,44 @@
+// Idempotent Open5GS test-subscriber seed.
+// Rendered to a temporary file from Ansible Vault and deleted after use.
+
+db = db.getSiblingDB('open5gs');
+
+try {
+  db.subscribers.updateOne(
+    { imsi: '001010000000001' },
+    { $set: {
+        imsi: '001010000000001', msisdn: '+82100000001',
+        subscriber_status: 0, network_access_mode: 0,
+        access_restriction_data: 32, operator_determined_barring: 0,
+        security: {
+          k: '{{ subscriber_credentials.k }}',
+          op: null,
+          opc: '{{ subscriber_credentials.opc }}',
+          amf: '8000',
+          sqn: NumberLong('0')
+        },
+        ambr: {
+          downlink: { value: 1, unit: 3 },
+          uplink: { value: 1, unit: 3 }
+        },
+        slice: [{
+          sst: 1, default_indicator: true,
+          session: [{
+            name: 'internet', type: 3, pcc_rule: [],
+            ambr: {
+              downlink: { value: 1, unit: 3 },
+              uplink: { value: 1, unit: 3 }
+            },
+            qos: { index: 9, arp: {
+              priority_level: 8,
+              pre_emption_capability: 1,
+              pre_emption_vulnerability: 1
+            }}
+          }]
+        }],
+        schema_version: 1, updated_at: new Date()
+    }},
+    { upsert: true }
+  );
+  print('5G subscriber seeded: 001010000000001');
+} catch (e) { print('5G subscriber: ' + e.message); }

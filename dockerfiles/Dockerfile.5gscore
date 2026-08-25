@@ -11,7 +11,8 @@ ENV SKIP_MONGODB=true
 #   --cap-add=NET_ADMIN \
 # These are required for TUN interface creation (e.g. ip tuntap add name ogstun mode tun)
 
-RUN apt-get update && apt-get install -y curl iproute2 gettext-base
+RUN apt-get update && apt-get install -y \
+    curl iproute2 iptables gettext-base
 
 RUN apt-get install -y \
     python3-pip python3-setuptools python3-wheel ninja-build \

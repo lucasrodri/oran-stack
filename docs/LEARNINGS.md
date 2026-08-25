@@ -888,9 +888,9 @@ kubectl exec -n 5g-core mongodb-0 -- mongosh \
 db.subscribers.insertOne({
   imsi: "001010000000001",
   security: {
-    k: "465B5CE8B199B49FAA5F0A2EE238A6BC",
+    k: "<loaded-from-secret>",
     op: null,
-    opc: "E8ED289DEBA952E4283B54E88E6183CA",
+    opc: "<loaded-from-secret>",
     amf: "8000",
     sqn: NumberLong("0")
   },
@@ -1461,12 +1461,12 @@ survives a rerun must be cleared by deleting its release secrets.
 | E2 | gNB registered | `gnb_001_001_00019b` confirmed via `GET /v1/nodeb/states` ✅ |
 | ZMQ | ESTAB | `10.244.190.105:2000 ↔ 10.244.190.103` ✅ |
 
-**Open items:**
+**Historical open items from the 2026-04-14 GCP run:**
 - **P2 (E2 Setup timeout):** CU logs show `E2 Setup procedure aborted` at ~T+10 min. The E2
   Setup Request reached e2mgr before the CU-side timeout; the response path back timed out.
   gNB remains registered. Root cause not yet fully diagnosed.
-- **P3 (UE attach):** UE is scanning for the cell (`NAS5G: Switching on`). Full attach
-  (Registration Accept + GTP-U tunnel) not yet confirmed.
+- **P3 (UE attach):** At that point the UE was scanning for the cell. This was
+  resolved on the NMI deployment on 2026-08-25; see sections 43 and 44.
 
 ---
 
@@ -1481,3 +1481,54 @@ survives a rerun must be cleared by deleting its release secrets.
 | `helm/monitoring/values.yaml` | Prometheus CPU request: `200m` → `50m` |
 | `docs/STATUS.md` | Updated with 2026-04-14 session summary |
 
+---
+
+## 43. Kubernetes PFCP identity must not change behind a Service
+
+**Symptom:** The UE registered successfully but received `PDU Session
+Establishment Reject` with cause `Network failure`. SMF repeatedly logged:
+
+```text
+Cannot find PFCP-Node
+invalid step[0]
+No UPFs are associated
+```
+
+**Root cause:** SMF contacted a ClusterIP, but the UPF used `hostNetwork` and
+answered from the node network. PFCP is stateful UDP signalling; Open5GS tracks
+the peer identity and rejected packets whose source/advertised identity did not
+match the configured peer.
+
+**Fix:** Run the UPF in its pod network, make the UPF Service headless, and bind
+SMF/UPF PFCP and GTP-U servers to `dev: eth0`. Add explicit `gateway` and `dnn`
+to both session configurations. This produced a stable direct association:
+
+```text
+SMF: PFCP associated [10.244.0.91]:8805
+UPF: PFCP associated [10.244.0.92]:8805
+```
+
+The srsUE then established DNN `internet`, received `10.45.0.2`, and reached the
+UPF gateway at `10.45.0.1` with no packet loss.
+
+**Lesson:** For PFCP and GTP-U in Kubernetes, the address advertised by the NF
+must be the address seen as the UDP packet source. A headless Service is useful
+for a single lab UPF because DNS resolves directly to the pod endpoint. Scaling
+UPFs requires explicit selection and stable per-UPF identities, not random
+load-balancing behind one ClusterIP.
+
+---
+
+## 44. srsUE does not reliably resume after OCUDU's idle RRC release
+
+**Symptom:** Attach, PDU setup, and initial gateway traffic succeeded, but later
+tests failed while `tun_srsue` still existed. The CU log showed an inactivity
+release and the UE logged `Received RRC Release`.
+
+**Cause:** OCUDU's CU-CP default inactivity timer is 120 seconds. Releasing an
+idle UE is correct mobile-network behaviour, but this srsUE NR simulator does not
+reliably initiate service request/resume afterward.
+
+**Lab fix:** Set `cu_cp.inactivity_timer` to 7200 seconds (the supported maximum)
+through `ueInactivityTimerSec`. This does not change PFCP or subscriber state; it
+keeps the simulated RRC/DRB context alive long enough for interactive tests.

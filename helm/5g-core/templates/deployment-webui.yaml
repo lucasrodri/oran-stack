@@ -2,7 +2,7 @@
 # WebUI — Open5GS Subscriber Management Interface
 # ============================================================================
 # Exposed as a LoadBalancer on port 9999 so operators can reach it from
-# outside the cluster. Default credentials: admin / 1423 (see TODO.md).
+# outside the cluster. The admin password is loaded from a Kubernetes Secret.
 {{- if .Values.nf.webui.enabled }}
 apiVersion: apps/v1
 kind: Deployment
@@ -33,9 +33,43 @@ spec:
             - sh
             - -c
             - |
-              until mongosh --host mongodb:27017 --eval "db.adminCommand('ping')" --quiet; do
-                echo "Waiting for MongoDB..."; sleep 5;
+              until mongosh --quiet "mongodb://mongodb:27017/admin?directConnection=true" \
+                --eval 'const hello = db.hello(); if (!hello.isWritablePrimary) quit(1)'; do
+                echo "Waiting for MongoDB writable primary..."; sleep 5;
               done
+        - name: seed-webui-admin
+          image: {{ .Values.images.webui.repository }}:{{ .Values.images.webui.tag }}
+          imagePullPolicy: {{ .Values.images.webui.pullPolicy }}
+          command:
+            - node
+            - -e
+            - |
+              const mongoose = require('mongoose');
+              const Account = require('./server/models/account');
+              (async () => {
+                await mongoose.connect(process.env.DB_URI, {
+                  useNewUrlParser: true,
+                  useUnifiedTopology: true
+                });
+                let account = await Account.findOne({username: 'admin'});
+                if (!account) account = new Account({username: 'admin'});
+                account.roles = ['admin'];
+                await account.setPassword(process.env.ADMIN_PASSWORD);
+                await account.save();
+                await mongoose.disconnect();
+                console.log('WebUI administrator provisioned');
+              })().catch(error => {
+                console.error(error);
+                process.exit(1);
+              });
+          env:
+            - name: DB_URI
+              value: {{ .Values.mongodb.uri | quote }}
+            - name: ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.webui.adminSecretName }}
+                  key: password
       containers:
         - name: webui
           image: {{ .Values.images.webui.repository }}:{{ .Values.images.webui.tag }}

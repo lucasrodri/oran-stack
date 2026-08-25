@@ -18,7 +18,7 @@ namespace: 5g-core
 
 # RollingUpdate needs spare CPU for old+new pods on a single worker; Recreate
 # avoids Pending pods when the worker is near its CPU request limit.
-# Also required for Multus static IPs (AMF) and UPF hostNetwork port binds.
+# Also required for Multus static IPs (AMF) on a small single-node lab.
 deploymentStrategy: Recreate
 
 # ----------------------------------------------------------------------------
@@ -47,6 +47,11 @@ images:
 
 # Docker Hub credentials secret name (created by Ansible before helm install)
 imagePullSecretName: ""
+
+# Existing Secret containing the Open5GS WebUI administrator password under
+# the key "password". Ansible creates this Secret from encrypted Vault data.
+webui:
+  adminSecretName: "oran-webui-admin"
 
 # ----------------------------------------------------------------------------
 # PLMN (Public Land Mobile Network identity)
@@ -89,7 +94,10 @@ nssai:
 # ----------------------------------------------------------------------------
 ue:
   subnet4: "10.45.0.0/16"
+  gateway4: "10.45.0.1"
   subnet6: "2001:db8:cafe::/48"
+  gateway6: "2001:db8:cafe::1"
+  dnn: "internet"
 
 # ----------------------------------------------------------------------------
 # Logging

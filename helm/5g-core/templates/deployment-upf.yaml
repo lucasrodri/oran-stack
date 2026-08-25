@@ -1,22 +1,11 @@
 # ============================================================================
 # UPF — User Plane Function
 # ============================================================================
-# The UPF is the most privileged workload in the stack:
-#   - hostNetwork: true  — shares the GKE node's network namespace so the
-#     TUN interface (ogstun) it creates is visible to the node's iptables.
-#     Without this, GTP-U packets from the CU cannot be forwarded to the
-#     UE's data plane.
-#   - privileged: true   — required to create TUN devices and modify routes.
-#
-# Because hostNetwork:true is set, the pod shares the node's IP. This means
-# the UPF's PFCP and GTP-U ports are bound on the node's primary IP, which
-# must be reachable from the SMF (also in cluster). The SMF config uses the
-# Kubernetes Service DNS name 'upf', which resolves to the ClusterIP. The
-# ClusterIP routes to the pod, which uses the node IP for data-plane traffic.
-#
-# This approximation works for a lab. In production, use a dedicated UPF
-# (e.g., free5GC's gtp5g kernel module, or an eBPF-based UPF) with proper
-# network attachment.
+# The UPF remains privileged so it can create its ogstun TUN interface, but
+# runs in the pod network.  Keeping PFCP and GTP-U on eth0 gives the UPF one
+# stable, self-consistent identity: the same pod IP is advertised and used as
+# the source of its UDP replies.  hostNetwork combined with a ClusterIP made
+# Open5GS see two different PFCP peers (Service IP versus node IP).
 {{- if .Values.nf.upf.enabled }}
 apiVersion: apps/v1
 kind: Deployment
@@ -37,10 +26,10 @@ spec:
     metadata:
       labels:
         app: upf
+      annotations:
+        checksum/nf-configs: {{ include (print $.Template.BasePath "/configmap-nf-configs.yaml") . | sha256sum }}
     spec:
       {{- include "5g-core.imagePullSecrets" . | nindent 6 }}
-      hostNetwork: true
-      dnsPolicy: ClusterFirstWithHostNet  # Required when hostNetwork:true to still use cluster DNS.
       containers:
         - name: upf
           image: {{ .Values.images.core.repository }}:{{ .Values.images.core.tag }}
@@ -74,8 +63,8 @@ spec:
       volumes:
         {{ include "5g-core.nfVolumes" . | nindent 8 }}
 ---
-# ClusterIP Service for UPF — used by SMF for PFCP signalling.
-# Data-plane GTP-U traffic goes directly node-IP → CU, bypassing kube-proxy.
+# Headless Service for UPF. PFCP is stateful UDP signalling, so the SMF must
+# contact the pod IP that the UPF itself uses in Association Setup responses.
 apiVersion: v1
 kind: Service
 metadata:
@@ -84,6 +73,7 @@ metadata:
   labels:
     app: upf
 spec:
+  clusterIP: None
   selector:
     app: upf
   ports:

@@ -414,6 +414,32 @@ spec:
               done
               echo "DU ZMQ port open — waiting {{ .Values.ueStartDelaySec }}s for cell to activate..."
               sleep {{ .Values.ueStartDelaySec }}
+        - name: render-ue-config
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              cp /templates/ue.conf.tpl /rendered/ue.conf
+              sed -i "s|__UE_K__|${UE_K}|g; s|__UE_OPC__|${UE_OPC}|g" /rendered/ue.conf
+              chmod 0400 /rendered/ue.conf
+          env:
+            - name: UE_K
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.ue.credentialsSecretName }}
+                  key: k
+            - name: UE_OPC
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.ue.credentialsSecretName }}
+                  key: opc
+          volumeMounts:
+            - name: ocudu-templates
+              mountPath: /templates
+              readOnly: true
+            - name: srsue-rendered
+              mountPath: /rendered
       containers:
         - name: srsue
           image: {{ .Values.images.srsue.repository }}:{{ .Values.images.srsue.tag }}
@@ -428,7 +454,7 @@ spec:
               name: zmq-ul
               protocol: TCP
           volumeMounts:
-            - name: ocudu-templates
+            - name: srsue-rendered
               mountPath: /mnt/srsran/configs
               readOnly: true
             - name: srsue-logs
@@ -443,6 +469,8 @@ spec:
         - name: ocudu-templates
           configMap:
             name: ocudu-configs
+        - name: srsue-rendered
+          emptyDir: {}
         - name: srsue-logs
           emptyDir: {}
 ---
