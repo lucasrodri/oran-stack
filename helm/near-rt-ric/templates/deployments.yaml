@@ -3,9 +3,9 @@
 # ============================================================================
 # Startup ordering (mirrors docker-compose.ric.yml depends_on):
 #
-#   dbaas (healthy) → e2mgr (healthy) → {appmgr, submgr} → rtmgr
-#                                                         ↓
-#                                                    e2term (after 5s sleep)
+#   dbaas (healthy) → {e2mgr, a1mediator}
+#                         ↓
+#                    {appmgr, submgr} → rtmgr → e2term (after startup delay)
 #
 # Implemented via initContainers that wait for upstream services using
 # wget/curl health checks — the Kubernetes equivalent of depends_on.
@@ -416,6 +416,11 @@ spec:
               until wget -qO- http://ric-submgr:8088/ric/v1/subscriptions; do
                 echo "waiting for submgr"; sleep 3
               done
+{{- if .Values.a1mediator.enabled }}
+              until wget -qO- http://ric-a1mediator:10000/A1-P/v2/healthcheck; do
+                echo "waiting for a1mediator"; sleep 3
+              done
+{{- end }}
         # Resolve the ric-submgr ClusterIP and write it to a shared volume.
         # The main container's command patches /etc/hosts before starting rtmgr,
         # injecting the alias that rtmgr hardcodes internally.
@@ -837,6 +842,18 @@ spec:
               name: http
             - containerPort: 4562
               name: rmr
+          readinessProbe:
+            httpGet:
+              path: /A1-P/v2/healthcheck
+              port: http
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /A1-P/v2/healthcheck
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
           volumeMounts:
             - name: a1mediator-config
               mountPath: /opt/a1-mediator/config.yaml

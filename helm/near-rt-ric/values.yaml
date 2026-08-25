@@ -66,10 +66,11 @@ rtmgr:
   enabled: true
   stubEnabled: false
 
-# A1 is not required for the E2/KPM data path and remains opt-in until an A1
-# policy client is part of the lab scenario. Its current image is available.
+# RTMgr's M-release route model includes A1MEDIATOR as a platform endpoint.
+# Keep it enabled so route generation is complete even before a policy client
+# is added to the lab.
 a1mediator:
-  enabled: false
+  enabled: true
 
 # ----------------------------------------------------------------------------
 # RIC Identity (must match the DU's E2 setup request)

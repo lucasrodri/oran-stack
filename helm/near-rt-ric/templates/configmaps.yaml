@@ -145,6 +145,11 @@ data:
       - name: E2MAN
         fqdn: ric-e2mgr
         port: 3801
+{{- if .Values.a1mediator.enabled }}
+      - name: A1MEDIATOR
+        fqdn: ric-a1mediator
+        port: 4562
+{{- end }}
     PlatformRoutes:
       - messagetype: E2_TERM_INIT
         senderendpoint: ""
@@ -216,6 +221,18 @@ data:
         subscriptionid: -1
         endpoint: SUBMAN
         meid: ""
+{{- if .Values.a1mediator.enabled }}
+      - messagetype: A1_POLICY_QUERY
+        senderendpoint: ""
+        subscriptionid: -1
+        endpoint: A1MEDIATOR
+        meid: ""
+      - messagetype: A1_POLICY_RESP
+        senderendpoint: ""
+        subscriptionid: -1
+        endpoint: A1MEDIATOR
+        meid: ""
+{{- end }}
     messagetypes:
       - "E2_TERM_INIT=1100"
       - "E2_TERM_KEEP_ALIVE_REQ=1101"
@@ -245,16 +262,15 @@ data:
       - "RIC_CONTROL_ACK=12041"
       - "RIC_CONTROL_FAILURE=12042"
       - "RIC_INDICATION=12050"
+      - "A1_POLICY_REQ=20010"
+      - "A1_POLICY_RESP=20011"
+      - "A1_POLICY_QUERY=20012"
       - "RIC_SERVICE_QUERY=12060"
       - "RIC_E2NODE_CONFIG_UPDATE=12070"
       - "RIC_E2NODE_CONFIG_UPDATE_ACK=12071"
       - "RIC_E2NODE_CONFIG_UPDATE_FAILURE=12072"
       - "RIC_HEALTH_CHECK_REQ=100"
       - "RIC_HEALTH_CHECK_RESP=101"
-    # A1_POLICY_* deliberately omitted: referencing them makes rtmgr look up
-    # Platform component "A1Mediator". When that lookup fails (or A1's RMR
-    # wormhole is down), rtmgr redistributes a full newrt every few seconds
-    # and wipes subscription indication routes (mse|12050|<subid>|...).
     local:
       host: ":8989"
     logger:
@@ -278,7 +294,7 @@ data:
       timeout: 30
 
   rt.json: |
-    {"XApps":[],"E2Ts":{},"MeidMap":[],"Pcs":[{"name":"E2TERM","fqdn":"ric-e2term","port":38000},{"name":"SUBMAN","fqdn":"ric-submgr","port":4560},{"name":"E2MAN","fqdn":"ric-e2mgr","port":3801}]}
+    {"XApps":[],"E2Ts":{},"MeidMap":[],"Pcs":[{"name":"E2TERM","fqdn":"ric-e2term","port":38000},{"name":"SUBMAN","fqdn":"ric-submgr","port":4560},{"name":"E2MAN","fqdn":"ric-e2mgr","port":3801}{{- if .Values.a1mediator.enabled }},{"name":"A1MEDIATOR","fqdn":"ric-a1mediator","port":4562}{{- end }}]}
 ---
 # --- submgr configuration ----------------------------------------------------
 apiVersion: v1
