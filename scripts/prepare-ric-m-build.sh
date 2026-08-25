@@ -30,6 +30,16 @@ case "$component" in
   e2mgr)
     context="$source_dir/E2Manager"
     dockerfile="$context/Dockerfile"
+
+    # The M-release declares Go 1.22.5, but its build helper still uses the
+    # pre-Go-1.17 `go get` installation behavior and a cgocheck mode removed
+    # from the runtime. Keep the official dependency version and tests while
+    # making those two commands compatible with the declared toolchain.
+    sed -i.bak \
+      -e 's|go get -v github.com/ory/go-acc|go install github.com/ory/go-acc@v0.2.8|' \
+      -e 's|cgocheck=2,clobberfree=1,|clobberfree=1,|' \
+      "$context/build-e2mgr-ubuntu.sh"
+    rm -f "$context/build-e2mgr-ubuntu.sh.bak"
     ;;
   *)
     echo "unsupported RIC component: $component" >&2
