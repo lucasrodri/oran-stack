@@ -52,18 +52,19 @@ Land these in Helm / `ric/config` so a cold deploy works without Ansible
 band-aids:
 
 1. **SubMgr → RTMgr NBI port `3800`**
-   - `ric-plt-rtmgr:0.9.6` ignores `local.host` and binds REST on **3800**, not
+   - `ric-plt-rtmgr:0.9.7` ignores `local.host` and binds REST on **3800**, not
      `8989`.
    - Files: `helm/near-rt-ric/templates/configmaps.yaml`,
      `ric/config/submgr/submgr-config.yaml`.
 
-2. **Stop A1Mediator-triggered `newrt` wipes of `mse|12050|<subid>`**
-   - Referencing `A1_POLICY_*` / Platform component `A1Mediator` makes RTMgr
-     redistribute a full `newrt` when A1 RMR is down, wiping subscription
-     indication routes.
-   - Omit A1 from PlatformComponents / `rt.json` Pcs and drop `A1_POLICY_*`
-     from messagetypes until A1 is actually needed and healthy.
-   - Files: rtmgr configmap + `ric/config/rtmgr/*`.
+2. **Keep the A1 route-management endpoint healthy**
+   - M-release RTMgr expects `A1MEDIATOR` in PlatformComponents and opens its
+     route-management wormhole on port `4561`; A1 data traffic uses `4562`.
+   - The Helm chart now enables A1, exposes both ports, and waits for its HTTP
+     healthcheck before starting RTMgr. If A1 is disabled for a reduced lab,
+     remove its platform routes at the same time instead of leaving a dead
+     endpoint that triggers repeated `newrt` redistribution.
+   - Files: rtmgr configmap and A1 Deployment/Service in the Near-RT RIC chart.
 
 3. **Explicit `RIC_SUB_*` / `RIC_SUB_DEL_*` platform routes**
    - SUBMAN must own subscribe/delete request toward the meid and receive

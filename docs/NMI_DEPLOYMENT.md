@@ -1,6 +1,6 @@
 # NMI single-node deployment
 
-Last verified: 2026-08-24
+Last verified: 2026-08-25
 
 ## Infrastructure
 
@@ -23,8 +23,9 @@ later without changing the namespace, service, or pod communication model.
 
 - Kubernetes node is `Ready`.
 - The `5g-core` Helm release is deployed; MongoDB and all Open5GS NFs are running.
-- The `near-rt-ric` release is deployed with DBAAS, E2 Manager, E2 Termination,
-  Subscription Manager, and Application Manager running.
+- The `near-rt-ric` Helm release revision 9 is deployed with DBAAS, E2 Manager,
+  E2 Termination, Subscription Manager, Application Manager, Routing Manager,
+  and A1 Mediator running.
 - The `ran` release is deployed; CU, DU, and srsUE pods are running.
 - N2 NG Setup and F1 Setup complete successfully.
 - CU and DU appear as `CONNECTED` in the e2mgr `/v1/nodeb/states` endpoint.
@@ -35,29 +36,29 @@ Connected` or `PDU Session Established`. This is the existing P3/ZMQ cell-search
 issue documented in `docs/STATUS.md`, not a Kubernetes scheduling or pod-health
 failure.
 
-## O-RAN SC image-registry workaround
+## O-RAN SC image supply
 
-On 2026-08-24 all O-RAN SC Nexus Docker endpoints (`10001`, `10002`, and
-`10004`) returned HTTP `402 Invalid license`. Five compatible I/J-release images
-were recovered from the existing `vm-ric` containerd cache and imported into the
-new node:
+The O-RAN SC Nexus Docker endpoints return HTTP `402 Invalid license` from the
+NMI environment. The fork therefore rebuilds the pinned official M-release
+sources in GitHub Actions and publishes public `linux/amd64` images to
+`ghcr.io/lucasrodri/oran-stack`:
 
-- `ric-plt-appmgr:0.5.7`
-- `ric-plt-dbaas:0.6.4`
-- `ric-plt-e2:6.0.6`
-- `ric-plt-e2mgr:6.0.4`
-- `ric-plt-submgr:0.10.1`
+- `ric-plt-appmgr:0.5.10`
+- `ric-plt-dbaas:0.6.5`
+- `ric-plt-e2:6.0.8`
+- `ric-plt-e2mgr:6.0.8`
+- `ric-plt-submgr:0.10.4`
+- `ric-plt-rtmgr:0.9.7`
+- `ric-plt-a1:3.2.3`
 
-Their Helm pull policy is `IfNotPresent`, so the deployment uses the local cache.
-Do not prune these images until they have been mirrored into a registry controlled
-by NMI.
+The exact upstream commits and reproducible workflow are documented in
+`docs/RIC_IMAGES.md`. A clean installation no longer depends on the old VM's
+containerd cache or on access to Nexus.
 
-The official RTMgr and A1Mediator images were not present in that cache. For the
-base E2 path, A1Mediator is disabled and a deliberately limited HTTP acknowledgement
-stub is used for the E2T registration callback. RMR traffic uses the chart's static
-seed routes. This supports E2 Setup and node registration, but it does **not**
-provide RTMgr's dynamic xApp route management. Deploy the simple-mon xApp only
-after a full RTMgr image is rebuilt or mirrored and `rtmgr.enabled` is restored.
+RTMgr and A1 Mediator are enabled. RTMgr successfully pushes a 31-entry route
+table to A1 on its RMR data endpoint. The A1 Service must expose both the RMR
+route-management port `4561` and data port `4562`; RTMgr opens its management
+wormhole on `4561` regardless of the data port declared in PlatformComponents.
 
 ## Useful checks
 
@@ -75,6 +76,11 @@ sudo kubectl run e2-state --rm -i --restart=Never \
 sudo kubectl logs -n ran deployment/ocudu-cu -c ocudu-cu | \
   grep 'E2 Setup procedure successful'
 sudo kubectl logs -n ran deployment/srsue -c srsue -f
+
+sudo kubectl exec -n near-rt-ric deployment/ric-a1mediator -- \
+  wget -qO- http://localhost:10000/A1-P/v2/healthcheck
+sudo kubectl logs -n near-rt-ric deployment/ric-rtmgr | \
+  grep 'ric-a1mediator:4562 successful'
 ```
 
 ## Restore points
@@ -83,3 +89,4 @@ Proxmox snapshots created during provisioning:
 
 - `pre-k8s`: generalized Debian VM before Kubernetes.
 - `k8s-ready`: healthy Kubernetes/CNI/OVS base before application deployment.
+- `pre-ric-m-20260825`: complete VM before the O-RAN SC M-release image upgrade.
