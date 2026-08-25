@@ -300,7 +300,7 @@ data:
       "numWorkers": 1
     "rtmgr":
       "hostAddr": "ric-rtmgr"
-      # ric-plt-rtmgr:0.9.6 ignores local.host and binds its REST API to 3800.
+      # ric-plt-rtmgr:0.9.7 ignores local.host and binds its REST API to 3800.
       "port": "3800"
       "baseUrl": "/ric/v1"
     "db":

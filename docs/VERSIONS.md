@@ -35,12 +35,17 @@ deployment repository is M. Its recipe declares the following component tags:
 | A1 Mediator | 3.2.3 |
 | DBaaS | 0.6.5 |
 
-These tags are not yet the deployment defaults. The official recipe points to
-the Linux Foundation Nexus registry, which currently returns HTTP 402 to this
-environment. Merely changing a tag would therefore break a clean deployment.
-The next migration step is to build these exact upstream refs, publish
-multi-architecture images in a registry controlled by this project, and then
-change the Helm values after an end-to-end E2 test.
+These tags are the Near-RT RIC deployment defaults for the NMI `amd64`
+environment. The official recipe points to the Linux Foundation Nexus
+registry, which returns HTTP 402 from this environment. To make clean installs
+reproducible, `.github/workflows/ric-m-images.yml` builds the pinned upstream
+sources and publishes `linux/amd64` images under
+`ghcr.io/lucasrodri/oran-stack`. See `docs/RIC_IMAGES.md` for the exact source
+commits and build procedure.
+
+The Ampere/CIC `arm64` environment is deliberately outside this deployment
+phase. RMR and SDL are compiled as dependencies inside these RIC container
+images; they are not installed separately on the NMI VM.
 
 Primary sources:
 

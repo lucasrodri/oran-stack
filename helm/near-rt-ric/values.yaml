@@ -21,53 +21,53 @@ secondaryNetworks:
     e2termIP: "10.200.3.4"
 
 # ----------------------------------------------------------------------------
-# RIC Component Images (pre-built from the O-RAN SC Nexus3 registry)
-# The pinned versions below are the images validated in the NMI lab. The
-# current upstream M-release tags are recorded in docs/VERSIONS.md, but must
-# first be rebuilt or mirrored because Nexus currently returns HTTP 402.
+# RIC Component Images (O-RAN SC M release, rebuilt reproducibly for amd64)
+# The Linux Foundation Nexus registry returns HTTP 402 from the NMI network.
+# The workflow in .github/workflows/ric-m-images.yml therefore rebuilds the
+# pinned upstream sources and publishes the resulting images to this fork's
+# public GHCR namespace.
 # ----------------------------------------------------------------------------
 images:
   dbaas:
     # OSC dbaas ships Redis + SDL redismodule (MSETMPUB). Plain redis:6-alpine
     # lacks MSETMPUB, so e2mgr ChangeStatus(CONNECTED) fails with RNIB error and
     # never sends E2SetupResponse (12002).
-    repository: nexus3.o-ran-sc.org:10002/o-ran-sc/ric-plt-dbaas
-    tag: "0.6.4"
+    repository: ghcr.io/lucasrodri/oran-stack/ric-plt-dbaas
+    tag: "0.6.5"
     pullPolicy: IfNotPresent
   e2term:
-    repository: nexus3.o-ran-sc.org:10002/o-ran-sc/ric-plt-e2
-    tag: "6.0.6"
+    repository: ghcr.io/lucasrodri/oran-stack/ric-plt-e2
+    tag: "6.0.8"
     pullPolicy: IfNotPresent
   e2mgr:
-    repository: nexus3.o-ran-sc.org:10002/o-ran-sc/ric-plt-e2mgr
-    tag: "6.0.4"
+    repository: ghcr.io/lucasrodri/oran-stack/ric-plt-e2mgr
+    tag: "6.0.8"
     pullPolicy: IfNotPresent
   appmgr:
-    repository: nexus3.o-ran-sc.org:10002/o-ran-sc/ric-plt-appmgr
-    tag: "0.5.7"
+    repository: ghcr.io/lucasrodri/oran-stack/ric-plt-appmgr
+    tag: "0.5.10"
     pullPolicy: IfNotPresent
   submgr:
-    repository: nexus3.o-ran-sc.org:10002/o-ran-sc/ric-plt-submgr
-    tag: "0.10.1"
+    repository: ghcr.io/lucasrodri/oran-stack/ric-plt-submgr
+    tag: "0.10.4"
     pullPolicy: IfNotPresent
   rtmgr:
-    repository: nexus3.o-ran-sc.org:10001/o-ran-sc/ric-plt-rtmgr
-    tag: "0.9.6"
+    repository: ghcr.io/lucasrodri/oran-stack/ric-plt-rtmgr
+    tag: "0.9.7"
     pullPolicy: IfNotPresent
   a1mediator:
-    repository: nexus3.o-ran-sc.org:10001/o-ran-sc/ric-plt-a1
-    tag: "3.2.2"
+    repository: ghcr.io/lucasrodri/oran-stack/ric-plt-a1
+    tag: "3.2.3"
     pullPolicy: IfNotPresent
 
-# The Linux Foundation Nexus currently returns HTTP 402 for uncached O-RAN SC
-# images. The NMI deployment can run the E2/KPM data path with static RMR seed
-# routes while optional components are rebuilt or mirrored locally.
+# Use the real Routing Manager now that its M-release image is available. The
+# static HTTP stub remains as an explicit rollback/debug option.
 rtmgr:
-  enabled: false
-  # Minimal HTTP acknowledgement used only for E2T registration while the
-  # official RTMgr image is unavailable. Dynamic xApp routing remains off.
-  stubEnabled: true
+  enabled: true
+  stubEnabled: false
 
+# A1 is not required for the E2/KPM data path and remains opt-in until an A1
+# policy client is part of the lab scenario. Its current image is available.
 a1mediator:
   enabled: false
 
