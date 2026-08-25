@@ -840,8 +840,11 @@ spec:
           ports:
             - containerPort: 10000
               name: http
+            # RMR route-table management endpoint used by RTMgr wormholes.
+            - containerPort: 4561
+              name: rmr-mgmt
             - containerPort: 4562
-              name: rmr
+              name: rmr-data
           readinessProbe:
             httpGet:
               path: /A1-P/v2/healthcheck
@@ -881,7 +884,10 @@ spec:
     - name: http
       port: 10000
       targetPort: 10000
-    - name: rmr
+    - name: rmr-mgmt
+      port: 4561
+      targetPort: 4561
+    - name: rmr-data
       port: 4562
       targetPort: 4562
 {{- end }}
