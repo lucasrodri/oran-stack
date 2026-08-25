@@ -30,6 +30,7 @@ spec:
       labels:
         app: ocudu-cu
       annotations:
+        checksum/ocudu-configs: {{ include (print $.Template.BasePath "/configmap-ocudu-configs.yaml") . | sha256sum }}
         # Multus secondary networks: N2 (CU↔AMF), F1-C (CU↔DU), E2 (CU↔RIC)
         k8s.v1.cni.cncf.io/networks: |
           [
@@ -202,6 +203,7 @@ spec:
       labels:
         app: ocudu-du
       annotations:
+        checksum/ocudu-configs: {{ include (print $.Template.BasePath "/configmap-ocudu-configs.yaml") . | sha256sum }}
         # Multus secondary networks: F1-C (DU↔CU), E2 (DU↔RIC)
         k8s.v1.cni.cncf.io/networks: |
           [
@@ -392,6 +394,8 @@ spec:
     metadata:
       labels:
         app: srsue
+      annotations:
+        checksum/ocudu-configs: {{ include (print $.Template.BasePath "/configmap-ocudu-configs.yaml") . | sha256sum }}
     spec:
       {{- if .Values.imagePullSecretName }}
       imagePullSecrets:

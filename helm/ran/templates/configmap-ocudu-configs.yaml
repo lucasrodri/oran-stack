@@ -74,9 +74,9 @@ data:
     ru_sdr:
       device_driver: zmq
       device_args: tx_port=tcp://0.0.0.0:{{ .Values.zmq.duTxPort }},rx_port=tcp://srsue:{{ .Values.zmq.duRxPort }},base_srate={{ .Values.radio.srate }}
-      srate: 23.04
-      tx_gain: 75
-      rx_gain: 75
+      srate: {{ .Values.radio.srateMhz }}
+      tx_gain: 0
+      rx_gain: 0
     cell_cfg:
       dl_arfcn: {{ .Values.radio.dlArfcn }}
       band: {{ .Values.radio.band }}
@@ -91,13 +91,16 @@ data:
           dci_format_0_1_and_1_1: false
         common:
           ss0_index: 0
-          coreset0_index: 13
+          coreset0_index: {{ .Values.radio.coreset0Index }}
       pdsch:
         mcs_table: qam64
       pusch:
         mcs_table: qam64
       prach:
         prach_config_index: 1
+        total_nof_ra_preambles: 64
+        nof_ssb_per_ro: 1
+        nof_cb_preambles_per_ssb: 64
     log:
       filename: /dev/stdout
       all_level: debug
@@ -105,7 +108,7 @@ data:
   ue.conf: |
     [rf]
     freq_offset = 0
-    tx_gain = 80
+    tx_gain = 50
     rx_gain = 40
     srate = {{ .Values.radio.srate }}
     nof_antennas = 1
@@ -120,6 +123,8 @@ data:
     [rat.nr]
     bands = {{ .Values.radio.band }}
     nof_carriers = 1
+    max_nof_prb = {{ .Values.radio.nofPrb }}
+    nof_prb = {{ .Values.radio.nofPrb }}
 
     [pcap]
     enable = none

@@ -52,10 +52,14 @@ secondaryNetworks:
 radio:
   dlArfcn: 368500
   band: 3
-  bandwidthMhz: 20
+  # Known-good OCUDU + srsUE ZMQ profile from the upstream tutorial.
+  bandwidthMhz: 10
   commonScs: 15
   pci: 1
-  srate: "23.04e6"
+  srate: "11.52e6"
+  srateMhz: "11.52"
+  nofPrb: 52
+  coreset0Index: 6
 
 # ----------------------------------------------------------------------------
 # PLMN
