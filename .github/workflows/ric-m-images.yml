@@ -1,0 +1,167 @@
+name: Build O-RAN SC M-release images
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/ric-m-images.yml
+      - dockerfiles/ric-m/**
+      - scripts/prepare-ric-m-build.sh
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ghcr.io/${{ github.repository }}
+
+jobs:
+  build-bases:
+    name: Build ${{ matrix.name }} base
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Ubuntu
+            image: ric-build-base-ubuntu
+            dockerfile: dockerfiles/ric-m/Dockerfile.build-base-ubuntu
+          - name: Alpine
+            image: ric-build-base-alpine
+            dockerfile: dockerfiles/ric-m/Dockerfile.build-base-alpine
+    steps:
+      - uses: actions/checkout@v5
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          platforms: linux/amd64
+          push: true
+          tags: ${{ env.IMAGE_PREFIX }}/${{ matrix.image }}:m-amd64
+          cache-from: type=gha,scope=${{ matrix.image }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.image }}
+          provenance: mode=max
+          sbom: true
+
+  build-components:
+    name: Build ${{ matrix.component }}:${{ matrix.tag }}
+    needs: build-bases
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        include:
+          - component: a1
+            repository: ric-plt-a1
+            revision: 09a757b4fd63198d8690d50b52bfd04552d47f1f
+            image: ric-plt-a1
+            tag: 3.2.3
+          - component: appmgr
+            repository: ric-plt-appmgr
+            revision: 2f70f24239e3f9281b899b7d5b4807cf36e062d1
+            image: ric-plt-appmgr
+            tag: 0.5.10
+          - component: dbaas
+            repository: ric-plt-dbaas
+            revision: 23c983c62fa8f1677351ced9fbfe65c64375edb9
+            image: ric-plt-dbaas
+            tag: 0.6.5
+          - component: e2
+            repository: ric-plt-e2
+            revision: ccd8f31d9699277fb88ffb2049b6a09b65485cf3
+            image: ric-plt-e2
+            tag: 6.0.8
+          - component: e2mgr
+            repository: ric-plt-e2mgr
+            revision: 69e847fc3e4a66e3f8aea652624da98054d2bdb0
+            image: ric-plt-e2mgr
+            tag: 6.0.8
+          - component: rtmgr
+            repository: ric-plt-rtmgr
+            revision: c794f21a206c6cab2e352128201333a5924aee61
+            image: ric-plt-rtmgr
+            tag: 0.9.7
+          - component: submgr
+            repository: ric-plt-submgr
+            revision: 191c81a6c587cde692345b50da94e7cdae8c56d8
+            image: ric-plt-submgr
+            tag: 0.10.4
+    steps:
+      - name: Check out orchestration repository
+        uses: actions/checkout@v5
+        with:
+          path: orchestrator
+
+      - name: Check out pinned O-RAN SC source
+        uses: actions/checkout@v5
+        with:
+          repository: o-ran-sc/${{ matrix.repository }}
+          ref: ${{ matrix.revision }}
+          path: upstream
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Replace unavailable Nexus builder
+        id: prepare
+        shell: bash
+        run: |
+          orchestrator/scripts/prepare-ric-m-build.sh \
+            "${{ matrix.component }}" \
+            upstream \
+            "$GITHUB_OUTPUT" \
+            "${{ env.IMAGE_PREFIX }}"
+
+      - name: Build and publish component
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ steps.prepare.outputs.context }}
+          file: ${{ steps.prepare.outputs.dockerfile }}
+          platforms: linux/amd64
+          push: true
+          tags: ${{ env.IMAGE_PREFIX }}/${{ matrix.image }}:${{ matrix.tag }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/o-ran-sc/${{ matrix.repository }}
+            org.opencontainers.image.revision=${{ matrix.revision }}
+            org.opencontainers.image.version=${{ matrix.tag }}
+          cache-from: type=gha,scope=ric-${{ matrix.component }}
+          cache-to: type=gha,mode=max,scope=ric-${{ matrix.component }}
+          provenance: mode=max
+          sbom: true
+
+  verify-publication:
+    name: Verify GHCR manifests
+    needs: build-components
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: docker/setup-buildx-action@v3
+      - name: Verify all published tags
+        shell: bash
+        run: |
+          set -euo pipefail
+          for image in \
+            ric-plt-a1:3.2.3 \
+            ric-plt-appmgr:0.5.10 \
+            ric-plt-dbaas:0.6.5 \
+            ric-plt-e2:6.0.8 \
+            ric-plt-e2mgr:6.0.8 \
+            ric-plt-rtmgr:0.9.7 \
+            ric-plt-submgr:0.10.4
+          do
+            docker buildx imagetools inspect "${IMAGE_PREFIX}/${image}"
+          done

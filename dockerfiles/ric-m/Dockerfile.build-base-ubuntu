@@ -1,0 +1,42 @@
+# Reproduction of the toolchain portion of O-RAN SC
+# bldr-ubuntu22-c-go:1.0.0 without depending on the licensed Nexus registry.
+# Component Dockerfiles install their release-specific Go and RMR versions.
+FROM ubuntu:22.04
+
+ARG DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    alien \
+    autoconf \
+    autoconf-archive \
+    automake \
+    autotools-dev \
+    build-essential \
+    ca-certificates \
+    cmake \
+    curl \
+    g++ \
+    gcc \
+    git \
+    jq \
+    ksh \
+    libboost-all-dev \
+    libbz2-dev \
+    libicu-dev \
+    libsctp-dev \
+    libtool \
+    lksctp-tools \
+    make \
+    pkg-config \
+    python3-dev \
+    software-properties-common \
+    sudo \
+    unzip \
+    wget \
+    zip \
+    zlib1g \
+    zlib1g-dev \
+    && rm -rf /var/lib/apt/lists/* \
+    && mkdir -p /opt/go
+
+WORKDIR /tmp

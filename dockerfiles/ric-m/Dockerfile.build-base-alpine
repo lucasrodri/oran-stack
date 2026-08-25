@@ -1,0 +1,19 @@
+# Replacement for O-RAN SC bldr-alpine3-go:2.0.0. The upstream image is
+# hosted in the same Nexus registry that returns HTTP 402. DBaaS only needs
+# the C/Autotools toolchain and Go to build its Redis module and sdlcli.
+FROM golang:1.22-alpine3.20
+
+RUN apk add --no-cache \
+    autoconf \
+    automake \
+    build-base \
+    ca-certificates \
+    cmake \
+    curl \
+    git \
+    libtool \
+    ninja \
+    pkgconfig \
+    sudo
+
+WORKDIR /tmp
