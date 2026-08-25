@@ -398,9 +398,24 @@ spec:
             - rtmgr
             - routingmanager
       initContainers:
-        - name: wait-for-e2mgr
+        # RTMgr exits after its bounded startup retries if AppMgr or SubMgr is
+        # not yet accepting requests. Wait for every NBI dependency so a
+        # Recreate upgrade does not enter a restart/backoff race.
+        - name: wait-for-platform
           image: alpine:3.19
-          command: ["sh", "-c", "until wget -qO- http://ric-e2mgr:3800/v1/health; do echo waiting for e2mgr; sleep 3; done"]
+          command:
+            - sh
+            - -c
+            - |
+              until wget -qO- http://ric-e2mgr:3800/v1/health; do
+                echo "waiting for e2mgr"; sleep 3
+              done
+              until wget -qO- http://ric-appmgr:8080/ric/v1/xapps; do
+                echo "waiting for appmgr"; sleep 3
+              done
+              until wget -qO- http://ric-submgr:8088/ric/v1/subscriptions; do
+                echo "waiting for submgr"; sleep 3
+              done
         # Resolve the ric-submgr ClusterIP and write it to a shared volume.
         # The main container's command patches /etc/hosts before starting rtmgr,
         # injecting the alias that rtmgr hardcodes internally.
