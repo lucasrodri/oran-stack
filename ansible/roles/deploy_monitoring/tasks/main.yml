@@ -48,9 +48,11 @@
       metadata:
         name: "{{ namespaces.monitoring }}"
         labels:
-          pod-security.kubernetes.io/enforce: baseline
-          pod-security.kubernetes.io/warn:    baseline
-          pod-security.kubernetes.io/audit:   baseline
+          # prometheus-node-exporter intentionally uses hostNetwork, hostPID
+          # and read-only hostPath mounts to collect node metrics.
+          pod-security.kubernetes.io/enforce: privileged
+          pod-security.kubernetes.io/warn:    privileged
+          pod-security.kubernetes.io/audit:   privileged
 
 # ----------------------------------------------------------------------------
 # 4. Run helm dependency update to fetch kube-prometheus-stack sub-chart

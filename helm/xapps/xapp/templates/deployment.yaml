@@ -18,6 +18,10 @@ spec:
       labels:
         app: {{ .Release.Name }}
         release: {{ .Release.Name }}
+      {{- if .Values.runtimeOverride.configMapName }}
+      annotations:
+        checksum/runtime-override: {{ .Values.runtimeOverride.checksum | quote }}
+      {{- end }}
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
@@ -75,5 +79,18 @@ spec:
               value: {{ .Values.ric.submgrUri | quote }}
             - name: APP_MGR_REGISTER_URI
               value: {{ .Values.ric.appmgrRegisterUri | quote }}
+          {{- if .Values.runtimeOverride.configMapName }}
+          volumeMounts:
+            - name: runtime-override
+              mountPath: /opt/xApps/lib/xAppBase.py
+              subPath: xAppBase.py
+              readOnly: true
+          {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+      {{- if .Values.runtimeOverride.configMapName }}
+      volumes:
+        - name: runtime-override
+          configMap:
+            name: {{ .Values.runtimeOverride.configMapName }}
+      {{- end }}

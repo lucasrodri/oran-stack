@@ -21,6 +21,15 @@ kube-prometheus-stack:
   # --------------------------------------------------------------------------
   prometheus:
     prometheusSpec:
+      # Keep the observability control plane on the dedicated physical node.
+      nodeSelector:
+        workload: observability
+      tolerations:
+        - key: workload
+          operator: Equal
+          value: observability
+          effect: NoSchedule
+
       # Scrape interval — 15 s is enough for lab visibility.
       scrapeInterval: 15s
       evaluationInterval: 15s
@@ -57,6 +66,14 @@ kube-prometheus-stack:
   # Grafana
   # --------------------------------------------------------------------------
   grafana:
+    nodeSelector:
+      workload: observability
+    tolerations:
+      - key: workload
+        operator: Equal
+        value: observability
+        effect: NoSchedule
+
     # Default admin credentials — change in production.
     adminUser: admin
     adminPassword: oran-lab
@@ -80,6 +97,26 @@ kube-prometheus-stack:
         root_url: "%(protocol)s://%(domain)s:%(http_port)s/"
       auth.anonymous:
         enabled: false
+
+  # The operator and kube-state-metrics are part of the observability plane,
+  # so they follow Prometheus/Grafana to the dedicated NMI server as well.
+  prometheusOperator:
+    nodeSelector:
+      workload: observability
+    tolerations:
+      - key: workload
+        operator: Equal
+        value: observability
+        effect: NoSchedule
+
+  kube-state-metrics:
+    nodeSelector:
+      workload: observability
+    tolerations:
+      - key: workload
+        operator: Equal
+        value: observability
+        effect: NoSchedule
 
   # --------------------------------------------------------------------------
   # Alertmanager — disabled for lab simplicity

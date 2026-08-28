@@ -113,7 +113,9 @@ images:
     tag: "i-release"
   xapps:
     repository: "{{ dockerhub_username }}/oran-xapps"
-    tag: "0.1.0"
+    # The fork currently publishes this image only under `latest`; 0.1.0 was
+    # never pushed and causes ImagePullBackOff during a clean rollout.
+    tag: "latest"
 
 dockerfiles:
   core:   "dockerfiles/Dockerfile.5gscore"
@@ -146,6 +148,8 @@ helm_releases:
   monitoring: "monitoring"
   xapp:       "r4-simple-mon"
 
+xapp_runtime_override_configmap: "r4-simple-mon-runtime"
+
 helm_timeout: "600s"
 
 # ----------------------------------------------------------------------------
@@ -170,7 +174,8 @@ plmn:
 
 # ----------------------------------------------------------------------------
 # xApp — simple-mon KPM monitor (E2SM-KPM, ran_func_id=2)
-# e2_node_id must match the gNB registered in e2mgr (GET /v1/nodeb/states).
+# deploy_xapp discovers the current CONNECTED node from e2mgr. This value is a
+# documented fallback for isolated/manual Helm use only.
 # ----------------------------------------------------------------------------
 xapp:
   e2_node_id: "gnbc_001_001_00019b_0"

@@ -71,6 +71,9 @@ class xAppBase(object):
         self._subscription_lock = threading.Lock()
         self._pending_event_instance_ids = {}
         self._unexpected_subscription_ids = set()
+        self._metrics_lock = threading.Lock()
+        self._rmr_indications_total = 0
+        self._kpm_indications_total = 0
 
         # helper variables
         self.running = False
@@ -95,6 +98,13 @@ class xAppBase(object):
         self.httpServer = ricrest.ThreadedHTTPServer(self.MY_HTTP_SERVER_ADDRESS, self.MY_HTTP_SERVER_PORT)
         if self.subscriber.ResponseHandler(self._subscription_response_callback, self.httpServer) is not True:
             print("Error when trying to set the subscription reponse callback")
+        self.httpServer.handler.add_handler(
+            self.httpServer.handler,
+            "GET",
+            "metrics",
+            "/metrics",
+            self._metrics_handler,
+        )
         self.httpServer.start()
 
         # Register with appmgr so rtmgr learns this xApp's canonical
@@ -121,7 +131,24 @@ class xAppBase(object):
             "appInstanceName": self.XAPP_NAME,
             "httpEndpoint": http_endpoint,
             "rmrEndpoint": rmr_endpoint,
-            "config": "{}",
+            # AppMgr uses this embedded descriptor to populate the xApp's
+            # txMessages/rxMessages inventory.  RTMgr 0.9.7 only includes
+            # subscription routes in a full route-table refresh when at
+            # least one of those lists is non-empty.  Omitting it makes the
+            # initial partial 12050 route work briefly, then disappear on the
+            # next full `newrt` update.
+            "config": json.dumps({
+                "rmr": {
+                    "txMessages": ["RIC_SUB_REQ", "RIC_SUB_DEL_REQ"],
+                    "rxMessages": [
+                        "RIC_SUB_RESP",
+                        "RIC_SUB_FAILURE",
+                        "RIC_SUB_DEL_RESP",
+                        "RIC_INDICATION",
+                    ],
+                    "policies": [],
+                }
+            }),
         }
         req = urllib.request.Request(
             self.APP_MGR_REGISTER_URI,
@@ -152,6 +179,31 @@ class xAppBase(object):
 
     def _create_http_response(self,status=200, response="OK"):
         return {'response': response, 'status': status, 'payload': None, 'ctype': 'application/json', 'attachment': None, 'mode': 'plain'}
+
+    def _metrics_handler(self, name, path, data, ctype):
+        """Expose the minimum delivery/decoding signals in Prometheus format."""
+        with self._metrics_lock:
+            rmr_total = self._rmr_indications_total
+            kpm_total = self._kpm_indications_total
+        with self._subscription_lock:
+            active_subscriptions = len({
+                id(subscription) for subscription in self.my_subscriptions.values()
+            })
+
+        response = self._create_http_response()
+        response['ctype'] = 'text/plain; version=0.0.4; charset=utf-8'
+        response['payload'] = (
+            '# HELP oran_xapp_rmr_indications_total RIC indication envelopes received over RMR.\n'
+            '# TYPE oran_xapp_rmr_indications_total counter\n'
+            'oran_xapp_rmr_indications_total {}\n'
+            '# HELP oran_xapp_kpm_indications_total KPM indications decoded and dispatched.\n'
+            '# TYPE oran_xapp_kpm_indications_total counter\n'
+            'oran_xapp_kpm_indications_total {}\n'
+            '# HELP oran_xapp_active_subscriptions Active xApp subscription callbacks.\n'
+            '# TYPE oran_xapp_active_subscriptions gauge\n'
+            'oran_xapp_active_subscriptions {}\n'
+        ).format(rmr_total, kpm_total, active_subscriptions)
+        return response
 
     def _subscription_response_callback(self, name, path, data, ctype):
         data = json.loads(data)
@@ -250,6 +302,14 @@ class xAppBase(object):
             if summary[rmr.RMR_MS_MSG_STATE] == 0: # RMR_OK
                 # Check if RIC INDICATION message
                 if (summary['message type'] == 12050):
+                    with self._metrics_lock:
+                        self._rmr_indications_total += 1
+                    print(
+                        "xAppBase: received RMR envelope mtype=12050 sub_id={} meid={}".format(
+                            summary.get('subscription id'), summary.get('meid')
+                        ),
+                        flush=True,
+                    )
                     e2_agent_id = str(summary['meid'].decode('utf-8'))
                     data = rmr.get_payload(sbuf)
                     try:
@@ -292,6 +352,8 @@ class xAppBase(object):
                                 # if RIC Indication from E2SM_KPM then decode
                                 indication_hdr, indication_msg = self.e2sm_kpm.unpack_ric_indication(ric_indication)
                                 callback_func(e2_agent_id, subscription_id, indication_hdr, indication_msg)
+                                with self._metrics_lock:
+                                    self._kpm_indications_total += 1
                             else:
                                 # in other cases just pass undecoded byte data
                                 callback_func(e2_agent_id, subscription_id, ric_indication.indication_header, ric_indication.indication_message)

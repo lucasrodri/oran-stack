@@ -204,6 +204,40 @@ data:
         },
 
         {
+          "id": 6,
+          "type": "stat",
+          "title": "KPM Indications/s",
+          "description": "Rate of E2SM-KPM indications decoded and dispatched by r4-simple-mon",
+          "gridPos": { "x": 18, "y": 0, "w": 6, "h": 4 },
+          "options": {
+            "reduceOptions": { "calcs": ["lastNotNull"] },
+            "colorMode": "background",
+            "graphMode": "area"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "ops",
+              "decimals": 2,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "red", "value": null },
+                  { "color": "green", "value": 0.01 }
+                ]
+              }
+            }
+          },
+          "targets": [
+            {
+              "expr": "rate(oran_xapp_kpm_indications_total[1m])",
+              "legendFormat": "KPM",
+              "refId": "A"
+            }
+          ],
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        },
+
+        {
           "id": 10,
           "type": "timeseries",
           "title": "Pod Restarts — O-RAN Namespaces",

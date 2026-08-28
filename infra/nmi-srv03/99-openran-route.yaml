@@ -1,0 +1,8 @@
+network:
+  version: 2
+  ethernets:
+    eno8303:
+      routes:
+        - to: 192.168.72.0/24
+          via: 164.41.240.22
+          metric: 50

@@ -3,7 +3,11 @@ xapp:
   rmrPort: 4561
   httpPort: 8091
   args:
-    - "--metrics=DRB.PacketSuccessRateUlgNBUu"
+    # The currently connected E2 node is the O-DU. This throughput metric
+    # is implemented by the O-DU KPM provider; the previous packet-success
+    # metric belongs to the O-CU-UP provider and the E2 subscription was
+    # rejected with Cause=6 when sent to the O-DU.
+    - "--metrics=DRB.UEThpDl"
     - "--kpm_report_style=1"
     - "--rmr_port=4561"
     - "--http_server_port=8091"

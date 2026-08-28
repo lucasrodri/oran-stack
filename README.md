@@ -148,13 +148,17 @@ ansible-playbook ansible/playbooks/deploy.yml \
   -i ansible/inventories/hosts.ini --ask-vault-pass
 ```
 
-### Option C: NMI single-node lab
+### Option C: NMI laboratory cluster
 
-The NMI deployment runs the complete lab stack on one kubeadm node. The
-control-plane taint is removed automatically only when the inventory has no
-workers; multi-node inventories keep the normal taint and OVS VXLAN topology.
+The validated NMI deployment uses VM `oran-k8s-01` as the control plane and
+telecom workload node, plus physical server `nmi-srv03` as a dedicated
+observability worker. The normal control-plane taint is retained; monitoring is
+placed with a selector and taint/toleration pair. Flannel carries ordinary pod
+traffic, while Multus/OVS remains confined to the telecom node for the
+SCTP/ZMQ-sensitive interfaces.
 See [docs/NMI_DEPLOYMENT.md](docs/NMI_DEPLOYMENT.md) for the verified VM,
-operational status, image-registry workaround, and restore points.
+worker route, VPN access, operational status, image-registry workaround, and
+restore points.
 
 Run the playbooks from `oran-k8s-01` so both node provisioning and the
 localhost Helm deployment use the same host:

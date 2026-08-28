@@ -26,3 +26,10 @@ xapp:
 deploymentStrategy: Recreate
 
 resources: {}
+
+# Optional source-level hotfix loaded by the deployment role. This keeps a
+# patched xApp framework file under Git control while a new container image is
+# being published, and the checksum forces a rollout whenever it changes.
+runtimeOverride:
+  configMapName: ""
+  checksum: ""

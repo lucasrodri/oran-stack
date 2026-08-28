@@ -1,27 +1,30 @@
-# NMI single-node deployment
+# NMI two-node deployment
 
-Last verified: 2026-08-25
+Last verified: 2026-08-28
 
 ## Infrastructure
 
 | Item | Value |
 |---|---|
-| Proxmox node | `proxmox002` |
-| VM ID / name | `105` / `oran-k8s-01` |
-| Management IP | `192.168.72.10/24` |
-| Gateway | `192.168.72.1` |
-| Resources | 12 vCPU, 24 GiB RAM, 64 GiB disk |
-| OS | Debian 12 |
-| Kubernetes | kubeadm 1.30.14, single control-plane/worker node |
+| Proxmox control plane | `proxmox002`, VM `105` / `oran-k8s-01` |
+| Control-plane IP | `192.168.72.10/24` via `192.168.72.1` |
+| Control-plane resources | 12 vCPU, 24 GiB RAM, 64 GiB disk, Debian 12 |
+| Observability worker | `nmi-srv03`, `164.41.240.13`, Ubuntu 24.04 |
+| Inter-network route | `192.168.72.0/24 via 164.41.240.22` on `nmi-srv03` |
+| Firewall policy | pfSense2 allows `164.41.240.13` → `192.168.72.10` |
+| Kubernetes | kubeadm 1.30.14, one control plane plus one worker |
 | CNI | Flannel + Multus + OVS-CNI |
 
-The single node intentionally runs both the control plane and workloads. This is
-appropriate for the NMI laboratory deployment; additional workers can be joined
-later without changing the namespace, service, or pod communication model.
+Telecom workloads remain on `oran-k8s-01`; Prometheus, Grafana, the Prometheus
+Operator, and kube-state-metrics run on the physical worker. The worker is
+selected with `workload=observability` and protected by the
+`workload=observability:NoSchedule` taint. This demonstrates a real multi-machine
+cluster without spreading the SCTP/ZMQ datapath across failure domains.
 
 ## Verified state
 
-- Kubernetes node is `Ready`.
+- Both Kubernetes nodes are `Ready`.
+- The complete observability control plane runs on `nmi-srv03`.
 - The `5g-core` Helm release is deployed; MongoDB and all Open5GS NFs are running.
 - The `near-rt-ric` Helm release revision 9 is deployed with DBAAS, E2 Manager,
   E2 Termination, Subscription Manager, Application Manager, Routing Manager,
@@ -38,9 +41,30 @@ succeeds. SMF↔UPF PFCP uses direct pod identities through a headless UPF Servi
 The lab profile keeps the RRC bearer for up to 7200 seconds of inactivity so the
 simulated UE remains testable during long observation sessions.
 
-Internet egress from the UE subnet is not yet part of the chart. Reaching the UPF
-gateway proves the end-to-end radio/GTP-U user plane; external egress additionally
-requires forwarding and source NAT policy for `10.45.0.0/16`.
+Internet egress is also validated. The UPF entrypoint enables forwarding and
+installs idempotent filter/NAT rules for `10.45.0.0/16`; a request made with
+`curl --interface tun_srsue` reaches an external HTTP endpoint.
+
+The `r4-simple-mon` xApp discovers the connected E2 node dynamically and
+subscribes to O-DU KPM metric `DRB.UEThpDl` (report style 1). Its AppMgr
+registration declares the official RMR message contract, including
+`RIC_INDICATION`. This is required by RTMgr 0.9.7 so full `newrt` refreshes retain
+the subscription-specific `mse|12050|<id>|...` route. No periodic route re-POST
+workaround is used. The xApp exposes `/metrics`; Grafana's overview dashboard
+shows the decoded KPM indication rate and Prometheus stores both received-RMR
+and successfully-decoded counters.
+
+## Access from the NMI VPN
+
+The lab is operated through the institutional NMI VPN. Tailscale may remain as
+an out-of-band maintenance path, but it is not part of the deployment topology.
+Grafana is reached through the observability worker:
+
+```bash
+ssh -p 13508 -L 3000:10.97.217.5:80 lucasrc@164.41.240.13
+```
+
+Then open `http://localhost:3000` (`admin` / `oran-lab` in this lab profile).
 
 ## O-RAN SC image supply
 
@@ -87,12 +111,20 @@ sudo kubectl exec -n ran deployment/srsue -- \
   ip -brief address show tun_srsue
 sudo kubectl exec -n ran deployment/srsue -- \
   ping -I tun_srsue -c 3 10.45.0.1
+sudo kubectl exec -n ran deployment/srsue -- \
+  curl --interface tun_srsue -fsS -o /dev/null http://example.com
+
+sudo kubectl logs -n ricxapp deployment/r4-simple-mon | \
+  grep 'RIC Indication Received'
 
 sudo kubectl exec -n near-rt-ric deployment/ric-a1mediator -- \
   wget -qO- http://localhost:10000/A1-P/v2/healthcheck
 sudo kubectl logs -n near-rt-ric deployment/ric-rtmgr | \
   grep 'ric-a1mediator:4562 successful'
 ```
+
+On `nmi-srv03`, `infra/nmi-srv03/bootstrap-k8s-worker.sh` prepares the node and
+`infra/nmi-srv03/99-openran-route.yaml` persists the route to the VM network.
 
 ## Restore points
 

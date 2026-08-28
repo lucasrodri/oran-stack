@@ -130,3 +130,24 @@ spec:
     - port: metrics
       path: /metrics
       interval: 15s
+---
+# --- KPM monitor xApp ---------------------------------------------------------
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: ricxapp-simple-mon
+  namespace: {{ .Values.namespace }}
+  labels:
+    app.kubernetes.io/part-of: oran-stack
+spec:
+  namespaceSelector:
+    matchNames:
+      - ricxapp
+  selector:
+    matchLabels:
+      app: r4-simple-mon
+      monitoring: "true"
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 15s

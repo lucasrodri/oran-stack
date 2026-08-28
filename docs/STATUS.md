@@ -1,10 +1,30 @@
 # O-RAN Lab Stack — Status
 
-_Last updated: 2026-08-25_
+_Last updated: 2026-08-28_
 
 ---
 
 ## 0. Recent Changes
+
+### 2026-08-28 — NMI multi-node observability, UE egress, and durable KPM route
+
+- Joined physical server `nmi-srv03` (`164.41.240.13`) as the dedicated
+  observability worker; both Kubernetes nodes are `Ready`.
+- Added the persistent route to `192.168.72.0/24` and the matching pfSense2 WAN
+  policy, allowing the worker to reach the control plane without exposing it.
+- Scheduled Prometheus, Grafana, the operator, and kube-state-metrics on the
+  worker with a selector and taint/toleration pair.
+- Enabled forwarding and idempotent MASQUERADE rules in the UPF; the srsUE now
+  reaches the Internet through `tun_srsue`, not only the UPF gateway.
+- Fixed the KPM xApp AppMgr descriptor. The previous registration produced
+  `txMessages: null` and `rxMessages: null`, so RTMgr omitted subscription routes
+  whenever it generated a full `newrt` table. The xApp now declares the official
+  subscription/RIC-indication message set, and RTMgr's full policy retains
+  `mse|12050|<subscription-id>|service-ricxapp-r4-simple-mon-rmr...` without a
+  periodic route-keeper pod.
+- Added native Prometheus counters to the xApp and a Grafana KPM indication-rate
+  panel, making the working RMR/KPM path visible without reading pod logs.
+
 
 ### 2026-08-25 — NMI srsUE attach and PDU session completed
 

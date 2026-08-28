@@ -25,6 +25,7 @@ metadata:
   name: service-ricxapp-{{ .Release.Name }}-http
   labels:
     app: {{ .Release.Name }}
+    monitoring: "true"
 spec:
   selector:
     app: {{ .Release.Name }}

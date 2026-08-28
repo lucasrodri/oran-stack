@@ -1,15 +1,19 @@
-# Wait for the deterministic outcome: UE reaches RRC Connected + PDU Session.
-# Readiness gate, not a restart loop.
+# Verify the current data-plane state instead of relying on startup log lines,
+# which can rotate quickly when the PHY log level is verbose.
 
-- name: Wait for UE attach (RRC Connected + PDU Session Established)
-  ansible.builtin.command:
-    cmd: >
-      kubectl --kubeconfig={{ _kubeconfig }} logs -n {{ namespaces.ran }}
-      deployment/srsue --tail=200
-  register: _ue_logs
-  until: >-
-    'RRC Connected' in _ue_logs.stdout and
-    'PDU Session Established' in _ue_logs.stdout
+- name: Wait for UE PDU interface and Internet egress
+  ansible.builtin.shell: |
+    set -euo pipefail
+    kubectl --kubeconfig={{ _kubeconfig }} exec -n {{ namespaces.ran }} \
+      deployment/srsue -c srsue -- sh -ec '
+        ip -4 -o addr show dev tun_srsue | grep -Eq "inet 10\.45\."
+        curl --interface tun_srsue -fsS --max-time 10 -o /dev/null http://example.com
+        echo UE_EGRESS_OK
+      '
+  args:
+    executable: /bin/bash
+  register: _ue_probe
+  until: _ue_probe.rc == 0 and 'UE_EGRESS_OK' in (_ue_probe.stdout | default(''))
   retries: "{{ verify_stack.ue_attach_wait_retries }}"
   delay: "{{ verify_stack.ue_attach_wait_delay }}"
   changed_when: false
@@ -18,8 +22,8 @@
 - name: Set UE attach fact
   ansible.builtin.set_fact:
     _ue_attached: >-
-      {{ 'RRC Connected' in _ue_logs.stdout and
-         'PDU Session Established' in _ue_logs.stdout }}
+      {{ _ue_probe.rc == 0 and
+         'UE_EGRESS_OK' in (_ue_probe.stdout | default('')) }}
 
 - name: Collect UE diagnostics when attach did not complete
   when: not (_ue_attached | bool)
@@ -39,8 +43,9 @@
           UE did NOT complete attach within
           {{ verify_stack.ue_attach_wait_retries | int * verify_stack.ue_attach_wait_delay | int }}s.
 
-          UE log tail:
-          {{ _ue_logs.stdout | default('') | regex_search('(?s).{0,1200}$') }}
+          UE probe output:
+          {{ _ue_probe.stdout | default('') }}
+          {{ _ue_probe.stderr | default('') }}
 
           DU log tail:
           {{ _du_log.stdout | default('') }}
@@ -57,7 +62,7 @@
           'kubectl logs -n {{ namespaces.ran }} deployment/srsue -f'.
       when: not (verify_stack.ue_attach_required | bool)
 
-- name: Show UE attach result
+- name: Show UE data-plane result
   ansible.builtin.debug:
-    msg: "UE OK — RRC Connected and PDU Session Established"
+    msg: "UE OK — PDU interface 10.45.0.0/24 and Internet egress are functional"
   when: _ue_attached | bool

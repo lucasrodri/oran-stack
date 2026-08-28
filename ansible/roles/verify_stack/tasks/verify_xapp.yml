@@ -58,5 +58,5 @@
   ansible.builtin.debug:
     msg: >-
       xApp {{ helm_releases.xapp }} OK — subscription is clean and a KPM
-      indication was received from {{ xapp.e2_node_id }}
+      indication was received from {{ _xapp_e2_node_id | default(xapp.e2_node_id) }}
   when: _xapp_functional | bool

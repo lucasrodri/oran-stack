@@ -33,15 +33,20 @@ That works for the single-gNB lab. It does **not** work if gNBs are spawned and 
 
 ---
 
-## Near-RT RIC RMR / indication path — durable network fix
+## Near-RT RIC RMR / indication path — durable baseline
 
 ### Context
 
 KPM subscribe can succeed (`Successfully subscribed`, SubMgr REST OK) while the xApp
-never sees `RIC Indication Received`. That is almost always a **RIC routing /
-deploy** problem, not an xApp logic bug. Upstream srsRAN `oran-sc-ric` mostly
-avoids this via Docker Compose + `rtmgr_sim` and static routes; this K8s stack
-uses real RTMgr/AppMgr/SubMgr and hits several platform pitfalls.
+never sees `RIC Indication Received`. The NMI failure was traced to the AppMgr
+inventory: the xApp registered with `txMessages: null` and `rxMessages: null`.
+RTMgr 0.9.7 accepts the partial subscription route, but its full policy generator
+skips subscription routes for an xApp with both message lists empty.
+
+The xApp now registers the official subscription message contract, including
+`RIC_INDICATION`. The deployment verifies that RTMgr's generated full policy
+contains the exact `mse|12050|<subscription-id>|<xapp-service>` route. The old
+periodic subscription-handle re-POST workaround has been removed.
 
 The small `xAppBase` pending-ID race fix is separate defensive coding. It does
 **not** replace fixing delivery of RMR msg type `12050` (RIC Indication).
@@ -89,19 +94,16 @@ band-aids:
 CU often will not re-setup E2, leaving the gNB `DISCONNECTED` and orphaning the
 just-installed `12050` route.
 
-### Ansible glue to retire once config is solid
+### Remaining Ansible lifecycle glue
 
-`deploy_xapp` currently compensates for RTMgr lifecycle gaps:
+`deploy_xapp` still compensates for one RTMgr 0.9.7 lifecycle limitation:
 
-- Wait for AppMgr register → restart RTMgr → wait for route push to xApp →
-  restart xApp so it subscribes against a stable table.
-- Optionally re-POST `/ric/v1/handles/xapp-subscription-handle` to keep
-  `12050` alive while residual `newrt` wipes still occur.
+- Wait for a complete AppMgr registration → restart RTMgr → wait for route push
+  → restart the xApp so it subscribes against a stable table.
 
-**Next step:** after (1)–(4) are committed and a clean `deploy.yml` run shows
-stable `Entries` for xApp + e2term with continuous `RIC Indication Received`
-**without** the re-POST loop, remove or gate that workaround. Prefer fixing
-RTMgr/A1 config over perpetual route re-install.
+**Next step:** replace the RTMgr restart with a reliable hot-reload path. RTMgr
+0.9.7 does not refresh message lists on an existing endpoint UUID, so an AppMgr
+callback alone cannot correct an incomplete earlier registration.
 
 ### How to tell network vs xApp
 
