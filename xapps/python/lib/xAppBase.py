@@ -74,6 +74,7 @@ class xAppBase(object):
         self._metrics_lock = threading.Lock()
         self._rmr_indications_total = 0
         self._kpm_indications_total = 0
+        self._rmr_receive_errors_total = 0
 
         # helper variables
         self.running = False
@@ -185,6 +186,7 @@ class xAppBase(object):
         with self._metrics_lock:
             rmr_total = self._rmr_indications_total
             kpm_total = self._kpm_indications_total
+            rmr_receive_errors_total = self._rmr_receive_errors_total
         with self._subscription_lock:
             active_subscriptions = len({
                 id(subscription) for subscription in self.my_subscriptions.values()
@@ -202,7 +204,15 @@ class xAppBase(object):
             '# HELP oran_xapp_active_subscriptions Active xApp subscription callbacks.\n'
             '# TYPE oran_xapp_active_subscriptions gauge\n'
             'oran_xapp_active_subscriptions {}\n'
-        ).format(rmr_total, kpm_total, active_subscriptions)
+            '# HELP oran_xapp_rmr_receive_errors_total Errors raised by the RMR receive loop.\n'
+            '# TYPE oran_xapp_rmr_receive_errors_total counter\n'
+            'oran_xapp_rmr_receive_errors_total {}\n'
+        ).format(
+            rmr_total,
+            kpm_total,
+            active_subscriptions,
+            rmr_receive_errors_total,
+        )
         return response
 
     def _subscription_response_callback(self, name, path, data, ctype):
@@ -292,11 +302,28 @@ class xAppBase(object):
         sbuf = rmr.rmr_send_msg(self.rmr_client, sbuf)
 
     def _run(self):
+        # RMR 4.9.4 can return a NULL pointer on timeout when old_mbuf is
+        # NULL.  Passing the allocated buffer back to rmr_torcv_msg avoids a
+        # tight exception loop and lets the same buffer receive the next data
+        # message.  This also avoids allocating/freeing one buffer per poll.
+        print("xAppBase: RMR receive loop started", flush=True)
         while self.running:
             try:
-                sbuf = rmr.rmr_torcv_msg(self.rmr_client, None, 100)
+                sbuf = rmr.rmr_torcv_msg(self.rmr_client, self.rmr_sbuf, 100)
+                self.rmr_sbuf = sbuf
                 summary = rmr.message_summary(sbuf)
             except Exception as e:
+                with self._metrics_lock:
+                    self._rmr_receive_errors_total += 1
+                    error_count = self._rmr_receive_errors_total
+                if error_count <= 3 or error_count % 100 == 0:
+                    print(
+                        "xAppBase: RMR receive error #{}: {}".format(
+                            error_count, e
+                        ),
+                        flush=True,
+                    )
+                time.sleep(0.01)
                 continue
 
             if summary[rmr.RMR_MS_MSG_STATE] == 0: # RMR_OK
@@ -342,7 +369,6 @@ class xAppBase(object):
                                         list(self.my_subscriptions.keys()),
                                     )
                                 )
-                            rmr.rmr_free_msg(sbuf)
                             continue
 
                         callback_func =  subscriptionObj.callback_func
@@ -365,11 +391,12 @@ class xAppBase(object):
                 if (summary['message type'] == 12042):
                     print("Received RIC_CONTROL_FAILURE")
 
-            rmr.rmr_free_msg(sbuf)
-
     def stop(self):
         self.unsubscribe_all()
         self.httpServer.stop()
+        if self.rmr_sbuf is not None:
+            rmr.rmr_free_msg(self.rmr_sbuf)
+            self.rmr_sbuf = None
         rmr.rmr_close(self.rmr_client)
         self.running = False
         if (self.xapp_thread is not None):
