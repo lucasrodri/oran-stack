@@ -238,11 +238,35 @@ data:
         },
 
         {
+          "id": 7,
+          "type": "timeseries",
+          "title": "UE Downlink Throughput — E2SM-KPM",
+          "description": "DRB.UEThpDl decoded by r4-simple-mon. Generate traffic through tun_srsue to make this series rise.",
+          "gridPos": { "x": 0, "y": 4, "w": 24, "h": 8 },
+          "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "table", "placement": "bottom" } },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "Kbits",
+              "min": 0,
+              "custom": { "lineWidth": 3, "fillOpacity": 12, "spanNulls": false }
+            }
+          },
+          "targets": [
+            {
+              "expr": "oran_kpm_drb_ue_throughput_dl_kbps",
+              "legendFormat": "{{ "{{" }}e2_node{{ "}}" }} / {{ "{{" }}scope{{ "}}" }}",
+              "refId": "A"
+            }
+          ],
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        },
+
+        {
           "id": 10,
           "type": "timeseries",
           "title": "Pod Restarts — O-RAN Namespaces",
           "description": "Container restart count per pod. Restarts indicate crashes or SCTP failures.",
-          "gridPos": { "x": 0, "y": 4, "w": 12, "h": 8 },
+          "gridPos": { "x": 0, "y": 12, "w": 12, "h": 8 },
           "options": { "tooltip": { "mode": "multi" } },
           "fieldConfig": {
             "defaults": {
@@ -272,7 +296,7 @@ data:
           "type": "timeseries",
           "title": "Node CPU Usage",
           "description": "Per-node CPU utilisation. High CPU on the node hosting ocudu-cu/amf can cause SCTP RTO.",
-          "gridPos": { "x": 12, "y": 4, "w": 12, "h": 8 },
+          "gridPos": { "x": 12, "y": 12, "w": 12, "h": 8 },
           "options": { "tooltip": { "mode": "multi" } },
           "fieldConfig": {
             "defaults": {
@@ -296,7 +320,7 @@ data:
           "type": "table",
           "title": "O-RAN Deployment Status",
           "description": "Ready vs desired replicas for all O-RAN deployments",
-          "gridPos": { "x": 0, "y": 12, "w": 24, "h": 8 },
+          "gridPos": { "x": 0, "y": 20, "w": 24, "h": 8 },
           "options": { "sortBy": [{ "displayName": "Namespace", "desc": false }] },
           "fieldConfig": {
             "defaults": { "custom": { "align": "left" } },

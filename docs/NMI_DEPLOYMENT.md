@@ -51,8 +51,27 @@ registration declares the official RMR message contract, including
 `RIC_INDICATION`. This is required by RTMgr 0.9.7 so full `newrt` refreshes retain
 the subscription-specific `mse|12050|<id>|...` route. No periodic route re-POST
 workaround is used. The xApp exposes `/metrics`; Grafana's overview dashboard
-shows the decoded KPM indication rate and Prometheus stores both received-RMR
-and successfully-decoded counters.
+shows the decoded KPM indication rate and the live `DRB.UEThpDl` throughput.
+Prometheus stores both the delivery counters and the decoded KPI as
+`oran_kpm_drb_ue_throughput_dl_kbps`. The DU explicitly enables RLC metrics:
+OCUDU 26.04 derives this KPM from RLC byte counters, while its default
+`enable_rlc: false` produces a valid but permanently zero report.
+
+### Demonstrate UE traffic in the KPM dashboard
+
+With the NMI VPN connected, open the **UE Downlink Throughput — E2SM-KPM** panel
+at `http://192.168.72.10:30300/d/oran-overview/o-ran-stack-overview`. On VM 105,
+run:
+
+```bash
+cd /home/lucasrc/oran-stack-main
+./scripts/demo-kpm.sh
+```
+
+The script downloads a bounded test file through `tun_srsue`, polls the xApp's
+Prometheus endpoint once per second, and prints the current and peak KPM values.
+The expected result is HTTP 200, at least one `DRB.UEThpDl` sample above zero,
+and `DEMO_KPM_OK`. No RAN control action is sent: this is observation only.
 
 ## Access from the NMI VPN
 

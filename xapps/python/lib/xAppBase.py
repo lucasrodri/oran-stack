@@ -3,6 +3,8 @@ import socket
 import sys
 import time
 import json
+import math
+import numbers
 import logging
 import threading
 import urllib.error
@@ -16,6 +18,12 @@ from ricxappframe.e2ap.asn1 import IndicationMsg
 from .e2sm_ccc_module import e2sm_ccc_module
 from .e2sm_kpm_module import e2sm_types, e2sm_kpm_module
 from .e2sm_rc_module import e2sm_rc_module
+
+
+KPM_METRIC_UNITS = {
+    "DRB.UEThpDl": "kbps",
+    "DRB.UEThpUl": "kbps",
+}
 
 
 class SubscriptionWrapper(object):
@@ -75,6 +83,7 @@ class xAppBase(object):
         self._rmr_indications_total = 0
         self._kpm_indications_total = 0
         self._rmr_receive_errors_total = 0
+        self._kpm_measurements = {}
 
         # helper variables
         self.running = False
@@ -181,12 +190,57 @@ class xAppBase(object):
     def _create_http_response(self,status=200, response="OK"):
         return {'response': response, 'status': status, 'payload': None, 'ctype': 'application/json', 'attachment': None, 'mode': 'plain'}
 
+    @staticmethod
+    def _prometheus_label(value):
+        """Escape a value for the Prometheus text exposition format."""
+        return str(value).replace('\\', '\\\\').replace('\n', '\\n').replace('"', '\\"')
+
+    @staticmethod
+    def _latest_numeric(values):
+        """Return the newest finite numeric value from a decoded KPM record."""
+        if not isinstance(values, (list, tuple)):
+            values = [values]
+        for value in reversed(values):
+            if isinstance(value, numbers.Real) and not isinstance(value, bool):
+                value = float(value)
+                if math.isfinite(value):
+                    return value
+        return None
+
+    def _record_kpm_measurements(self, e2_agent_id, indication_msg):
+        """Store the latest decoded KPM values for Prometheus scraping."""
+        meas_data = self.e2sm_kpm.extract_meas_data(indication_msg)
+        samples = []
+
+        for metric_name, values in meas_data.get("measData", {}).items():
+            value = self._latest_numeric(values)
+            if value is not None:
+                samples.append((str(metric_name), "node", "", value))
+
+        for ue_id, ue_meas_data in meas_data.get("ueMeasData", {}).items():
+            for metric_name, values in ue_meas_data.get("measData", {}).items():
+                value = self._latest_numeric(values)
+                if value is not None:
+                    samples.append((str(metric_name), "ue", str(ue_id), value))
+
+        observed_at = time.time()
+        with self._metrics_lock:
+            for metric_name, scope, ue_id, value in samples:
+                key = (metric_name, str(e2_agent_id), scope, ue_id)
+                previous = self._kpm_measurements.get(key, {})
+                self._kpm_measurements[key] = {
+                    "value": value,
+                    "observed_at": observed_at,
+                    "updates": previous.get("updates", 0) + 1,
+                }
+
     def _metrics_handler(self, name, path, data, ctype):
         """Expose the minimum delivery/decoding signals in Prometheus format."""
         with self._metrics_lock:
             rmr_total = self._rmr_indications_total
             kpm_total = self._kpm_indications_total
             rmr_receive_errors_total = self._rmr_receive_errors_total
+            kpm_measurements = list(self._kpm_measurements.items())
         with self._subscription_lock:
             active_subscriptions = len({
                 id(subscription) for subscription in self.my_subscriptions.values()
@@ -194,7 +248,7 @@ class xAppBase(object):
 
         response = self._create_http_response()
         response['ctype'] = 'text/plain; version=0.0.4; charset=utf-8'
-        response['payload'] = (
+        payload = (
             '# HELP oran_xapp_rmr_indications_total RIC indication envelopes received over RMR.\n'
             '# TYPE oran_xapp_rmr_indications_total counter\n'
             'oran_xapp_rmr_indications_total {}\n'
@@ -213,6 +267,43 @@ class xAppBase(object):
             active_subscriptions,
             rmr_receive_errors_total,
         )
+        payload += (
+            '# HELP oran_xapp_kpm_measurement Latest numeric value decoded from an E2SM-KPM indication.\n'
+            '# TYPE oran_xapp_kpm_measurement gauge\n'
+            '# HELP oran_xapp_kpm_measurement_timestamp_seconds Unix time when the KPM value was received.\n'
+            '# TYPE oran_xapp_kpm_measurement_timestamp_seconds gauge\n'
+            '# HELP oran_xapp_kpm_measurement_updates_total Number of decoded updates for a KPM series.\n'
+            '# TYPE oran_xapp_kpm_measurement_updates_total counter\n'
+            '# HELP oran_kpm_drb_ue_throughput_dl_kbps Latest DRB.UEThpDl value reported by the RAN.\n'
+            '# TYPE oran_kpm_drb_ue_throughput_dl_kbps gauge\n'
+        )
+        for key, sample in sorted(kpm_measurements):
+            metric_name, e2_node, scope, ue_id = key
+            unit = KPM_METRIC_UNITS.get(metric_name, "unknown")
+            labels = (
+                'metric="{}",unit="{}",e2_node="{}",scope="{}",ue_id="{}"'
+            ).format(*[
+                self._prometheus_label(value)
+                for value in (metric_name, unit, e2_node, scope, ue_id)
+            ])
+            series_labels = 'e2_node="{}",scope="{}",ue_id="{}"'.format(*[
+                self._prometheus_label(value)
+                for value in (e2_node, scope, ue_id)
+            ])
+            payload += 'oran_xapp_kpm_measurement{{{}}} {:.12g}\n'.format(
+                labels, sample["value"]
+            )
+            payload += 'oran_xapp_kpm_measurement_timestamp_seconds{{{}}} {:.6f}\n'.format(
+                labels, sample["observed_at"]
+            )
+            payload += 'oran_xapp_kpm_measurement_updates_total{{{}}} {}\n'.format(
+                labels, sample["updates"]
+            )
+            if metric_name == "DRB.UEThpDl":
+                payload += 'oran_kpm_drb_ue_throughput_dl_kbps{{{}}} {:.12g}\n'.format(
+                    series_labels, sample["value"]
+                )
+        response['payload'] = payload
         return response
 
     def _subscription_response_callback(self, name, path, data, ctype):
@@ -377,6 +468,7 @@ class xAppBase(object):
                             if (subscriptionObj.e2sm_type == e2sm_types.E2SM_KPM):
                                 # if RIC Indication from E2SM_KPM then decode
                                 indication_hdr, indication_msg = self.e2sm_kpm.unpack_ric_indication(ric_indication)
+                                self._record_kpm_measurements(e2_agent_id, indication_msg)
                                 callback_func(e2_agent_id, subscription_id, indication_hdr, indication_msg)
                                 with self._metrics_lock:
                                     self._kpm_indications_total += 1

@@ -6,6 +6,16 @@ _Last updated: 2026-08-28_
 
 ## 0. Recent Changes
 
+### 2026-08-29 — Live KPM values and repeatable UE traffic demonstration
+
+- Enabled OCUDU DU RLC metrics, the source used by the 26.04 KPM provider to
+  calculate `DRB.UEThpDl`; this removes the permanent zero caused by the
+  upstream `enable_rlc: false` default.
+- Exported decoded KPM values from `r4-simple-mon` as Prometheus gauges,
+  including `oran_kpm_drb_ue_throughput_dl_kbps`.
+- Added a Grafana throughput time series and `scripts/demo-kpm.sh`, which
+  generates bounded traffic through `tun_srsue` and verifies a non-zero KPI.
+
 ### 2026-08-28 — NMI multi-node observability, UE egress, and durable KPM route
 
 - Joined physical server `nmi-srv03` (`164.41.240.13`) as the dedicated

@@ -73,6 +73,12 @@ data:
       bind_addr: ${E2_IP}
       e2sm_kpm_enabled: true
       e2sm_rc_enabled: true
+    # DRB.UEThpDl is computed by the DU KPM provider from RLC byte counters.
+    # OCUDU disables RLC metrics by default, which makes the provider report
+    # zero even while the UE is carrying traffic.
+    metrics:
+      layers:
+        enable_rlc: true
     ru_sdr:
       device_driver: zmq
       device_args: tx_port=tcp://0.0.0.0:{{ .Values.zmq.duTxPort }},rx_port=tcp://srsue:{{ .Values.zmq.duRxPort }},base_srate={{ .Values.radio.srate }}

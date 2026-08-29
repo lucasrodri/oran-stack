@@ -9,7 +9,7 @@ description: >
 
   Also ships a Grafana dashboard ConfigMap for O-RAN KPIs.
 type: application
-version: 0.1.2
+version: 0.1.3
 appVersion: "kube-prometheus-stack-58.x"
 
 dependencies:
