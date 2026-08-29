@@ -17,7 +17,7 @@
   ansible.builtin.command:
     cmd: >
       kubectl --kubeconfig={{ _kubeconfig }} logs -n {{ namespaces.xapp }}
-      deployment/{{ helm_releases.xapp }} -c xapp --tail=200
+      deployment/{{ helm_releases.xapp }} -c xapp --since=10m
   register: _xapp_logs
   until: >-
     'Subscribe to E2 node ID' in _xapp_logs.stdout and

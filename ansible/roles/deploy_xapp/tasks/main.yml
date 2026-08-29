@@ -203,7 +203,7 @@
   ansible.builtin.shell: |
     set -euo pipefail
     XLOG=$(kubectl --kubeconfig={{ _kubeconfig }} logs -n {{ namespaces.xapp }} \
-      deployment/{{ helm_releases.xapp }} -c xapp --tail=300)
+      deployment/{{ helm_releases.xapp }} -c xapp --since=30m)
     REST_SUBID=$(sed -nE \
       's/.*Successfully subscribed with Subscription ID:[[:space:]]+([^[:space:]]+).*/\1/p' \
       <<<"$XLOG" | tail -1 || true)
@@ -243,7 +243,7 @@
   ansible.builtin.command:
     cmd: >
       kubectl --kubeconfig={{ _kubeconfig }} logs -n {{ namespaces.xapp }}
-      deployment/{{ helm_releases.xapp }} -c xapp --tail=200
+      deployment/{{ helm_releases.xapp }} -c xapp --since=10m
   register: _xapp_register_logs_after_restart
   until: >-
     'appmgr register' in (_xapp_register_logs_after_restart.stdout | default('')) and
@@ -256,7 +256,7 @@
   ansible.builtin.command:
     cmd: >
       kubectl --kubeconfig={{ _kubeconfig }} logs -n {{ namespaces.xapp }}
-      deployment/{{ helm_releases.xapp }} -c xapp --tail=200
+      deployment/{{ helm_releases.xapp }} -c xapp --since=10m
   register: _xapp_subscribe_logs
   until: >-
     'Subscribe to E2 node ID' in (_xapp_subscribe_logs.stdout | default('')) and
@@ -292,7 +292,7 @@
   ansible.builtin.shell: |
     set -euo pipefail
     XLOG=$(kubectl --kubeconfig={{ _kubeconfig }} logs -n {{ namespaces.xapp }} \
-      deployment/{{ helm_releases.xapp }} -c xapp --tail=300)
+      deployment/{{ helm_releases.xapp }} -c xapp --since=10m)
     SUBID=$(sed -nE 's/.*mapping: .* -> ([0-9]+).*/\1/p' <<<"$XLOG" | tail -1 || true)
     [[ -n "${SUBID:-}" && "$SUBID" != "0" ]]
     echo "$SUBID"
@@ -331,7 +331,7 @@
   ansible.builtin.command:
     cmd: >
       kubectl --kubeconfig={{ _kubeconfig }} logs -n {{ namespaces.xapp }}
-      deployment/{{ helm_releases.xapp }} -c xapp --tail=300
+      deployment/{{ helm_releases.xapp }} -c xapp --since=10m
   register: _xapp_indication_logs
   until: >-
     'RIC Indication Received' in (_xapp_indication_logs.stdout | default(''))

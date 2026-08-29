@@ -78,6 +78,13 @@ kube-prometheus-stack:
     adminUser: admin
     adminPassword: oran-lab
 
+    # Publish the lab dashboard directly on the physical observability worker.
+    # Access is restricted by the NMI perimeter/VPN; no Internet exposure is
+    # expected or required.
+    service:
+      type: NodePort
+      nodePort: 30300
+
     # Persist dashboards across pod restarts via ConfigMap sidecar.
     sidecar:
       dashboards:

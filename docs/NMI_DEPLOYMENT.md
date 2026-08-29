@@ -58,13 +58,14 @@ and successfully-decoded counters.
 
 The lab is operated through the institutional NMI VPN. Tailscale may remain as
 an out-of-band maintenance path, but it is not part of the deployment topology.
-Grafana is reached through the observability worker:
+Grafana is published as a NodePort on the observability worker and is reached
+directly while connected to the NMI VPN:
 
-```bash
-ssh -p 13508 -L 3000:10.97.217.5:80 lucasrc@164.41.240.13
-```
+- URL: `http://164.41.240.13:30300`
+- Lab credentials: `admin` / `oran-lab`
 
-Then open `http://localhost:3000` (`admin` / `oran-lab` in this lab profile).
+The service is not intended to be exposed to the public Internet; the NMI
+perimeter/VPN remains the access boundary.
 
 ## O-RAN SC image supply
 
