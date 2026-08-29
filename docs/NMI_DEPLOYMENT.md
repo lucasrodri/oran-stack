@@ -58,10 +58,11 @@ and successfully-decoded counters.
 
 The lab is operated through the institutional NMI VPN. Tailscale may remain as
 an out-of-band maintenance path, but it is not part of the deployment topology.
-Grafana is published as a NodePort on the observability worker and is reached
-directly while connected to the NMI VPN:
+Grafana runs on the observability worker and is published through a Kubernetes
+NodePort. The supported entry point is the private control-plane address, reached
+while connected to the NMI VPN; kube-proxy forwards it to the physical worker:
 
-- URL: `http://164.41.240.13:30300`
+- URL: `http://192.168.72.10:30300`
 - Lab credentials: `admin` / `oran-lab`
 
 The service is not intended to be exposed to the public Internet; the NMI

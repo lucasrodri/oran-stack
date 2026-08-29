@@ -115,7 +115,7 @@
       Grafana is deployed in the '{{ namespaces.monitoring }}' namespace.
 
       From the NMI VPN, open:
-        http://164.41.240.13:30300
+        http://192.168.72.10:30300
       Credentials: admin / oran-lab
 
       The 'O-RAN Stack Overview' dashboard is pre-loaded.
