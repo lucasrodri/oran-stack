@@ -4,13 +4,12 @@ description: >
   Prometheus + Grafana observability stack for the O-RAN lab.
 
   Deploys kube-prometheus-stack (Prometheus Operator + Grafana) and wires up
-  ServiceMonitors for the metrics endpoints already exposed by:
-    - Open5GS NFs (AMF, SMF, UPF, PCF) — port 9090
-    - Near-RT RIC (e2term, submgr)       — port 8088
+  ServiceMonitors for Kubernetes and the metrics endpoints exposed by the
+  O-RAN workloads, including the simple-mon KPM xApp.
 
   Also ships a Grafana dashboard ConfigMap for O-RAN KPIs.
 type: application
-version: 0.1.0
+version: 0.1.1
 appVersion: "kube-prometheus-stack-58.x"
 
 dependencies:
