@@ -30,12 +30,24 @@
   delay: "{{ verify_stack.e2_gnb_wait_delay }}"
   changed_when: false
 
-- name: Select the connected E2 node for the xApp subscription
+- name: Build the connected E2 node candidate lists
+  ansible.builtin.set_fact:
+    _xapp_connected_e2_nodes: >-
+      {{ _e2_node_states.stdout | from_json |
+         selectattr('connectionStatus', 'equalto', 'CONNECTED') |
+         map(attribute='inventoryName') | list }}
+    _xapp_connected_du_nodes: >-
+      {{ _e2_node_states.stdout | from_json |
+         selectattr('connectionStatus', 'equalto', 'CONNECTED') |
+         selectattr('inventoryName', 'match', '^gnbd_') |
+         map(attribute='inventoryName') | list }}
+
+- name: Select the connected O-DU for the KPM subscription
   ansible.builtin.set_fact:
     _xapp_e2_node_id: >-
-      {{ (_e2_node_states.stdout | from_json |
-          selectattr('connectionStatus', 'equalto', 'CONNECTED') |
-          map(attribute='inventoryName') | first) }}
+      {{ (_xapp_connected_du_nodes | length > 0) |
+         ternary(_xapp_connected_du_nodes | first,
+                 _xapp_connected_e2_nodes | first) }}
 
 - name: Show selected E2 node
   ansible.builtin.debug:

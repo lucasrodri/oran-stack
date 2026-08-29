@@ -1,6 +1,6 @@
 # O-RAN Lab Stack — Status
 
-_Last updated: 2026-08-28_
+_Last updated: 2026-08-29_
 
 ---
 
@@ -15,6 +15,10 @@ _Last updated: 2026-08-28_
   including `oran_kpm_drb_ue_throughput_dl_kbps`.
 - Added a Grafana throughput time series and `scripts/demo-kpm.sh`, which
   generates bounded traffic through `tun_srsue` and verifies a non-zero KPI.
+- Validated the live path with a 10 MiB HTTP 200 transfer: the xApp observed a
+  peak of 22,162 kbps and Prometheus persisted the new series. When CU and DU
+  E2 agents are both connected, xApp deployment now prefers the `gnbd_*` O-DU,
+  because this KPI is provided by the DU RLC measurement source.
 
 ### 2026-08-28 — NMI multi-node observability, UE egress, and durable KPM route
 
