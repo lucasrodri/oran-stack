@@ -170,12 +170,13 @@
     signed_by: /etc/apt/keyrings/kubernetes-apt-keyring.asc
     state: present
 
-- name: Install kubeadm, kubelet, kubectl
+- name: Install kubeadm, kubelet, kubectl, and CRI diagnostics
   apt:
     name:
       - kubelet
       - kubeadm
       - kubectl
+      - cri-tools
     state: present
     update_cache: true
 
@@ -187,6 +188,20 @@
     - kubelet
     - kubeadm
     - kubectl
+
+- name: Read installed kubeadm version
+  command: kubeadm version -o short
+  register: _installed_kubeadm_version
+  changed_when: false
+
+- name: Verify the installed Kubernetes minor matches the inventory
+  assert:
+    that:
+      - _installed_kubeadm_version.stdout is match('^v' ~ kubernetes_version | string | regex_escape ~ '(\\.|$)')
+    fail_msg: >-
+      Inventory requested Kubernetes {{ kubernetes_version }}, but apt installed
+      {{ _installed_kubeadm_version.stdout }}. Check inventory variable precedence
+      and the pkgs.k8s.io repository before running kubeadm init.
 
 - name: Enable and start kubelet
   systemd:

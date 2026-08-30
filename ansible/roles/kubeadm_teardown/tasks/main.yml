@@ -13,6 +13,25 @@
     state: absent
   ignore_errors: true
 
+- name: Remove CNI runtime state
+  file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - /var/lib/cni
+    - /run/flannel
+  ignore_errors: true
+
+# kubeadm reset deliberately leaves network devices behind.  They must be
+# removed when a lab cluster changes Pod CIDR, otherwise the next Flannel
+# deployment keeps the old bridge address and all new Pod sandboxes fail.
+- name: Remove stale primary CNI interfaces
+  command: "ip link delete {{ item }}"
+  loop:
+    - cni0
+    - flannel.1
+  ignore_errors: true
+
 - name: Remove Calico data directory
   file:
     path: /var/lib/calico

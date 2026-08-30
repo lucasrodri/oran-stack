@@ -143,8 +143,23 @@
   until: _apiserver_ready.rc == 0
   changed_when: false
 
+- name: Download pinned Flannel CNI manifest
+  get_url:
+    url: "{{ flannel_manifest_url }}"
+    dest: "/tmp/kube-flannel-{{ flannel_version }}.yml"
+    mode: '0644'
+    force: true
+
+# Upstream ships 10.244.0.0/16 in the manifest.  Rewriting it makes the role
+# honour pod_cidr and prevents overlapping Pod networks across lab clusters.
+- name: Set Flannel network to the cluster Pod CIDR
+  replace:
+    path: "/tmp/kube-flannel-{{ flannel_version }}.yml"
+    regexp: '"Network":\s*"[^"]+"'
+    replace: '"Network": "{{ pod_cidr }}"'
+
 - name: Apply Flannel CNI manifest
-  command: kubectl apply -f {{ flannel_manifest_url }}
+  command: kubectl apply -f /tmp/kube-flannel-{{ flannel_version }}.yml
   environment:
     KUBECONFIG: /etc/kubernetes/admin.conf
   register: flannel_apply
@@ -299,6 +314,12 @@
       name: cluster
     spec:
       ovs: {}
+      placementConfiguration:
+        workloads:
+          tolerations:
+            - key: node-role.kubernetes.io/control-plane
+              operator: Exists
+              effect: NoSchedule
     EOF
   environment:
     KUBECONFIG: /etc/kubernetes/admin.conf

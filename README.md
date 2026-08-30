@@ -173,6 +173,26 @@ ansible-playbook -i inventories/nmi-single.ini playbooks/expand-ovs-network.yml
 ansible-playbook -i inventories/nmi-single.ini playbooks/deploy.yml
 ```
 
+### Option D: CIC ARM64 laboratory cluster
+
+The CIC cluster uses two Debian 12 ARM64 VMs on separate Ampere Proxmox hosts:
+`cic-k8s-cp01` (`192.168.0.210`) and `cic-k8s-w01`
+(`192.168.0.211`). Its inventory pins Kubernetes 1.32 for Nephio R6
+compatibility and assigns Pod/Service ranges that do not overlap NMI.
+
+```bash
+cd ansible
+ansible-playbook playbooks/provision.yml -i inventories/cic-arm.ini
+
+cd ..
+kubectl --kubeconfig kubeconfig apply -f ansible/manifests/cic-arm-smoke.yaml
+```
+
+The validated smoke test schedules an `aarch64` workload on Ampere 3 and sends
+traffic across both Flannel and the E2 Multus/OVS VXLAN from Ampere 2. See
+[docs/CIC_ARM_CLUSTER.md](docs/CIC_ARM_CLUSTER.md) for the topology, acceptance
+results and current ARM porting boundary.
+
 ---
 
 ## Verify

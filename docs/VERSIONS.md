@@ -43,9 +43,12 @@ sources and publishes `linux/amd64` images under
 `ghcr.io/lucasrodri/oran-stack`. See `docs/RIC_IMAGES.md` for the exact source
 commits and build procedure.
 
-The Ampere/CIC `arm64` environment is deliberately outside this deployment
-phase. RMR and SDL are compiled as dependencies inside these RIC container
-images; they are not installed separately on the NMI VM.
+The CIC `arm64` Kubernetes cluster is provisioned independently at v1.32.13,
+the latest patch available in the Nephio R6-compatible 1.32 minor channel.
+This does not yet make the complete RIC image set multi-architecture. RMR and
+SDL are compiled as dependencies inside those RIC container images; they are
+not installed separately on the NMI or CIC VMs. See
+`docs/CIC_ARM_CLUSTER.md` for the validated ARM infrastructure boundary.
 
 Primary sources:
 

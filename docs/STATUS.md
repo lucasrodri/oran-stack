@@ -6,6 +6,25 @@ _Last updated: 2026-08-30_
 
 ## 0. Recent Changes
 
+### 2026-08-30 — CIC ARM64 two-host Kubernetes cluster validated
+
+- Created VM `120` (`cic-k8s-cp01`, `192.168.0.210`) on Ampere 2 and VM `121`
+  (`cic-k8s-w01`, `192.168.0.211`) on Ampere 3, each with 8 vCPU, 16 GiB RAM
+  and 100 GB disk.
+- Bootstrapped a two-node Kubernetes `v1.32.13` ARM64 cluster using the new
+  `cic-arm.ini` inventory. CIC uses dedicated Pod and Service ranges
+  (`10.246.0.0/16` and `10.97.0.0/16`) and remains reachable from NMI.
+- Installed Flannel, Multus, OVS-CNI, local-path storage and the `n2br`,
+  `f1cbr`, `e2br` inter-host VXLAN mesh. OVS-CNI is available on both the
+  tainted control plane and worker.
+- Validated an `aarch64` workload on Ampere 3, HTTP from Ampere 2 to the remote
+  Pod and Service, and bidirectional E2 secondary-network traffic between
+  `10.200.3.250` and `.251` with 0% packet loss.
+- Hardened provisioning by installing `cri-tools`, asserting the requested
+  Kubernetes minor, honoring custom Flannel Pod CIDRs, applying CNAO workload
+  tolerations, and cleaning stale CNI interfaces during teardown.
+- Detailed topology and reproduction steps are in `docs/CIC_ARM_CLUSTER.md`.
+
 ### 2026-08-30 — Persistent observability and bounded lab logging
 
 - Added persistent Prometheus, Grafana, Alertmanager and Loki storage on the
