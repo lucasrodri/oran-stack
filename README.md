@@ -196,6 +196,18 @@ metrics are also exported through VM 105 to the existing NMI Prometheus and the
 `O-RAN Multi-Site Lab` Grafana dashboard; CIC does not duplicate the monitoring
 control plane.
 
+### Option E: Nephio management POC
+
+Nephio R6 runs in namespaces of the existing NMI Kubernetes cluster. VM `113`
+was reused as worker `nephio-k8s-w01` (`192.168.71.30`) and the main Gitea,
+Porch, Flux, controller and WebUI workloads are placed there with the label
+`workload=nephio`. The validated package flow delivered a restricted ConfigMap
+through `Draft -> Proposed -> Published -> Git -> Flux`. Proxmox, Kubernetes
+bootstrap and the complete RAN/RIC/Core deployment remain under Ansible and
+Helm. See
+[docs/NEPHIO_MANAGEMENT_CLUSTER.md](docs/NEPHIO_MANAGEMENT_CLUSTER.md) for the
+architecture, private UI access, versions and acceptance test.
+
 ---
 
 ## Verify

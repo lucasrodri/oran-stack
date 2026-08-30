@@ -23,7 +23,9 @@
       overlay
       br_netfilter
       sctp
+      {% if telecom_networking_enabled | default(true) | bool %}
       openvswitch
+      {% endif %}
     mode: '0644'
 
 - name: Load kernel modules now
@@ -33,7 +35,8 @@
     - overlay
     - br_netfilter
     - sctp
-    - openvswitch
+    - "{{ 'openvswitch' if telecom_networking_enabled | default(true) | bool else '' }}"
+  when: item | length > 0
 
 # ── sysctl ─────────────────────────────────────────────────────────────────────
 
@@ -57,12 +60,14 @@
     name: openvswitch-switch
     state: present
     update_cache: true
+  when: telecom_networking_enabled | default(true) | bool
 
 - name: Ensure Open vSwitch is running
   systemd:
     name: openvswitch-switch
     state: started
     enabled: true
+  when: telecom_networking_enabled | default(true) | bool
 
 # ── containerd ─────────────────────────────────────────────────────────────────
 
@@ -73,6 +78,7 @@
       - curl
       - gnupg
       - apt-transport-https
+      - python3-debian
     state: present
     update_cache: true
 
@@ -170,15 +176,29 @@
     signed_by: /etc/apt/keyrings/kubernetes-apt-keyring.asc
     state: present
 
-- name: Install kubeadm, kubelet, kubectl, and CRI diagnostics
+- name: Unhold Kubernetes packages before an explicit version change
+  dpkg_selections:
+    name: "{{ item }}"
+    selection: install
+  loop:
+    - kubelet
+    - kubeadm
+    - kubectl
+
+- name: Install kubeadm, kubelet, and kubectl
   apt:
     name:
-      - kubelet
-      - kubeadm
-      - kubectl
-      - cri-tools
+      - "kubelet{{ '=' ~ kubernetes_package_version if kubernetes_package_version is defined else '' }}"
+      - "kubeadm{{ '=' ~ kubernetes_package_version if kubernetes_package_version is defined else '' }}"
+      - "kubectl{{ '=' ~ kubernetes_package_version if kubernetes_package_version is defined else '' }}"
     state: present
     update_cache: true
+    allow_downgrade: true
+
+- name: Install CRI diagnostics
+  apt:
+    name: cri-tools
+    state: present
 
 - name: Hold kubeadm, kubelet, kubectl at current version
   dpkg_selections:

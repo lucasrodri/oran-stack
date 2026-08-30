@@ -1,0 +1,11 @@
+apiVersion: fn.kpt.dev/v1alpha1
+kind: StarlarkRun
+metadata:
+  name: pin-nephio-workloads
+source: |-
+  for r in ctx.resource_list["items"]:
+    if r.get("kind") in ["Deployment", "StatefulSet"]:
+      pod_spec = r["spec"]["template"]["spec"]
+      if "nodeSelector" not in pod_spec:
+        pod_spec["nodeSelector"] = {}
+      pod_spec["nodeSelector"]["workload"] = "nephio"

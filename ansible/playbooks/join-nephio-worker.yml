@@ -1,0 +1,113 @@
+---
+# Re-purpose the former single-node Nephio VM as a worker of the existing NMI
+# cluster. This playbook resets only hosts in nephio_workers; it never resets or
+# reinitialises the NMI control plane.
+- name: Remove the former standalone cluster from the Nephio VM
+  hosts: nephio_workers
+  become: true
+  gather_facts: true
+
+  pre_tasks:
+    - name: Stop kubelet before resetting the old cluster
+      systemd:
+        name: kubelet
+        state: stopped
+      failed_when: false
+
+    - name: Reset kubeadm state on the former management control plane
+      command: kubeadm reset --force
+
+    - name: Remove stale CNI and etcd state
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /etc/cni/net.d
+        - /var/lib/cni
+        - /run/flannel
+        - /var/lib/etcd
+        - /root/.kube
+        - "/home/{{ ansible_user }}/.kube"
+
+    - name: Remove stale primary CNI interfaces
+      command: "ip link delete {{ item }}"
+      loop:
+        - cni0
+        - flannel.1
+      failed_when: false
+      changed_when: false
+
+    - name: Set worker hostname
+      hostname:
+        name: "{{ inventory_hostname }}"
+
+  roles:
+    - role: kubeadm_prereqs
+
+- name: Generate a temporary join command on the existing NMI control plane
+  hosts: control_plane
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Verify the existing control plane is healthy
+      command: kubectl get --raw=/readyz
+      environment:
+        KUBECONFIG: /etc/kubernetes/admin.conf
+      register: _nmi_readyz
+      changed_when: false
+      failed_when: _nmi_readyz.stdout | trim != 'ok'
+
+    - name: Generate worker join command with a short-lived token
+      command: kubeadm token create --ttl 30m --print-join-command
+      environment:
+        KUBECONFIG: /etc/kubernetes/admin.conf
+      register: _join_command
+      changed_when: false
+      no_log: true
+
+    - name: Make join command available to the worker play
+      set_fact:
+        join_command: "{{ _join_command.stdout }}"
+      no_log: true
+
+- name: Join the former Nephio VM as an NMI worker
+  hosts: nephio_workers
+  become: true
+  gather_facts: false
+
+  roles:
+    - role: kubeadm_worker
+
+- name: Label and validate the Nephio worker from the NMI control plane
+  hosts: control_plane
+  become: true
+  gather_facts: false
+
+  tasks:
+    - name: Label the node for Nephio workload placement
+      command: >-
+        kubectl label node nephio-k8s-w01
+        node-role.kubernetes.io/worker=
+        workload=nephio
+        --overwrite
+      environment:
+        KUBECONFIG: /etc/kubernetes/admin.conf
+      register: _label_worker
+      changed_when: "'labeled' in _label_worker.stdout"
+
+    - name: Wait for Flannel on the new worker
+      command: >-
+        kubectl wait pod -n kube-flannel
+        --for=condition=Ready
+        --field-selector spec.nodeName=nephio-k8s-w01
+        --timeout=180s
+      environment:
+        KUBECONFIG: /etc/kubernetes/admin.conf
+      changed_when: false
+
+    - name: Show the consolidated cluster
+      command: kubectl get nodes -o wide
+      environment:
+        KUBECONFIG: /etc/kubernetes/admin.conf
+      changed_when: false

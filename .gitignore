@@ -42,3 +42,4 @@ kubectl.sha256
 
 # Kubernetes credentials
 kubeconfig
+kubeconfig-*

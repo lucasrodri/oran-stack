@@ -1,4 +1,4 @@
-# NMI four-node deployment
+# NMI five-node deployment
 
 Last verified: 2026-08-30
 
@@ -11,19 +11,25 @@ Last verified: 2026-08-30
 | Control-plane resources | 12 vCPU, 24 GiB RAM, 64 GiB disk, Debian 12 |
 | Proxmox001 worker | VM `111` / `oran-k8s-w01`, `192.168.71.20`, 8 vCPU, 12 GiB RAM, 48 GiB disk |
 | Proxmox002 worker | VM `112` / `oran-k8s-w02`, `192.168.72.20`, 4 vCPU, 8 GiB RAM, 32 GiB disk |
+| Nephio worker | Proxmox001 VM `113` / `nephio-k8s-w01`, `192.168.71.30`, Ubuntu 22.04, 8 vCPU, 8 GiB RAM, 80 GB disk |
 | Observability worker | `nmi-srv03`, `164.41.240.13`, Ubuntu 24.04 |
 | Inter-network routes | `.71.0/24 via 164.41.240.21`; `.72.0/24 via 164.41.240.22` on `nmi-srv03` |
 | Firewall policy | pfSense1/2 allow `164.41.240.13` only to workers `.71.20`/`.72.20`; pfSense2 also allows the control plane `.72.10` |
-| Kubernetes | kubeadm 1.30.14, one control plane plus three workers |
+| Kubernetes | kubeadm 1.30.14, one control plane plus four workers |
 | CNI | Flannel + Multus + OVS-CNI |
 
 The SCTP/ZMQ-sensitive RAN, 5G core, and E2Term remain on `oran-k8s-01`.
 `r4-simple-mon` runs on `oran-k8s-w02`, while Prometheus, Grafana, Alertmanager,
 Loki, the Prometheus Operator, and kube-state-metrics run on `nmi-srv03`; Alloy
-runs on all four nodes. The physical observability
+runs on all five nodes. The physical observability
 worker is selected with `workload=observability` and protected by the
 `workload=observability:NoSchedule` taint. `oran-k8s-w01` is a general worker and
 has passed scheduling, DNS, Flannel, Multus, and OVS-CNI tests.
+
+VM 113 is labeled `workload=nephio`. Gitea, Porch, Nephio controllers, Flux and
+the WebUI run in dedicated namespaces on the same NMI cluster and select this
+worker. The first Flux identity is restricted to ConfigMaps in `nephio-lab`;
+the O-RAN namespaces remain under Helm/Ansible ownership.
 
 The three VM nodes have `n2br`, `f1cbr`, and `e2br` OVS bridges and a VXLAN full
 mesh protected by RSTP. Secondary-network traffic is verified across
@@ -35,7 +41,7 @@ remain active.
 
 ## Verified state
 
-- All four Kubernetes nodes are `Ready`.
+- All five Kubernetes nodes are `Ready`.
 - The complete observability control plane runs on `nmi-srv03`.
 - Prometheus, Grafana, Alertmanager, and Loki use bound PVCs. Prometheus retains
   seven days of metrics; Loki retains only 24 hours of logs from the stack

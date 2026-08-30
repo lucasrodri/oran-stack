@@ -1,0 +1,23 @@
+---
+apiVersion: infra.nephio.org/v1alpha1
+kind: Repository
+metadata:
+  name: nmi
+  namespace: default
+spec:
+  description: NMI laboratory deployment repository
+  defaultBranch: main
+---
+apiVersion: infra.nephio.org/v1alpha1
+kind: Token
+metadata:
+  name: nmi-access-token-porch
+  namespace: default
+spec: {}
+---
+apiVersion: infra.nephio.org/v1alpha1
+kind: Token
+metadata:
+  name: nmi-access-token-flux
+  namespace: flux-system
+spec: {}

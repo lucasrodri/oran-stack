@@ -1,0 +1,4 @@
+---
+kubernetes_version: "1.30"
+kubernetes_package_version: "1.30.14-1.1"
+telecom_networking_enabled: false

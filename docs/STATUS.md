@@ -6,6 +6,26 @@ _Last updated: 2026-08-30_
 
 ## 0. Recent Changes
 
+### 2026-08-30 — Nephio R6 integrated into the NMI cluster
+
+- Reused VM `113` as Ubuntu worker `nephio-k8s-w01` (`192.168.71.30`) on
+  Proxmox001 with 8 vCPU, 8 GiB RAM and 80 GB disk. The former standalone
+  Kubernetes cluster was reset, downgraded from 1.32 to `v1.30.14`, and joined
+  to the existing NMI control plane as its fifth node.
+- Installed pinned Nephio R6 components in NMI namespaces: Gitea, Porch
+  `v1.5.7`, Nephio operator `v6.0.0`, kpt `v1.0.0-beta.64`, WebUI and Flux.
+  Main Deployments and StatefulSets select `workload=nephio` and run on VM 113.
+- Kept Gitea and WebUI private as ClusterIP services. WebUI access uses an SSH
+  tunnel over the NMI VPN and its service account cannot read Secrets.
+- Published Porch package revision `nmi.nmi-lab-smoke.v1` through
+  `Draft -> Proposed -> Published`; Flux reconciled Git commit `e7e3352` and
+  created `nephio-lab/nephio-delivery-smoke`.
+- Restricted the Flux delivery identity to ConfigMaps in `nephio-lab`.
+  Authorization checks denied Secrets and RAN Deployment updates. Core, RIC,
+  RAN, UE and `r4-simple-mon` remained healthy and on their original nodes.
+- Added reproduction, access and architecture notes in
+  `docs/NEPHIO_MANAGEMENT_CLUSTER.md`.
+
 ### 2026-08-30 — CIC ARM64 metrics integrated into NMI Grafana
 
 - Deployed node-exporter `v1.12.1` on both CIC ARM nodes and

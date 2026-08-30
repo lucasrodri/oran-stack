@@ -115,7 +115,7 @@ logs. Delete and reapply them to repeat the OVS test after they complete.
 The NMI Prometheus instance scrapes both ARM nodes and the CIC Kubernetes object
 metrics through a TCP relay pinned to VM 105 (`192.168.72.10`). Prometheus adds
 the labels `cluster=cic-arm`, `site=cic` and `architecture=arm64`. Grafana shows
-the result in `O-RAN Multi-Site Lab` alongside the four-node NMI cluster.
+the result in `O-RAN Multi-Site Lab` alongside the five-node NMI cluster.
 
 Apply or update the CIC collectors with:
 
