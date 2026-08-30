@@ -25,7 +25,7 @@ data:
             "datasource": {"type": "loki", "uid": "loki"},
             "query": "label_values(namespace)",
             "includeAll": true,
-            "allValue": ".*",
+            "allValue": ".+",
             "current": {"text": "O-RAN", "value": "5g-core|near-rt-ric|ricxapp|ran"},
             "refresh": 1
           },
@@ -36,7 +36,7 @@ data:
             "datasource": {"type": "loki", "uid": "loki"},
             "query": "label_values({namespace=~\"$namespace\"}, container)",
             "includeAll": true,
-            "allValue": ".*",
+            "allValue": ".+",
             "current": {"text": "All", "value": "$__all"},
             "refresh": 1
           },
