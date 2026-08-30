@@ -51,8 +51,16 @@ COPY dockerfiles/xapp/ric-plt-xapp-frame-py.patch \
 RUN cd /opt/ric-plt-xapp-frame-py \
     && git apply ./ric-plt-xapp-frame-py.patch \
     && python -m pip install --no-cache-dir --upgrade pip setuptools wheel \
-    && python -m pip install --no-cache-dir asn1tools \
-    && python -m pip install --no-cache-dir /opt/ric-plt-xapp-frame-py
+    && python -m pip install --no-cache-dir \
+      asn1tools \
+      inotify==0.2.12 \
+      inotify_simple==2.0.1 \
+      mdclogpy==1.1.4 \
+      msgpack==1.2.2 \
+      protobuf==3.20.3 \
+      requests==2.34.2 \
+    && python -m pip install --no-cache-dir --no-deps /opt/ric-plt-xapp-frame-py \
+    && python -c 'from ricxappframe.rmr import rmr; assert rmr.RMR_MAX_RCV_BYTES > 0'
 
 RUN mkdir -p /opt/xApps /opt/ric/config \
     && chmod 0755 /opt/xApps /opt/ric/config

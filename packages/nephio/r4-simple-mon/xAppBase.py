@@ -11,7 +11,7 @@ import urllib.error
 import urllib.request
 
 import ricxappframe
-from ricxappframe.xapp_frame import rmr
+from ricxappframe.rmr import rmr
 import ricxappframe.xapp_subscribe as subscribe
 import ricxappframe.xapp_rest as ricrest
 from ricxappframe.e2ap.asn1 import IndicationMsg
