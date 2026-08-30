@@ -1,0 +1,3 @@
+# The Nephio package carries the byte-identical live runtime override. Preserve
+# its upstream whitespace because the deployment verifies a committed SHA-256.
+packages/nephio/r4-simple-mon/xAppBase.py whitespace=-trailing-space

@@ -150,6 +150,10 @@ helm_releases:
 
 xapp_runtime_override_configmap: "r4-simple-mon-runtime"
 
+# Helm remains the portable bootstrap default. The NMI inventory overrides this
+# to nephio after the r4-simple-mon package is adopted by Porch/Flux.
+xapp_deployment_backend: "helm"
+
 # Empty by default so the same charts work in a single-node lab. An inventory
 # may pin individual components after labeling/provisioning suitable workers.
 ran_cu_node: ""

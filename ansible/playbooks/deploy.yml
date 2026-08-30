@@ -69,6 +69,15 @@
 
   roles:
     - role: deploy_xapp
+      when: xapp_deployment_backend == "helm"
+
+  tasks:
+    - name: Preserve the Nephio-managed xApp on NMI
+      ansible.builtin.debug:
+        msg: >-
+          Skipping the Helm xApp role because r4-simple-mon is managed by
+          Porch and Flux in this inventory.
+      when: xapp_deployment_backend == "nephio"
 
 - name: Verify xApp functional readiness before UE attachment
   hosts: localhost

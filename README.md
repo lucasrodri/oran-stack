@@ -156,7 +156,8 @@ on the two Proxmox servers, and physical server `nmi-srv03` as the dedicated
 observability worker. Monitoring is placed with a selector and
 taint/toleration pair. Flannel and Multus run on the VM nodes; the sensitive
 RAN remains pinned to the control plane, while `r4-simple-mon` runs on
-`oran-k8s-w02`.
+`oran-k8s-w02`. In the current NMI state, Porch and Flux own that xApp; the NMI
+inventory skips the legacy Helm xApp role to avoid dual reconciliation.
 See [docs/NMI_DEPLOYMENT.md](docs/NMI_DEPLOYMENT.md) for the verified VM,
 worker route, VPN access, operational status, image-registry workaround, and
 restore points.
@@ -202,9 +203,10 @@ Nephio R6 runs in namespaces of the existing NMI Kubernetes cluster. VM `113`
 was reused as worker `nephio-k8s-w01` (`192.168.71.30`) and the main Gitea,
 Porch, Flux, controller and WebUI workloads are placed there with the label
 `workload=nephio`. The validated package flow delivered a restricted ConfigMap
-through `Draft -> Proposed -> Published -> Git -> Flux`. Proxmox, Kubernetes
-bootstrap and the complete RAN/RIC/Core deployment remain under Ansible and
-Helm. See
+through `Draft -> Proposed -> Published -> Git -> Flux`. The same lifecycle now
+owns `r4-simple-mon`: v1 deploy, v2 update and a v3 forward rollback were all
+validated with real KPM indications. Proxmox, Kubernetes bootstrap and the
+complete RAN/RIC/Core deployment remain under Ansible and Helm. See
 [docs/NEPHIO_MANAGEMENT_CLUSTER.md](docs/NEPHIO_MANAGEMENT_CLUSTER.md) for the
 architecture, private UI access, versions and acceptance test.
 

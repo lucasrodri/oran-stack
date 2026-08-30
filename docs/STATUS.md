@@ -6,6 +6,22 @@ _Last updated: 2026-08-30_
 
 ## 0. Recent Changes
 
+### 2026-08-30 — simple-mon deployed and rolled back through Nephio
+
+- Packaged the complete `r4-simple-mon` contract for Porch/Flux: digest-pinned
+  image, Deployment, RMR/HTTP Services, NMI placement and byte-identical
+  `xAppBase.py` runtime override.
+- Published `nmi.r4-simple-mon.v1`; Flux adopted the live xApp with a dedicated
+  identity restricted to `ricxapp`. Secrets and RAN updates remain denied.
+- Archived the ten Helm release Secrets root-only and removed them without
+  deleting Kubernetes resources. NMI Ansible now skips Helm ownership of the
+  xApp, preventing two reconcilers from fighting over the same Deployment.
+- Demonstrated v2 update (`state=tuned`, Git `0f2773a`) and a forward rollback
+  copied from v1 (`state=baseline`, Git `ca9e3ee`). Both rollouts became Flux
+  Ready and received real E2SM-KPM indications; final subscription ID was 47.
+- Added bounded scripts for baseline publication, first-adoption RMR
+  stabilization, functional verification, and repeatable update/rollback.
+
 ### 2026-08-30 — Nephio R6 integrated into the NMI cluster
 
 - Reused VM `113` as Ubuntu worker `nephio-k8s-w01` (`192.168.71.30`) on

@@ -1,0 +1,21 @@
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: r4-simple-mon
+  namespace: flux-system
+spec:
+  interval: 1m
+  timeout: 5m
+  retryInterval: 20s
+  wait: true
+  prune: true
+  path: ./r4-simple-mon
+  sourceRef:
+    kind: GitRepository
+    name: nmi
+  serviceAccountName: r4-simple-mon-deployer
+  healthChecks:
+    - apiVersion: apps/v1
+      kind: Deployment
+      name: r4-simple-mon
+      namespace: ricxapp

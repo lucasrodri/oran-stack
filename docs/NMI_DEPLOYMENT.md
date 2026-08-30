@@ -28,8 +28,9 @@ has passed scheduling, DNS, Flannel, Multus, and OVS-CNI tests.
 
 VM 113 is labeled `workload=nephio`. Gitea, Porch, Nephio controllers, Flux and
 the WebUI run in dedicated namespaces on the same NMI cluster and select this
-worker. The first Flux identity is restricted to ConfigMaps in `nephio-lab`;
-the O-RAN namespaces remain under Helm/Ansible ownership.
+worker. The smoke Flux identity is restricted to ConfigMaps in `nephio-lab`.
+The separate `r4-simple-mon-deployer` identity manages only the xApp resources
+in `ricxapp`; RAN, Near-RT RIC and 5G Core remain under Helm/Ansible ownership.
 
 The three VM nodes have `n2br`, `f1cbr`, and `e2br` OVS bridges and a VXLAN full
 mesh protected by RSTP. Secondary-network traffic is verified across
@@ -51,8 +52,9 @@ remain active.
   E2 Termination, Subscription Manager, Application Manager, Routing Manager,
   and A1 Mediator running.
 - The `ran` release is deployed; CU, DU, and srsUE pods are running.
-- The `r4-simple-mon` xApp is scheduled on `oran-k8s-w02` and receives KPM
-  indications across the Flannel overlay without restarting E2Term.
+- The `r4-simple-mon` xApp is managed by Porch/Flux, scheduled on
+  `oran-k8s-w02`, and receives KPM indications across the Flannel overlay
+  without restarting E2Term. Deploy, update and forward rollback were validated.
 - N2 NG Setup and F1 Setup complete successfully.
 - CU and DU appear as `CONNECTED` in the e2mgr `/v1/nodeb/states` endpoint.
 - CU logs contain `E2 Setup procedure successful`.
@@ -145,6 +147,8 @@ Run these on `oran-k8s-01`:
 sudo kubectl get nodes -o wide
 sudo kubectl get pods -A
 helm list -A
+sudo kubectl get gitrepository,kustomization -n flux-system
+sudo kubectl get packagerevision -n default
 
 sudo kubectl run e2-state --rm -i --restart=Never \
   --image=busybox:1.36 -n near-rt-ric -- \

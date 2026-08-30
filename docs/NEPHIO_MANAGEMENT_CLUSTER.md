@@ -29,9 +29,9 @@ and `ricxapp`. The main Deployments and StatefulSets also use
 `nodeSelector: {workload: nephio}` so they run on VM 113. CRDs and RBAC remain
 cluster-scoped by Kubernetes design.
 
-Proxmox, pfSense, Kubernetes bootstrap, Multus/OVS and the complete O-RAN stack
-remain under the existing Ansible/Helm path. Nephio initially owns only the
-harmless package in `nephio-lab`.
+Proxmox, pfSense, Kubernetes bootstrap, Multus/OVS, RAN, Near-RT RIC and 5G Core
+remain under the existing Ansible/Helm path. Nephio owns the harmless smoke
+package and, after the validated handoff, the `r4-simple-mon` xApp only.
 
 ## Reused VM 113
 
@@ -65,6 +65,7 @@ node-exporter on the node, and all were verified `Running` after the join.
 | `flux-system` | source, kustomize, helm and notification controllers | R6 catalog baseline |
 | `nephio-webui` | Kpt/Porch WebUI | image pinned by digest |
 | `nephio-lab` | first package delivery target | ConfigMap-only POC |
+| `ricxapp` | `r4-simple-mon` delivery target | Deployment, Services and runtime ConfigMap |
 
 The catalog is pinned to commit
 `3d81f20e7a5e578e28152cb5b85841cfbae6d300`. kpt is
@@ -105,7 +106,7 @@ Package approved by Porch and reconciled by Flux | revision=v1
 Because Flux now runs in the target cluster, no cross-cluster kubeconfig or
 public Kubernetes API exposure is needed.
 
-## Restricted first deployment
+## Restricted delivery identities
 
 The Flux Kustomization uses ServiceAccount
 `flux-system/nephio-deployer`. A RoleBinding grants it only ConfigMap operations
@@ -120,8 +121,45 @@ update Deployments in ran: no
 WebUI list Secrets: no
 ```
 
-This role will be expanded only when the `r4-simple-mon` package is ready, and
-only for the exact namespaced resources that package needs.
+The xApp uses a separate ServiceAccount,
+`flux-system/r4-simple-mon-deployer`. Its Role is confined to `ricxapp`: it may
+manage Deployments, Services and ConfigMaps and may read Pods/ReplicaSets for
+health assessment. It cannot read Secrets and cannot update RAN Deployments.
+
+## r4-simple-mon deploy, update and rollback
+
+The package in `packages/nephio/r4-simple-mon/` captures the live xApp contract:
+
+- image `x0tok/oran-xapps` pinned by digest;
+- `DRB.UEThpDl`, report style 1 and RAN function 2;
+- E2 node `gnbd_001_001_00019b_e2`;
+- RMR/HTTP Services on ports 4561/8091;
+- placement on `oran-k8s-w02`;
+- the exact `xAppBase.py` runtime hotfix, SHA-256 `48ca48a...129b`.
+
+The accepted lifecycle was:
+
+| Porch revision | Git revision | Desired state | Functional result |
+| --- | --- | --- | --- |
+| `nmi.r4-simple-mon.v1` | `eeb8a88` | `v1 / baseline` | Flux Ready and KPM received |
+| `nmi.r4-simple-mon.v2` | `0f2773a` | `v2 / tuned` | rollout healthy and KPM received |
+| `nmi.r4-simple-mon.v3` | `ca9e3ee` | `v3-rollback / baseline` | rollback healthy and KPM received |
+
+Rollback is a new forward revision copied from the known-good v1 content. Git
+history never moves backwards. The final pod received E2SM-KPM on subscription
+47, with both RMR and decoded KPM counters increasing.
+
+During the first Helm-to-Flux adoption, RTMgr needed one controlled restart to
+republish its complete route table. The old REST subscription and only the xApp
+pod were then recreated; E2Term was not restarted and the SCTP connection was
+preserved. Subsequent v2 and rollback rollouts subscribed and received KPM
+without manual recovery.
+
+The ten Helm release Secrets (revisions 19 through 28) were backed up root-only
+under `/opt/nephio/backups/` on `oran-k8s-01`, then removed. `helm list -n
+ricxapp` is now empty, avoiding dual ownership. The NMI Ansible inventory sets
+`xapp_deployment_backend=nephio`, so future full deploy runs do not overwrite
+the package with Helm.
 
 ## Private access over the NMI VPN
 
@@ -170,8 +208,9 @@ worker placement through a KRM function, preserves kpt inventory between
 reruns, and uses bounded event output instead of the continuously redrawn kpt
 table.
 
-Declarative onboarding files are in `infra/nephio/nmi-onboarding/`; the package
-source is in `packages/nephio/nmi-lab-smoke/`.
+Declarative onboarding files are in `infra/nephio/nmi-onboarding/`; package
+sources are in `packages/nephio/nmi-lab-smoke/` and
+`packages/nephio/r4-simple-mon/`.
 
 Run the complete, idempotent onboarding after installing the controllers:
 
@@ -184,6 +223,23 @@ The script waits for the Gitea tokens, registers the Porch repository, publishes
 the package lifecycle and confirms the Flux reconciliation. A published
 revision is detected and reused on subsequent runs.
 
+Publish and verify the xApp baseline:
+
+```bash
+cd infra/nephio/nmi-onboarding
+./publish-xapp-package.sh ../../../packages/nephio/r4-simple-mon
+kubectl apply -f xapp-rbac.yaml
+kubectl apply -f xapp-flux-sync.yaml
+./stabilize-xapp-rmr.sh       # first Helm-to-Flux handoff only
+./verify-xapp-package.sh v1 baseline
+```
+
+Repeat the update/rollback demonstration with unique Porch workspaces:
+
+```bash
+./demo-xapp-update-rollback.sh
+```
+
 ## Useful checks
 
 ```bash
@@ -193,13 +249,16 @@ kubectl get repository.config.porch.kpt.dev
 porchctl rpkg get -n default
 kubectl get gitrepository,kustomization -n flux-system
 kubectl get configmap nephio-delivery-smoke -n nephio-lab
+kubectl get kustomization r4-simple-mon -n flux-system
+kubectl get deployment r4-simple-mon -n ricxapp \
+  -o jsonpath='{.metadata.annotations.nephio\.org/package-revision}{" / "}{.metadata.annotations.nephio\.org/demo-state}{"\n"}'
 ```
 
-## Next package
+## Next step
 
-The next POC step is to package `r4-simple-mon`, expose only site and resource
-parameters, then demonstrate an update and rollback through Porch and Flux. The
-complete RIC, RAN and Core remain outside Nephio ownership.
+The xApp deploy/update/rollback POC is complete. The next step is to render an
+ARM64-compatible variant for the CIC workload cluster while the complete RIC,
+RAN and Core remain outside Nephio ownership.
 
 ## Primary references
 
