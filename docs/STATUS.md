@@ -1,10 +1,26 @@
 # O-RAN Lab Stack — Status
 
-_Last updated: 2026-08-29_
+_Last updated: 2026-08-30_
 
 ---
 
 ## 0. Recent Changes
+
+### 2026-08-30 — Inter-Proxmox overlay and KPM recovery validated
+
+- Applied Hybrid Outbound NAT and restricted WAN rules on both pfSense routers
+  so UDP/4789 crosses `.71` ↔ `.72` without source NAT; disabled private-network
+  blocking only on the two inter-router WANs and retained bogon/default-deny
+  protection.
+- Enabled RSTP on every `n2br`, `f1cbr`, and `e2br` bridge. Bidirectional Multus
+  tests across Proxmox001 and Proxmox002 passed on all three networks with 0%
+  packet loss.
+- Made xApp startup require the selected E2 node to be `CONNECTED`, fixed the NMI
+  inventory precedence so `r4-simple-mon` stays on `oran-k8s-w02`, and changed
+  the RMR receive loop to allocate a fresh message buffer per timed receive.
+- Recovered E2, ZMQ, and the UE in a controlled sequence. The final 10 MB HTTP
+  demo through `tun_srsue` returned HTTP 200 and produced a
+  `DRB.UEThpDl` peak of 28,841 kbps in the xApp/Prometheus path.
 
 ### 2026-08-29 — NMI Kubernetes workers on both Proxmox servers
 

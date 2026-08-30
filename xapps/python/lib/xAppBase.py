@@ -95,7 +95,7 @@ class xAppBase(object):
             time.sleep(1)
 
         rmr.rmr_set_stimeout(self.rmr_client, 1)
-        self.rmr_sbuf = rmr.rmr_alloc_msg(self.rmr_client, 2000)
+        self.rmr_sbuf = None
         time.sleep(0.1)
 
         # Initialize Subscriber to talk to Subscription Manager over REST API

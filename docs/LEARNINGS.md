@@ -1535,24 +1535,25 @@ keeps the simulated RRC/DRB context alive long enough for interactive tests.
 
 ---
 
-## 45. Reuse the allocated RMR receive buffer with RMR 4.9.4
+## 45. Use a fresh RMR receive buffer with RMR 4.9.4
 
 **Symptom:** The DU logged one `Sending E2 indication` per reporting period and
 E2Term's message collector recorded matching `12050` indications. TCP statistics
 also showed the indication stream reaching the xApp pod, but the Python callback
 and KPM counters remained at zero.
 
-**Root cause:** The upstream Python example calls
-`rmr_torcv_msg(context, None, timeout)`. With the deployed `ricxappframe` and RMR
-4.9.4 combination, a timeout returns a null pointer. `message_summary()` then
-raises `ValueError: NULL pointer access`; the example catches and discards the
-exception. Repeated null-buffer polls prevent the already allocated receive
-buffer from being reused reliably for the next data message.
+**Root cause:** Reusing an old message buffer with the deployed `ricxappframe`
+and RMR 4.9.4 combination can leave the caller blocked on an internal condition
+variable. `strace` showed the RMR transport thread reading each 614-byte KPM
+message while the application thread never woke. This is distinct from the
+documented timeout case, where `rmr_torcv_msg(context, None, timeout)` may return
+a null pointer.
 
-**Fix:** Allocate `self.rmr_sbuf` once, pass it back to every
-`rmr_torcv_msg()` call, and do not free it after each poll. Free the buffer only
-when stopping the xApp. The runtime now also exposes
-`oran_xapp_rmr_receive_errors_total` and logs sampled receive-loop exceptions.
+**Fix:** Call `rmr_torcv_msg()` with `old_mbuf=NULL`, handle null timeout results
+in the exception path, and free every successfully returned message after it is
+processed. The runtime also exposes `oran_xapp_rmr_receive_errors_total` and logs
+sampled receive-loop exceptions. This restored one decoded KPM indication per
+reporting period.
 
 **Lesson:** Validate the Python binding's timeout behaviour against the exact RMR
 runtime version. Network delivery, a valid RTMgr `12050` route, and a successful
