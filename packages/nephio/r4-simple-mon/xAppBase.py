@@ -55,6 +55,14 @@ class xAppBase(object):
         self.MY_HTTP_SERVER_ADDRESS = "0.0.0.0"     # bind to all interfaces
         self.MY_HTTP_SERVER_PORT = http_server_port # web server listen port
         self.MY_RMR_PORT = rmr_port
+        self.ADVERTISED_HTTP_PORT = int(os.environ.get(
+            "XAPP_ADVERTISED_HTTP_PORT",
+            self.MY_HTTP_SERVER_PORT,
+        ))
+        self.ADVERTISED_RMR_PORT = int(os.environ.get(
+            "XAPP_ADVERTISED_RMR_PORT",
+            self.MY_RMR_PORT,
+        ))
         self.SUB_MGR_URI = os.environ.get(
             "SUB_MGR_URI",
             "http://service-ricplt-submgr-http.ricplt:8088/ric/v1",
@@ -102,7 +110,11 @@ class xAppBase(object):
         self.subscriber = subscribe.NewSubscriber(self.SUB_MGR_URI)
 
         # Initialize subEndPoint with my IP and ports
-        self.subEndPoint = self.subscriber.SubscriptionParamsClientEndpoint(self.xAPP_IP, self.MY_HTTP_SERVER_PORT, self.MY_RMR_PORT)
+        self.subEndPoint = self.subscriber.SubscriptionParamsClientEndpoint(
+            self.xAPP_IP,
+            self.ADVERTISED_HTTP_PORT,
+            self.ADVERTISED_RMR_PORT,
+        )
 
         # Create a HTTP server and set the URI handler callbacks
         self.httpServer = ricrest.ThreadedHTTPServer(self.MY_HTTP_SERVER_ADDRESS, self.MY_HTTP_SERVER_PORT)
@@ -128,11 +140,17 @@ class xAppBase(object):
             print("xAppBase: XAPP_NAME not set, skipping appmgr register")
             return
         ns = self.XAPP_NAMESPACE
-        rmr_endpoint = "service-{ns}-{name}-rmr.{ns}:{port}".format(
-            ns=ns, name=self.XAPP_NAME, port=self.MY_RMR_PORT,
+        rmr_endpoint = os.environ.get(
+            "XAPP_RMR_ENDPOINT",
+            "service-{ns}-{name}-rmr.{ns}:{port}".format(
+                ns=ns, name=self.XAPP_NAME, port=self.MY_RMR_PORT,
+            ),
         )
-        http_endpoint = "service-{ns}-{name}-http.{ns}:{port}".format(
-            ns=ns, name=self.XAPP_NAME, port=self.MY_HTTP_SERVER_PORT,
+        http_endpoint = os.environ.get(
+            "XAPP_HTTP_ENDPOINT",
+            "service-{ns}-{name}-http.{ns}:{port}".format(
+                ns=ns, name=self.XAPP_NAME, port=self.MY_HTTP_SERVER_PORT,
+            ),
         )
         payload = {
             "appName": self.XAPP_NAME,

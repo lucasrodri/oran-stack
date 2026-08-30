@@ -1,57 +1,64 @@
-FROM python:3.8-slim as stretch
+# syntax=docker/dockerfile:1.7
 
-RUN apt-get clean -y && apt-get update -y && \
-    apt-get install -y git wget curl less nano \
-    nmap mtr net-tools tcpdump apt-utils sudo jq tree iproute2 iputils-ping traceroute
+FROM python:3.11-slim-bookworm AS rmr-builder
 
 ARG RMR_VERSION=4.9.4
-ARG RMR_LIB_URL=https://packagecloud.io/o-ran-sc/release/packages/debian/stretch/rmr_${RMR_VERSION}_amd64.deb/download.deb
-ARG RMR_DEV_URL=https://packagecloud.io/o-ran-sc/release/packages/debian/stretch/rmr-dev_${RMR_VERSION}_amd64.deb/download.deb
-RUN wget --content-disposition ${RMR_LIB_URL} && dpkg -i rmr_${RMR_VERSION}_amd64.deb
-RUN wget --content-disposition ${RMR_DEV_URL} && dpkg -i rmr-dev_${RMR_VERSION}_amd64.deb
-RUN rm -f rmr_${RMR_VERSION}_amd64.deb rmr-dev_${RMR_VERSION}_amd64.deb
+ARG RMR_COMMIT=f447e29dffd0a24fcf02288b9591ce7d03a8fb9d
 
-ARG E2AP_VERSION=1.1.0
-ARG E2AP_LIB_URL=https://packagecloud.io/o-ran-sc/release/packages/debian/stretch/riclibe2ap_${E2AP_VERSION}_amd64.deb/download.deb
-ARG E2AP_DEV_URL=https://packagecloud.io/o-ran-sc/release/packages/debian/stretch/riclibe2ap-dev_${E2AP_VERSION}_amd64.deb/download.deb
-RUN wget --content-disposition ${E2AP_LIB_URL} && dpkg -i riclibe2ap_${E2AP_VERSION}_amd64.deb
-RUN wget --content-disposition ${E2AP_DEV_URL} && dpkg -i riclibe2ap-dev_${E2AP_VERSION}_amd64.deb
-RUN rm -f riclibe2ap_${E2AP_VERSION}_amd64.deb riclibe2ap-dev_${E2AP_VERSION}_amd64.deb
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      build-essential \
+      ca-certificates \
+      cmake \
+      git \
+    && rm -rf /var/lib/apt/lists/*
 
-FROM python:3.8-slim
+RUN git clone --filter=blob:none https://github.com/o-ran-sc/ric-plt-lib-rmr.git /src/rmr \
+    && cd /src/rmr \
+    && git checkout --detach "${RMR_COMMIT}" \
+    && test "$(git describe --tags --exact-match HEAD)" = "${RMR_VERSION}"
 
-RUN apt-get clean -y && apt-get update -y && \
-    apt-get install -y git wget curl less nano
+RUN cmake -S /src/rmr -B /src/rmr/.build \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr/local \
+      -DDEV_PKG=0 \
+      -DBUILD_DOC=0 \
+      -DIGNORE_LIBDIR=1 \
+    && cmake --build /src/rmr/.build --parallel \
+    && cmake --install /src/rmr/.build
 
-ARG RMR_VERSION=4.9.4
-ARG E2AP_VERSION=1.1.0
+FROM python:3.11-slim-bookworm
 
-COPY --from=stretch /usr/local/lib/librmr_si.so.${RMR_VERSION} /usr/local/lib/librmr_si.so
-COPY --from=stretch /usr/local/lib/libriclibe2ap.so.${E2AP_VERSION} /usr/local/lib/libriclibe2ap.so
-COPY --from=stretch /usr/local/bin/rmr_probe /opt/e2/rmr_probe
-RUN chmod -R 755 /usr/local/lib/librmr_si.so
-RUN chmod -R 755 /usr/local/lib/libriclibe2ap.so
+ARG SC_RIC_COMMIT=7fb94911c4197e6c0c93d20bc2e6e73d9444d14f
 
-RUN pip install --upgrade pip && pip install certifi six python_dateutil setuptools urllib3 logger requests inotify_simple mdclogpy google-api-python-client msgpack ricsdl asn1tools
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      ca-certificates \
+      curl \
+      git \
+    && rm -rf /var/lib/apt/lists/*
 
-RUN mkdir -p /opt/xApps && chmod -R 755 /opt/xApps
-RUN mkdir -p /opt/ric/config && chmod -R 755 /opt/ric/config
+COPY --from=rmr-builder /usr/local/lib/librmr_si.so* /usr/local/lib/
+COPY --from=rmr-builder /usr/local/bin/rmr_probe /opt/e2/rmr_probe
+RUN ldconfig && chmod 0755 /opt/e2/rmr_probe
 
-WORKDIR /opt/
+WORKDIR /opt
+RUN git clone --filter=blob:none https://github.com/o-ran-sc/ric-plt-xapp-frame-py.git \
+      /opt/ric-plt-xapp-frame-py \
+    && cd /opt/ric-plt-xapp-frame-py \
+    && git checkout --detach "${SC_RIC_COMMIT}"
 
-ARG SC_RIC_VERSION=i-release
-RUN git clone --depth 1 --branch ${SC_RIC_VERSION} https://github.com/o-ran-sc/ric-plt-xapp-frame-py.git
+COPY dockerfiles/xapp/ric-plt-xapp-frame-py.patch \
+  /opt/ric-plt-xapp-frame-py/ric-plt-xapp-frame-py.patch
+RUN cd /opt/ric-plt-xapp-frame-py \
+    && git apply ./ric-plt-xapp-frame-py.patch \
+    && python -m pip install --no-cache-dir --upgrade pip setuptools wheel \
+    && python -m pip install --no-cache-dir asn1tools \
+    && python -m pip install --no-cache-dir /opt/ric-plt-xapp-frame-py
 
-WORKDIR /opt/ric-plt-xapp-frame-py
-COPY dockerfiles/xapp/ric-plt-xapp-frame-py.patch .
-RUN git apply ./ric-plt-xapp-frame-py.patch
+RUN mkdir -p /opt/xApps /opt/ric/config \
+    && chmod 0755 /opt/xApps /opt/ric/config
 
-WORKDIR /opt/
-RUN pip install -e ./ric-plt-xapp-frame-py
-
-ENV LD_LIBRARY_PATH=/lib:/usr/lib:/usr/local/lib
-RUN chmod +x /opt/e2/rmr_probe
+ENV LD_LIBRARY_PATH=/usr/local/lib \
+    PYTHONUNBUFFERED=1
 
 WORKDIR /opt/xApps
-
 CMD ["/bin/bash"]

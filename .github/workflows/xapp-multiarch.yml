@@ -1,0 +1,97 @@
+name: Build multi-architecture simple-mon xApp
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/xapp-multiarch.yml
+      - dockerfiles/xapp/**
+      - xapps/python/**
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ghcr.io/${{ github.repository }}
+
+jobs:
+  build-runner:
+    name: Build ARM64/AMD64 xApp runner
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: dockerfiles/xapp/Dockerfile.runner
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ env.IMAGE_PREFIX }}/oran-xapp-runner:i-release-multiarch
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.version=i-release-multiarch
+          cache-from: type=gha,scope=oran-xapp-runner
+          cache-to: type=gha,mode=max,scope=oran-xapp-runner
+          provenance: mode=max
+          sbom: true
+
+  build-xapps:
+    name: Build ARM64/AMD64 laboratory xApps
+    needs: build-runner
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: dockerfiles/xapp/Dockerfile.xapps
+          build-args: |
+            XAPP_RUNNER_IMAGE=${{ env.IMAGE_PREFIX }}/oran-xapp-runner:i-release-multiarch
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ${{ env.IMAGE_PREFIX }}/oran-xapps:i-release-multiarch
+            ${{ env.IMAGE_PREFIX }}/oran-xapps:step6-${{ github.sha }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.version=step6-${{ github.sha }}
+          cache-from: type=gha,scope=oran-xapps
+          cache-to: type=gha,mode=max,scope=oran-xapps
+          provenance: mode=max
+          sbom: true
+
+  verify-publication:
+    name: Verify both image platforms
+    needs: build-xapps
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: docker/setup-buildx-action@v3
+      - name: Require AMD64 and ARM64 manifests
+        shell: bash
+        run: |
+          set -euo pipefail
+          image="${IMAGE_PREFIX}/oran-xapps:step6-${GITHUB_SHA}"
+          manifest=$(docker buildx imagetools inspect "${image}")
+          grep -Fq 'Platform:    linux/amd64' <<<"${manifest}"
+          grep -Fq 'Platform:    linux/arm64' <<<"${manifest}"
+          printf 'Verified %s on linux/amd64 and linux/arm64\n' "${image}"
