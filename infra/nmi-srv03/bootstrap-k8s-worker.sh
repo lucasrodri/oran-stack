@@ -18,13 +18,19 @@ printf '%s\n' \
 sudo sysctl --system >/dev/null
 
 sudo apt-get update
-sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
-  ca-certificates curl gpg containerd openvswitch-switch
+base_packages=(ca-certificates curl gpg containerd openvswitch-switch)
+if systemd-detect-virt --quiet; then
+  base_packages+=(qemu-guest-agent)
+fi
+sudo DEBIAN_FRONTEND=noninteractive apt-get install -y "${base_packages[@]}"
 
 sudo install -d -m 0755 /etc/containerd
 containerd config default | sudo tee /etc/containerd/config.toml >/dev/null
 sudo sed -ri 's/SystemdCgroup = false/SystemdCgroup = true/' /etc/containerd/config.toml
 sudo systemctl enable --now containerd openvswitch-switch
+if systemctl list-unit-files qemu-guest-agent.service >/dev/null 2>&1; then
+  sudo systemctl enable --now qemu-guest-agent
+fi
 
 curl -fsSL "https://pkgs.k8s.io/core:/stable:/v${KUBERNETES_MINOR}/deb/Release.key" \
   -o /tmp/kubernetes-release.key
@@ -37,6 +43,15 @@ printf 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkg
 sudo apt-get update
 sudo DEBIAN_FRONTEND=noninteractive apt-get install -y kubelet kubeadm kubectl
 sudo apt-mark hold kubelet kubeadm kubectl
+
+# Debian's containerd package may retain /usr/lib/cni as the effective CRI
+# plugin directory even when config.toml points at /opt/cni/bin. Keep that
+# distro path compatible with the Kubernetes CNI package without duplicating
+# the plugin binaries.
+if [[ ! -e /usr/lib/cni ]]; then
+  sudo ln -s /opt/cni/bin /usr/lib/cni
+fi
+
 sudo systemctl enable kubelet
 
 kubeadm version -o short

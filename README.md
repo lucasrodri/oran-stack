@@ -151,22 +151,25 @@ ansible-playbook ansible/playbooks/deploy.yml \
 ### Option C: NMI laboratory cluster
 
 The validated NMI deployment uses VM `oran-k8s-01` as the control plane and
-telecom workload node, plus physical server `nmi-srv03` as a dedicated
-observability worker. The normal control-plane taint is retained; monitoring is
-placed with a selector and taint/toleration pair. Flannel carries ordinary pod
-traffic, while Multus/OVS remains confined to the telecom node for the
-SCTP/ZMQ-sensitive interfaces.
+telecom workload node, VMs `oran-k8s-w01` and `oran-k8s-w02` as general workers
+on the two Proxmox servers, and physical server `nmi-srv03` as the dedicated
+observability worker. Monitoring is placed with a selector and
+taint/toleration pair. Flannel and Multus run on the VM nodes; the sensitive
+RAN remains pinned to the control plane, while `r4-simple-mon` runs on
+`oran-k8s-w02`.
 See [docs/NMI_DEPLOYMENT.md](docs/NMI_DEPLOYMENT.md) for the verified VM,
 worker route, VPN access, operational status, image-registry workaround, and
 restore points.
 
-Run the playbooks from `oran-k8s-01` so both node provisioning and the
-localhost Helm deployment use the same host:
+For an already-running NMI cluster, do not rerun the full provisioning playbook
+or skip Kubernetes minor versions. Prepare/join each new worker with
+`infra/nmi-srv03/bootstrap-k8s-worker.sh`, then reconcile Multus and the OVS
+mesh from `oran-k8s-01`:
 
 ```bash
 cd ansible
 
-ansible-playbook -i inventories/nmi-single.ini playbooks/provision.yml
+ansible-playbook -i inventories/nmi-single.ini playbooks/expand-ovs-network.yml
 ansible-playbook -i inventories/nmi-single.ini playbooks/deploy.yml
 ```
 

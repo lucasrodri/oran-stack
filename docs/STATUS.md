@@ -6,6 +6,20 @@ _Last updated: 2026-08-29_
 
 ## 0. Recent Changes
 
+### 2026-08-29 — NMI Kubernetes workers on both Proxmox servers
+
+- Provisioned Debian 12 VM `111` (`oran-k8s-w01`, `192.168.71.20`) on
+  Proxmox001 and VM `112` (`oran-k8s-w02`, `192.168.72.20`) on Proxmox002.
+- Joined both workers to kubeadm 1.30.14 and validated Flannel pod traffic,
+  cluster DNS, Multus, OVS-CNI, SCTP initialization, and node-exporter.
+- Expanded Multus and the `n2br`/`f1cbr`/`e2br` OVS VXLAN mesh to the VM nodes.
+  UDP/4789 remains to be permitted by pfSense across `.71` ↔ `.72`; the primary
+  pod overlay and the same-site OVS path are already functional.
+- Added per-component Helm placement. The radio-sensitive RAN stays on VM 105,
+  while `r4-simple-mon` runs on `oran-k8s-w02` and receives live KPM indications.
+- Revalidated UE Internet egress and a 10 MiB KPM demo after expansion. The
+  measured `DRB.UEThpDl` peak was 28,014 kbps and E2Term was not restarted.
+
 ### 2026-08-29 — Live KPM values and repeatable UE traffic demonstration
 
 - Enabled OCUDU DU RLC metrics, the source used by the 26.04 KPM provider to

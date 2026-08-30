@@ -115,6 +115,13 @@
         tac: "{{ plmn.tac }}"
       ue:
         credentialsSecretName: "{{ subscriber_credentials_secret_name }}"
+      scheduling:
+        cu:
+          nodeSelector: "{{ {'kubernetes.io/hostname': ran_cu_node} if (ran_cu_node | length > 0) else {} }}"
+        du:
+          nodeSelector: "{{ {'kubernetes.io/hostname': ran_du_node} if (ran_du_node | length > 0) else {} }}"
+        ue:
+          nodeSelector: "{{ {'kubernetes.io/hostname': ran_ue_node} if (ran_ue_node | length > 0) else {} }}"
       secondaryNetworks:
         n2:
           nadName:  "{{ secondary_networks.n2.nad_name }}"

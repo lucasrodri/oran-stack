@@ -1,6 +1,6 @@
-# NMI two-node deployment
+# NMI four-node deployment
 
-Last verified: 2026-08-28
+Last verified: 2026-08-29
 
 ## Infrastructure
 
@@ -9,33 +9,44 @@ Last verified: 2026-08-28
 | Proxmox control plane | `proxmox002`, VM `105` / `oran-k8s-01` |
 | Control-plane IP | `192.168.72.10/24` via `192.168.72.1` |
 | Control-plane resources | 12 vCPU, 24 GiB RAM, 64 GiB disk, Debian 12 |
+| Proxmox001 worker | VM `111` / `oran-k8s-w01`, `192.168.71.20`, 8 vCPU, 12 GiB RAM, 48 GiB disk |
+| Proxmox002 worker | VM `112` / `oran-k8s-w02`, `192.168.72.20`, 4 vCPU, 8 GiB RAM, 32 GiB disk |
 | Observability worker | `nmi-srv03`, `164.41.240.13`, Ubuntu 24.04 |
 | Inter-network route | `192.168.72.0/24 via 164.41.240.22` on `nmi-srv03` |
 | Firewall policy | pfSense2 allows `164.41.240.13` → `192.168.72.10` |
-| Kubernetes | kubeadm 1.30.14, one control plane plus one worker |
+| Kubernetes | kubeadm 1.30.14, one control plane plus three workers |
 | CNI | Flannel + Multus + OVS-CNI |
 
-Telecom workloads remain on `oran-k8s-01`; Prometheus, Grafana, the Prometheus
-Operator, and kube-state-metrics run on the physical worker. The worker is
-selected with `workload=observability` and protected by the
-`workload=observability:NoSchedule` taint. This demonstrates a real multi-machine
-cluster without spreading the SCTP/ZMQ datapath across failure domains.
+The SCTP/ZMQ-sensitive RAN, 5G core, and E2Term remain on `oran-k8s-01`.
+`r4-simple-mon` runs on `oran-k8s-w02`, while Prometheus, Grafana, the Prometheus
+Operator, and kube-state-metrics run on `nmi-srv03`. The physical observability
+worker is selected with `workload=observability` and protected by the
+`workload=observability:NoSchedule` taint. `oran-k8s-w01` is a general worker and
+has passed scheduling, DNS, Flannel, Multus, and OVS-CNI tests.
+
+The three VM nodes have `n2br`, `f1cbr`, and `e2br` OVS bridges and a VXLAN full
+mesh. Secondary-network traffic is verified between `oran-k8s-01` and
+`oran-k8s-w02`. The `.71` ↔ `.72` path still needs a pfSense rule allowing
+UDP/4789 before SCTP-sensitive workloads are placed on `oran-k8s-w01`; the
+primary Flannel overlay already works across that boundary with 0% packet loss.
 
 ## Verified state
 
-- Both Kubernetes nodes are `Ready`.
+- All four Kubernetes nodes are `Ready`.
 - The complete observability control plane runs on `nmi-srv03`.
 - The `5g-core` Helm release is deployed; MongoDB and all Open5GS NFs are running.
 - The `near-rt-ric` Helm release revision 9 is deployed with DBAAS, E2 Manager,
   E2 Termination, Subscription Manager, Application Manager, Routing Manager,
   and A1 Mediator running.
 - The `ran` release is deployed; CU, DU, and srsUE pods are running.
+- The `r4-simple-mon` xApp is scheduled on `oran-k8s-w02` and receives KPM
+  indications across the Flannel overlay without restarting E2Term.
 - N2 NG Setup and F1 Setup complete successfully.
 - CU and DU appear as `CONNECTED` in the e2mgr `/v1/nodeb/states` endpoint.
 - CU logs contain `E2 Setup procedure successful`.
 
 The srsUE completes random access, RRC connection, registration, and PDU session
-establishment. It receives `10.45.0.2` on `tun_srsue`; the UPF creates the
+establishment. It receives an address from `10.45.0.0/24` on `tun_srsue`; the UPF creates the
 matching `internet` session and `ping 10.45.0.1` through the simulated radio path
 succeeds. SMF↔UPF PFCP uses direct pod identities through a headless UPF Service.
 The lab profile keeps the RRC bearer for up to 7200 seconds of inactivity so the

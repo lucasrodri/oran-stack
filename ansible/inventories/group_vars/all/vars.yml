@@ -150,6 +150,13 @@ helm_releases:
 
 xapp_runtime_override_configmap: "r4-simple-mon-runtime"
 
+# Empty by default so the same charts work in a single-node lab. An inventory
+# may pin individual components after labeling/provisioning suitable workers.
+ran_cu_node: ""
+ran_du_node: ""
+ran_ue_node: ""
+xapp_node: ""
+
 helm_timeout: "600s"
 
 # ----------------------------------------------------------------------------

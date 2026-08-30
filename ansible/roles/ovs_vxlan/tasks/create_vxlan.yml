@@ -9,8 +9,8 @@
 
 - name: "Add VXLAN port on {{ _bridge.name }}"
   command: >
-    ovs-vsctl --may-exist add-port {{ _bridge.name }} vx-{{ _bridge.name }}-{{ remote_node }}
-    -- set interface vx-{{ _bridge.name }}-{{ remote_node }} type=vxlan
+    ovs-vsctl --may-exist add-port {{ _bridge.name }} vx-{{ _bridge.name }}-{{ hostvars[remote_node]['vxlan_suffix'] | default((remote_node | hash('md5'))[:4]) }}
+    -- set interface vx-{{ _bridge.name }}-{{ hostvars[remote_node]['vxlan_suffix'] | default((remote_node | hash('md5'))[:4]) }} type=vxlan
     options:remote_ip={{ hostvars[remote_node]['control_plane_ip'] | default(hostvars[remote_node]['ansible_host']) }}
     options:key={{ _vxlan_key }}
   when: remote_node != inventory_hostname

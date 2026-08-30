@@ -51,6 +51,10 @@ spec:
             }
           ]
     spec:
+      {{- with .Values.scheduling.cu.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       {{- if .Values.imagePullSecretName }}
       imagePullSecrets:
         - name: {{ .Values.imagePullSecretName }}
@@ -219,6 +223,10 @@ spec:
             }
           ]
     spec:
+      {{- with .Values.scheduling.du.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       {{- if .Values.imagePullSecretName }}
       imagePullSecrets:
         - name: {{ .Values.imagePullSecretName }}
@@ -397,6 +405,10 @@ spec:
       annotations:
         checksum/ocudu-configs: {{ include (print $.Template.BasePath "/configmap-ocudu-configs.yaml") . | sha256sum }}
     spec:
+      {{- with .Values.scheduling.ue.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       {{- if .Values.imagePullSecretName }}
       imagePullSecrets:
         - name: {{ .Values.imagePullSecretName }}

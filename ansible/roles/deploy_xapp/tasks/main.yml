@@ -142,6 +142,7 @@
         appmgrRegisterUri: "http://ric-appmgr.{{ namespaces.ric }}:8080/ric/v1/register"
       xapp:
         e2NodeId: "{{ _xapp_e2_node_id }}"
+      nodeSelector: "{{ {'kubernetes.io/hostname': xapp_node} if (xapp_node | length > 0) else {} }}"
       runtimeOverride:
         configMapName: "{{ xapp_runtime_override_configmap }}"
         checksum: "{{ _xapp_base_source | hash('sha256') }}"

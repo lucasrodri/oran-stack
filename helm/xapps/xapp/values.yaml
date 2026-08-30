@@ -25,6 +25,9 @@ xapp:
 # avoids Pending pods when the worker is near its CPU request limit.
 deploymentStrategy: Recreate
 
+# Optional workload placement for multi-node lab clusters.
+nodeSelector: {}
+
 resources: {}
 
 # Optional source-level hotfix loaded by the deployment role. This keeps a

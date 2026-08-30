@@ -116,3 +116,14 @@ deployUE: true
 # avoids Pending pods when the worker is near its CPU request limit.
 # Also required for Multus static IPs (CU/DU) which cannot surge.
 deploymentStrategy: Recreate
+
+# Optional per-component placement. The NMI environment uses these selectors
+# to keep the simulated RAN together on a worker with the required OVS bridges,
+# while the chart remains schedulable on a single-node lab by default.
+scheduling:
+  cu:
+    nodeSelector: {}
+  du:
+    nodeSelector: {}
+  ue:
+    nodeSelector: {}

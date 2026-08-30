@@ -1,0 +1,71 @@
+---
+# Add or reconcile only the OVS bridges and VXLAN full mesh on an existing
+# cluster. This intentionally avoids the kubeadm provisioning and upgrade roles.
+- name: Expand the O-RAN secondary network across existing Kubernetes nodes
+  hosts: k8s_cluster
+  become: true
+  gather_facts: false
+
+  roles:
+    - role: ovs_vxlan
+
+- name: Reconcile Multus placement on telecom-capable nodes
+  hosts: control_plane
+  become: false
+  gather_facts: false
+
+  tasks:
+    - name: Label the VM cluster nodes for Multus
+      command:
+        argv:
+          - kubectl
+          - label
+          - node
+          - "{{ item }}"
+          - oran.unb.br/multus=true
+          - oran.unb.br/site=nmi
+          - --overwrite
+      loop: "{{ groups['k8s_cluster'] }}"
+      changed_when: false
+
+    - name: Read the current Multus node selector
+      command:
+        argv:
+          - kubectl
+          - --namespace
+          - kube-system
+          - get
+          - daemonset
+          - kube-multus-ds
+          - -o
+          - json
+      register: multus_daemonset
+      changed_when: false
+
+    - name: Run Multus only on the labeled telecom-capable nodes
+      command:
+        argv:
+          - kubectl
+          - --namespace
+          - kube-system
+          - patch
+          - daemonset
+          - kube-multus-ds
+          - --type=json
+          - >-
+            -p=[{"op":"add","path":"/spec/template/spec/nodeSelector","value":{"oran.unb.br/multus":"true"}}]
+      when: >-
+        ((multus_daemonset.stdout | from_json).spec.template.spec.nodeSelector | default({}))
+        != {'oran.unb.br/multus': 'true'}
+
+    - name: Wait for Multus on every labeled node
+      command:
+        argv:
+          - kubectl
+          - --namespace
+          - kube-system
+          - rollout
+          - status
+          - daemonset/kube-multus-ds
+          - --timeout=180s
+      changed_when: false
