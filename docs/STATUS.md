@@ -6,6 +6,24 @@ _Last updated: 2026-08-30_
 
 ## 0. Recent Changes
 
+### 2026-08-30 — Persistent observability and bounded lab logging
+
+- Added persistent Prometheus, Grafana, Alertmanager and Loki storage on the
+  physical `nmi-srv03` observability worker, plus an Alloy collector on every
+  Kubernetes node.
+- Added the `O-RAN Kubernetes Logs` dashboard and alerts for nodes, crash loops,
+  E2Term, xApp, UE, stale KPM, RMR errors and monitoring storage.
+- Restricted log collection to the five stack namespaces and Loki retention to
+  24 hours. Routine scrape/KPM/RLC success lines are dropped before storage.
+  RAN and srsUE normal operation now logs at `warning`; the UE no longer emits
+  thousands of PHY/FAPI lines per minute.
+- Added the missing persistent route from `nmi-srv03` to `192.168.71.0/24` and
+  restricted pfSense WAN rules to both Kubernetes workers, restoring complete
+  Prometheus/Alloy reachability across the four-node Flannel network.
+- Fixed an RMR receive hot loop in `r4-simple-mon` by yielding after normal
+  receive timeouts. E2Term delivery, decoded KPM metrics, UE PDU session and
+  Internet egress were revalidated.
+
 ### 2026-08-30 — Inter-Proxmox overlay and KPM recovery validated
 
 - Applied Hybrid Outbound NAT and restricted WAN rules on both pfSense routers

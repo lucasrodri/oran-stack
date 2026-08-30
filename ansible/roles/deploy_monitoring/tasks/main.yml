@@ -8,7 +8,7 @@
 #   3. Create monitoring namespace
 #   4. helm dependency update (fetches kube-prometheus-stack sub-chart)
 #   5. helm upgrade --install monitoring
-#   6. Wait for Prometheus and Grafana Deployments to be Available
+#   6. Wait for persistent Prometheus, Grafana, Loki, Alloy and Alertmanager
 #   7. Print Grafana access instructions
 #
 # Deployed AFTER ran so that all ServiceMonitor targets are already up.
@@ -85,24 +85,43 @@
 # ----------------------------------------------------------------------------
 # 6. Wait for Prometheus and Grafana to be Available
 # ----------------------------------------------------------------------------
-- name: Wait for Grafana Deployment to be Available
-  kubernetes.core.k8s_info:
-    kubeconfig: "{{ _kubeconfig }}"
-    kind: Deployment
-    label_selectors:
-      - "app.kubernetes.io/name=grafana"
-    namespace: "{{ namespaces.monitoring }}"
-    wait: true
-    wait_condition:
-      type:   Available
-      status: "True"
-    wait_timeout: 300
+- name: Wait for persistent Grafana StatefulSet to be ready
+  ansible.builtin.command:
+    cmd: >
+      kubectl --kubeconfig={{ _kubeconfig }} rollout status
+      statefulset/{{ helm_releases.monitoring }}-grafana
+      -n {{ namespaces.monitoring }} --timeout=300s
+  changed_when: false
 
 - name: Wait for Prometheus StatefulSet to be ready
   ansible.builtin.command:
     cmd: >
       kubectl --kubeconfig={{ _kubeconfig }} rollout status
       statefulset/prometheus-{{ helm_releases.monitoring }}-kube-prometheus-prometheus
+      -n {{ namespaces.monitoring }} --timeout=300s
+  changed_when: false
+
+- name: Wait for Alertmanager StatefulSet to be ready
+  ansible.builtin.command:
+    cmd: >
+      kubectl --kubeconfig={{ _kubeconfig }} rollout status
+      statefulset/alertmanager-{{ helm_releases.monitoring }}-kube-prometheus-alertmanager
+      -n {{ namespaces.monitoring }} --timeout=300s
+  changed_when: false
+
+- name: Wait for Loki StatefulSet to be ready
+  ansible.builtin.command:
+    cmd: >
+      kubectl --kubeconfig={{ _kubeconfig }} rollout status
+      statefulset/{{ helm_releases.monitoring }}-loki
+      -n {{ namespaces.monitoring }} --timeout=600s
+  changed_when: false
+
+- name: Wait for Alloy log collectors to be ready on every node
+  ansible.builtin.command:
+    cmd: >
+      kubectl --kubeconfig={{ _kubeconfig }} rollout status
+      daemonset/{{ helm_releases.monitoring }}-alloy
       -n {{ namespaces.monitoring }} --timeout=300s
   changed_when: false
 
@@ -118,6 +137,11 @@
         http://192.168.72.10:30300
       Credentials: admin / oran-lab
 
-      The 'O-RAN Stack Overview' dashboard is pre-loaded.
+      Alertmanager:
+        http://192.168.72.10:30301
+
+      The 'O-RAN Stack Overview' and 'O-RAN Kubernetes Logs' dashboards are
+      pre-loaded. Prometheus, Grafana, Alertmanager and Loki use persistent
+      volumes on the observability node; Alloy collects logs on every node.
       Prometheus scrapes the Kubernetes state and the xApp KPM metrics every
       15 seconds; the dashboard also shows the RIC, core, RAN and node health.

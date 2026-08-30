@@ -8,7 +8,9 @@ RAN_NAMESPACE="${RAN_NAMESPACE:-ran}"
 XAPP_NAMESPACE="${XAPP_NAMESPACE:-ricxapp}"
 UE_DEPLOYMENT="${UE_DEPLOYMENT:-srsue}"
 XAPP_DEPLOYMENT="${XAPP_DEPLOYMENT:-r4-simple-mon}"
-TRAFFIC_URL="${TRAFFIC_URL:-https://speed.cloudflare.com/__down?bytes=10000000}"
+# Keep the transfer bounded, but long enough to cross Prometheus's 15-second
+# scrape interval so the Grafana time series reliably captures a non-zero KPI.
+TRAFFIC_URL="${TRAFFIC_URL:-https://speed.cloudflare.com/__down?bytes=50000000}"
 GRAFANA_URL="${GRAFANA_URL:-http://192.168.72.10:30300/d/oran-overview/o-ran-stack-overview}"
 
 kubectl_args=()

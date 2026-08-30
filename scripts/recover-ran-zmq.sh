@@ -23,10 +23,13 @@ kubectl --kubeconfig="${KUBECONFIG_PATH}" -n "${NAMESPACE}" \
   rollout status deployment/srsue --timeout=180s
 
 for _ in $(seq 1 36); do
-  logs="$(kubectl --kubeconfig="${KUBECONFIG_PATH}" -n "${NAMESPACE}" \
-    logs deployment/srsue -c srsue --tail=400 2>/dev/null || true)"
-  if grep -q 'PDU Session Establishment successful' <<<"${logs}"; then
-    grep 'PDU Session Establishment successful' <<<"${logs}" | tail -1
+  # Normal lab logging is intentionally set to warning, so successful NAS
+  # events are not expected in stdout. The PDU interface is the authoritative
+  # functional signal and keeps this recovery check independent of log level.
+  if pdu_interface="$(kubectl --kubeconfig="${KUBECONFIG_PATH}" -n "${NAMESPACE}" \
+    exec deployment/srsue -c srsue -- \
+    ip -brief address show tun_srsue 2>/dev/null)"; then
+    echo "PDU session ready: ${pdu_interface}"
     exit 0
   fi
   sleep 5

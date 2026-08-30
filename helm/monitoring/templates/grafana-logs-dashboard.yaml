@@ -1,0 +1,104 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: oran-logs-dashboard
+  namespace: {{ .Values.namespace }}
+  labels:
+    grafana_dashboard: "1"
+    app.kubernetes.io/part-of: oran-stack
+data:
+  oran-logs.json: |-
+    {
+      "title": "O-RAN Kubernetes Logs",
+      "uid": "oran-logs",
+      "schemaVersion": 39,
+      "version": 1,
+      "refresh": "10s",
+      "time": {"from": "now-30m", "to": "now"},
+      "tags": ["oran", "loki", "logs"],
+      "templating": {
+        "list": [
+          {
+            "name": "namespace",
+            "label": "Namespace",
+            "type": "query",
+            "datasource": {"type": "loki", "uid": "loki"},
+            "query": "label_values(namespace)",
+            "includeAll": true,
+            "allValue": ".*",
+            "current": {"text": "O-RAN", "value": "5g-core|near-rt-ric|ricxapp|ran"},
+            "refresh": 1
+          },
+          {
+            "name": "container",
+            "label": "Container",
+            "type": "query",
+            "datasource": {"type": "loki", "uid": "loki"},
+            "query": "label_values({namespace=~\"$namespace\"}, container)",
+            "includeAll": true,
+            "allValue": ".*",
+            "current": {"text": "All", "value": "$__all"},
+            "refresh": 1
+          },
+          {
+            "name": "search",
+            "label": "Contains",
+            "type": "textbox",
+            "query": "",
+            "current": {"text": "", "value": ""}
+          }
+        ]
+      },
+      "panels": [
+        {
+          "id": 1,
+          "type": "timeseries",
+          "title": "Log volume by namespace",
+          "gridPos": {"x": 0, "y": 0, "w": 12, "h": 7},
+          "datasource": {"type": "loki", "uid": "loki"},
+          "targets": [
+            {
+              "expr": "sum by (namespace) (count_over_time({namespace=~\"$namespace\",container=~\"$container\"}[1m]))",
+              "legendFormat": "{{ `{{ namespace }}` }}",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {"defaults": {"unit": "logs/min"}, "overrides": []},
+          "options": {"legend": {"displayMode": "table", "placement": "bottom"}}
+        },
+        {
+          "id": 2,
+          "type": "stat",
+          "title": "Errors in selected logs (5m)",
+          "gridPos": {"x": 12, "y": 0, "w": 12, "h": 7},
+          "datasource": {"type": "loki", "uid": "loki"},
+          "targets": [
+            {
+              "expr": "sum(count_over_time({namespace=~\"$namespace\",container=~\"$container\"} |~ \"(?i)(error|fatal|panic|failed)\" [5m]))",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 1}, {"color": "red", "value": 10}]}
+            },
+            "overrides": []
+          },
+          "options": {"colorMode": "background", "graphMode": "area", "reduceOptions": {"calcs": ["lastNotNull"]}}
+        },
+        {
+          "id": 3,
+          "type": "logs",
+          "title": "Live O-RAN pod logs",
+          "gridPos": {"x": 0, "y": 7, "w": 24, "h": 15},
+          "datasource": {"type": "loki", "uid": "loki"},
+          "targets": [
+            {
+              "expr": "{namespace=~\"$namespace\",container=~\"$container\"} |= \"$search\"",
+              "refId": "A"
+            }
+          ],
+          "options": {"showTime": true, "showLabels": true, "wrapLogMessage": true, "enableLogDetails": true, "sortOrder": "Descending"}
+        }
+      ]
+    }

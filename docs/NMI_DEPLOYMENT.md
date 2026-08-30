@@ -1,6 +1,6 @@
 # NMI four-node deployment
 
-Last verified: 2026-08-29
+Last verified: 2026-08-30
 
 ## Infrastructure
 
@@ -12,14 +12,15 @@ Last verified: 2026-08-29
 | Proxmox001 worker | VM `111` / `oran-k8s-w01`, `192.168.71.20`, 8 vCPU, 12 GiB RAM, 48 GiB disk |
 | Proxmox002 worker | VM `112` / `oran-k8s-w02`, `192.168.72.20`, 4 vCPU, 8 GiB RAM, 32 GiB disk |
 | Observability worker | `nmi-srv03`, `164.41.240.13`, Ubuntu 24.04 |
-| Inter-network route | `192.168.72.0/24 via 164.41.240.22` on `nmi-srv03` |
-| Firewall policy | pfSense2 allows `164.41.240.13` → `192.168.72.10` |
+| Inter-network routes | `.71.0/24 via 164.41.240.21`; `.72.0/24 via 164.41.240.22` on `nmi-srv03` |
+| Firewall policy | pfSense1/2 allow `164.41.240.13` only to workers `.71.20`/`.72.20`; pfSense2 also allows the control plane `.72.10` |
 | Kubernetes | kubeadm 1.30.14, one control plane plus three workers |
 | CNI | Flannel + Multus + OVS-CNI |
 
 The SCTP/ZMQ-sensitive RAN, 5G core, and E2Term remain on `oran-k8s-01`.
-`r4-simple-mon` runs on `oran-k8s-w02`, while Prometheus, Grafana, the Prometheus
-Operator, and kube-state-metrics run on `nmi-srv03`. The physical observability
+`r4-simple-mon` runs on `oran-k8s-w02`, while Prometheus, Grafana, Alertmanager,
+Loki, the Prometheus Operator, and kube-state-metrics run on `nmi-srv03`; Alloy
+runs on all four nodes. The physical observability
 worker is selected with `workload=observability` and protected by the
 `workload=observability:NoSchedule` taint. `oran-k8s-w01` is a general worker and
 has passed scheduling, DNS, Flannel, Multus, and OVS-CNI tests.
@@ -36,6 +37,9 @@ remain active.
 
 - All four Kubernetes nodes are `Ready`.
 - The complete observability control plane runs on `nmi-srv03`.
+- Prometheus, Grafana, Alertmanager, and Loki use bound PVCs. Prometheus retains
+  seven days of metrics; Loki retains only 24 hours of logs from the stack
+  namespaces, appropriate for this disposable test environment.
 - The `5g-core` Helm release is deployed; MongoDB and all Open5GS NFs are running.
 - The `near-rt-ric` Helm release revision 9 is deployed with DBAAS, E2 Manager,
   E2 Termination, Subscription Manager, Application Manager, Routing Manager,
@@ -81,8 +85,10 @@ cd /home/lucasrc/oran-stack-main
 ./scripts/demo-kpm.sh
 ```
 
-The script downloads a bounded test file through `tun_srsue`, polls the xApp's
-Prometheus endpoint once per second, and prints the current and peak KPM values.
+The script downloads a bounded 50 MB test file through `tun_srsue`, polls the
+xApp's Prometheus endpoint once per second, and prints the current and peak KPM
+values. Its duration intentionally crosses Prometheus's 15-second scrape interval
+so the non-zero KPI is also visible in Grafana.
 The expected result is HTTP 200, at least one `DRB.UEThpDl` sample above zero,
 and `DEMO_KPM_OK`. No RAN control action is sent: this is observation only.
 
@@ -95,6 +101,7 @@ NodePort. The supported entry point is the private control-plane address, reache
 while connected to the NMI VPN; kube-proxy forwards it to the physical worker:
 
 - URL: `http://192.168.72.10:30300`
+- Alertmanager: `http://192.168.72.10:30301`
 - Lab credentials: `admin` / `oran-lab`
 
 The service is not intended to be exposed to the public Internet; the NMI

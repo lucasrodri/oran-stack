@@ -6,6 +6,15 @@ namespace: ran
 
 imagePullSecretName: ""
 
+# Keep normal lab operation at warning. Debug emits several thousand FAPI/PHY
+# lines per second and even info is unnecessarily noisy for this test stack.
+logging:
+  level: warning
+  f1apLevel: warning
+  f1apJsonEnabled: false
+  ueLevel: warning
+  ueHexLimit: 0
+
 images:
   ocudu:
     repository: ""        # e.g. "youruser/oran-ocudu"  — set via Ansible group_vars

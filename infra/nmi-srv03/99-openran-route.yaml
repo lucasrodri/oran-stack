@@ -3,6 +3,9 @@ network:
   ethernets:
     eno8303:
       routes:
+        - to: 192.168.71.0/24
+          via: 164.41.240.21
+          metric: 50
         - to: 192.168.72.0/24
           via: 164.41.240.22
           metric: 50

@@ -34,8 +34,9 @@ kube-prometheus-stack:
       scrapeInterval: 15s
       evaluationInterval: 15s
 
-      # Retain 7 days of metrics in the lab (no PVC needed by default).
+      # Retain 7 days of metrics on the observability node.
       retention: 7d
+      retentionSize: 16GB
 
       # Allow Prometheus to watch ServiceMonitors in ALL namespaces so we
       # can add monitors for 5g-core and near-rt-ric without modifying the
@@ -46,16 +47,14 @@ kube-prometheus-stack:
       podMonitorSelector: {}
       ruleNamespaceSelector: {}
 
-      # Storage: emptyDir for lab (data lost on pod restart).
-      # Override with a PVC for persistent storage:
-      #   storageSpec:
-      #     volumeClaimTemplate:
-      #       spec:
-      #         storageClassName: local-path
-      #         resources:
-      #           requests:
-      #             storage: 10Gi
-      storageSpec: {}
+      storageSpec:
+        volumeClaimTemplate:
+          spec:
+            storageClassName: local-path
+            accessModes: ["ReadWriteOnce"]
+            resources:
+              requests:
+                storage: 20Gi
 
       resources:
         requests:
@@ -94,6 +93,23 @@ kube-prometheus-stack:
         label: grafana_dashboard
         labelValue: "1"
 
+    persistence:
+      enabled: true
+      type: sts
+      storageClassName: local-path
+      accessModes: ["ReadWriteOnce"]
+      size: 5Gi
+
+    additionalDataSources:
+      - name: Loki
+        uid: loki
+        type: loki
+        access: proxy
+        url: http://monitoring-loki-gateway.monitoring.svc.cluster.local
+        isDefault: false
+        jsonData:
+          maxLines: 1000
+
     resources:
       requests:
         cpu: 100m
@@ -126,10 +142,45 @@ kube-prometheus-stack:
         effect: NoSchedule
 
   # --------------------------------------------------------------------------
-  # Alertmanager — disabled for lab simplicity
+  # Alertmanager — persistent lab UI. Notification integrations can be added
+  # later without changing the alert rules.
   # --------------------------------------------------------------------------
   alertmanager:
-    enabled: false
+    enabled: true
+    service:
+      type: NodePort
+      nodePort: 30301
+    config:
+      global:
+        resolve_timeout: 5m
+      route:
+        group_by: ["alertname", "namespace", "severity"]
+        group_wait: 30s
+        group_interval: 5m
+        repeat_interval: 4h
+        receiver: lab-ui
+      receivers:
+        - name: lab-ui
+        # kube-prometheus-stack keeps its default Watchdog sub-route during
+        # Helm value merging, so retain the conventional sink receiver too.
+        - name: "null"
+    alertmanagerSpec:
+      nodeSelector:
+        workload: observability
+      tolerations:
+        - key: workload
+          operator: Equal
+          value: observability
+          effect: NoSchedule
+      retention: 120h
+      storage:
+        volumeClaimTemplate:
+          spec:
+            storageClassName: local-path
+            accessModes: ["ReadWriteOnce"]
+            resources:
+              requests:
+                storage: 2Gi
 
   # --------------------------------------------------------------------------
   # Node exporter — useful for seeing CPU/mem on Vagrant/GCP nodes
@@ -154,3 +205,165 @@ kube-prometheus-stack:
     enabled: false
   kubeProxy:
     enabled: false
+
+# ----------------------------------------------------------------------------
+# Loki — single binary, filesystem-backed log store for this lab.
+# ----------------------------------------------------------------------------
+loki:
+  enabled: true
+  deploymentMode: SingleBinary
+
+  loki:
+    auth_enabled: false
+    commonConfig:
+      replication_factor: 1
+    storage:
+      type: filesystem
+    schemaConfig:
+      configs:
+        - from: "2024-04-01"
+          store: tsdb
+          object_store: filesystem
+          schema: v13
+          index:
+            prefix: index_
+            period: 24h
+    limits_config:
+      retention_period: 24h
+      reject_old_samples: true
+      reject_old_samples_max_age: 24h
+      volume_enabled: true
+    compactor:
+      retention_enabled: true
+      delete_request_store: filesystem
+
+  singleBinary:
+    replicas: 1
+    nodeSelector:
+      workload: observability
+    tolerations:
+      - key: workload
+        operator: Equal
+        value: observability
+        effect: NoSchedule
+    persistence:
+      enabled: true
+      storageClass: local-path
+      size: 20Gi
+      whenDeleted: Retain
+      whenScaled: Retain
+    resources:
+      requests:
+        cpu: 100m
+        memory: 512Mi
+
+  read:
+    replicas: 0
+  write:
+    replicas: 0
+  backend:
+    replicas: 0
+  chunksCache:
+    enabled: false
+  resultsCache:
+    enabled: false
+  lokiCanary:
+    enabled: false
+  test:
+    enabled: false
+  gateway:
+    enabled: true
+    nodeSelector:
+      workload: observability
+    tolerations:
+      - key: workload
+        operator: Equal
+        value: observability
+        effect: NoSchedule
+
+# ----------------------------------------------------------------------------
+# Alloy — one collector per node, tailing Kubernetes container logs to Loki.
+# ----------------------------------------------------------------------------
+alloy:
+  enabled: true
+  alloy:
+    mounts:
+      varlog: true
+    resources:
+      requests:
+        cpu: 25m
+        memory: 64Mi
+    configMap:
+      content: |-
+        discovery.kubernetes "pods" {
+          role = "pod"
+        }
+
+        discovery.relabel "pod_logs" {
+          targets = discovery.kubernetes.pods.targets
+
+          rule {
+            source_labels = ["__meta_kubernetes_namespace"]
+            regex         = "5g-core|near-rt-ric|ricxapp|ran|monitoring"
+            action        = "keep"
+          }
+          rule {
+            source_labels = ["__meta_kubernetes_namespace"]
+            target_label  = "namespace"
+          }
+          rule {
+            source_labels = ["__meta_kubernetes_pod_name"]
+            target_label  = "pod"
+          }
+          rule {
+            source_labels = ["__meta_kubernetes_pod_container_name"]
+            target_label  = "container"
+          }
+          rule {
+            source_labels = ["__meta_kubernetes_pod_node_name"]
+            target_label  = "node"
+          }
+          rule {
+            source_labels = ["__meta_kubernetes_pod_label_app"]
+            target_label  = "app"
+          }
+          rule {
+            source_labels = ["__meta_kubernetes_pod_uid", "__meta_kubernetes_pod_container_name"]
+            separator     = "/"
+            target_label  = "__path__"
+            replacement   = "/var/log/pods/*$1/*.log"
+          }
+        }
+
+        local.file_match "pod_logs" {
+          path_targets = discovery.relabel.pod_logs.output
+        }
+
+        loki.process "pod_logs" {
+          forward_to = [loki.write.cluster.receiver]
+          stage.cri {}
+          // These lines are high-frequency success telemetry already exported
+          // as Prometheus metrics. Keep warnings/errors, but do not spend Loki
+          // storage on one copy of every scrape and KPM report.
+          stage.drop {
+            expression = "GET /metrics|xAppBase: received RMR envelope|RIC Indication Received|E2SM_KPM RIC Indication Content|^-ColletStartTime|^-Measurements Data|^-granulPeriod|^--Metric|Sending E2 indication|Received RLC metrics"
+          }
+        }
+
+        loki.source.file "pod_logs" {
+          targets       = local.file_match.pod_logs.targets
+          forward_to    = [loki.process.pod_logs.receiver]
+          tail_from_end = true
+        }
+
+        loki.write "cluster" {
+          endpoint {
+            url = "http://monitoring-loki-gateway.monitoring.svc.cluster.local/loki/api/v1/push"
+          }
+        }
+  controller:
+    type: daemonset
+    tolerations:
+      - operator: Exists
+  serviceMonitor:
+    enabled: true

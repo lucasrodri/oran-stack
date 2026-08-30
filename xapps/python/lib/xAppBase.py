@@ -403,6 +403,16 @@ class xAppBase(object):
                 sbuf = rmr.rmr_torcv_msg(self.rmr_client, None, 500)
                 summary = rmr.message_summary(sbuf)
             except Exception as e:
+                # rmr_torcv_msg returns a NULL pointer when its 500 ms receive
+                # timeout expires. The Python binding raises on dereference,
+                # but this is an idle poll, not an RMR transport failure.
+                if str(e) == "NULL pointer access":
+                    # Yield the GIL to RMR's transport thread. Without this
+                    # short pause, repeated idle polls form a hot loop and
+                    # can starve delivery even while E2Term reports successful
+                    # sends to this endpoint.
+                    time.sleep(0.01)
+                    continue
                 with self._metrics_lock:
                     self._rmr_receive_errors_total += 1
                     error_count = self._rmr_receive_errors_total

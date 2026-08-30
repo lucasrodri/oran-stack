@@ -51,9 +51,9 @@ data:
       e2sm_rc_enabled: true
     log:
       filename: /dev/stdout
-      all_level: debug
-      f1ap_level: debug
-      f1ap_json_enabled: true
+      all_level: {{ .Values.logging.level }}
+      f1ap_level: {{ .Values.logging.f1apLevel }}
+      f1ap_json_enabled: {{ .Values.logging.f1apJsonEnabled }}
       ngap_level: info
 
   du.yml.tpl: |
@@ -112,7 +112,7 @@ data:
         nof_cb_preambles_per_ssb: 64
     log:
       filename: /dev/stdout
-      all_level: debug
+      all_level: {{ .Values.logging.level }}
 
   # UE authentication fields are placeholders populated from the
   # oran-subscriber Secret by the render-ue-config init container.
@@ -144,9 +144,9 @@ data:
     nas_filename = /mnt/srsran/logs/ue_nas.pcap
 
     [log]
-    all_level = info
+    all_level = {{ .Values.logging.ueLevel }}
     phy_lib_level = none
-    all_hex_limit = 32
+    all_hex_limit = {{ .Values.logging.ueHexLimit }}
     filename = /dev/stdout
     file_max_size = -1
 
