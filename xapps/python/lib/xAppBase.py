@@ -393,15 +393,14 @@ class xAppBase(object):
         sbuf = rmr.rmr_send_msg(self.rmr_client, sbuf)
 
     def _run(self):
-        # Use the blocking receive call with a reusable buffer. RMR 4.9.4 can
-        # leave the timed receive path spinning on a timeout state even while
-        # the TCP stream is delivering indications. Closing the RMR context in
-        # stop() unblocks this call during shutdown.
+        # Request a fresh buffer for each timed receive. With RMR 4.9.4, reusing
+        # an old buffer can leave the caller blocked on its condition variable
+        # even though the transport thread continues reading indications. A
+        # timeout may return NULL; the exception path below handles that case.
         print("xAppBase: RMR receive loop started", flush=True)
         while self.running:
             try:
-                sbuf = rmr.rmr_rcv_msg(self.rmr_client, self.rmr_sbuf)
-                self.rmr_sbuf = sbuf
+                sbuf = rmr.rmr_torcv_msg(self.rmr_client, None, 500)
                 summary = rmr.message_summary(sbuf)
             except Exception as e:
                 with self._metrics_lock:
@@ -460,6 +459,7 @@ class xAppBase(object):
                                         list(self.my_subscriptions.keys()),
                                     )
                                 )
+                            rmr.rmr_free_msg(sbuf)
                             continue
 
                         callback_func =  subscriptionObj.callback_func
@@ -482,6 +482,8 @@ class xAppBase(object):
                     print("Received RIC_CONTROL_ACK")
                 if (summary['message type'] == 12042):
                     print("Received RIC_CONTROL_FAILURE")
+
+            rmr.rmr_free_msg(sbuf)
 
     def stop(self):
         self.unsubscribe_all()
