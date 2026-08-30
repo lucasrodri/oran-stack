@@ -56,6 +56,8 @@ required for this cluster.
 | Meta-CNI | Multus `v4.3.0` |
 | Secondary CNI | OVS-CNI managed by CNAO `v0.102.0` |
 | Storage | Rancher local-path `v0.0.36` |
+| Node metrics | node-exporter `v1.12.1` on both nodes |
+| Kubernetes object metrics | kube-state-metrics `v2.16.0` on Ampere 3 |
 | Pod CIDR | `10.246.0.0/16` |
 | Service CIDR | `10.97.0.0/16` |
 
@@ -102,9 +104,28 @@ Validated on 2026-08-30:
 - `10.200.3.250` and `10.200.3.251` exchanged four pings in both directions
   over the inter-host OVS VXLAN with 0% packet loss;
 - no system Pod remained Pending or failed after the test.
+- both ARM node-exporter endpoints and the kube-state-metrics NodePort returned
+  HTTP 200 when queried from NMI VM 105.
 
 The two E2 probe Pods deliberately sleep for 24 hours and produce no routine
 logs. Delete and reapply them to repeat the OVS test after they complete.
+
+## Multi-site observability
+
+The NMI Prometheus instance scrapes both ARM nodes and the CIC Kubernetes object
+metrics through a TCP relay pinned to VM 105 (`192.168.72.10`). Prometheus adds
+the labels `cluster=cic-arm`, `site=cic` and `architecture=arm64`. Grafana shows
+the result in `O-RAN Multi-Site Lab` alongside the four-node NMI cluster.
+
+Apply or update the CIC collectors with:
+
+```bash
+kubectl --kubeconfig kubeconfig apply \
+  -f ansible/manifests/cic-arm-observability.yaml
+```
+
+The relay is part of the NMI `helm/monitoring` chart. No Prometheus or Grafana
+instance is duplicated at CIC, and no metric access logs are retained.
 
 ## Current boundary and next use
 
@@ -112,12 +133,11 @@ This completes the infrastructure portion of the CIC ARM integration. It does
 not claim that the whole O-RAN stack already runs on ARM64. The next useful
 steps are:
 
-1. add this cluster to the NMI Prometheus/Grafana view using node-level targets;
-2. build and validate a small multi-architecture workload, preferably the
+1. build and validate a small multi-architecture workload, preferably the
    `simple-mon` xApp or a telemetry-only component;
-3. keep the current Near-RT RIC on NMI until its RMR/SDL image chain has a
+2. keep the current Near-RT RIC on NMI until its RMR/SDL image chain has a
    tested ARM64 build;
-4. later register CIC as a Nephio workload cluster and create a CIC package
+3. later register CIC as a Nephio workload cluster and create a CIC package
    variant.
 
 Ampere 1 remains available as a physical Ubuntu ARM64 machine, but it is not a

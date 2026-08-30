@@ -191,7 +191,10 @@ kubectl --kubeconfig kubeconfig apply -f ansible/manifests/cic-arm-smoke.yaml
 The validated smoke test schedules an `aarch64` workload on Ampere 3 and sends
 traffic across both Flannel and the E2 Multus/OVS VXLAN from Ampere 2. See
 [docs/CIC_ARM_CLUSTER.md](docs/CIC_ARM_CLUSTER.md) for the topology, acceptance
-results and current ARM porting boundary.
+results and current ARM porting boundary. ARM node and Kubernetes object
+metrics are also exported through VM 105 to the existing NMI Prometheus and the
+`O-RAN Multi-Site Lab` Grafana dashboard; CIC does not duplicate the monitoring
+control plane.
 
 ---
 

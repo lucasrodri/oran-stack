@@ -18,6 +18,9 @@ Baseline reviewed on 2026-08-24:
 | OCUDU | release_26_04 | Current completed release; 26.10 is not released yet |
 | srsRAN 4G / srsUE | release_25_10 | Current stable release |
 | Node.js (WebUI build/runtime) | 24 LTS | Supported LTS line |
+| node-exporter (CIC) | v1.12.1 | ARM64 node telemetry |
+| kube-state-metrics (CIC) | v2.16.0 | Kubernetes 1.32-compatible ARM64 telemetry |
+| HAProxy metrics relay | 3.4.4-alpine | TCP-only CIC-to-NMI relay; no access logs |
 | xApp runner | O-RAN SC I release compatibility baseline | Legacy exception: Python 3.8 and amd64-only RMR packages must be replaced before CIC/arm64 deployment |
 
 ### Near-RT RIC upstream baseline
@@ -63,6 +66,9 @@ Primary sources:
 - OCUDU milestones: <https://gitlab.com/ocudu/ocudu/-/milestones>
 - srsRAN 4G releases: <https://github.com/srsran/srsRAN_4G/releases>
 - Node.js release status: <https://nodejs.org/en/about/previous-releases>
+- node-exporter releases: <https://github.com/prometheus/node_exporter/releases>
+- kube-state-metrics compatibility: <https://github.com/kubernetes/kube-state-metrics#compatibility-matrix>
+- HAProxy official image: <https://hub.docker.com/_/haproxy>
 - O-RAN SC Near-RT RIC M-release recipe: <https://github.com/o-ran-sc/ric-plt-ric-dep/blob/m-release/RECIPE_EXAMPLE/example_recipe_oran_m_release.yaml>
 
 ## Existing NMI cluster

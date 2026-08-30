@@ -1,0 +1,109 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: oran-multisite-dashboard
+  namespace: {{ .Values.namespace }}
+  labels:
+    grafana_dashboard: "1"
+    app.kubernetes.io/part-of: oran-stack
+data:
+  oran-multisite.json: |
+    {
+      "title": "O-RAN Multi-Site Lab",
+      "uid": "oran-multisite",
+      "schemaVersion": 38,
+      "version": 1,
+      "refresh": "15s",
+      "time": { "from": "now-30m", "to": "now" },
+      "tags": ["oran", "nmi", "cic", "arm64"],
+      "panels": [
+        {
+          "id": 1,
+          "type": "stat",
+          "title": "NMI Nodes Ready",
+          "description": "Ready nodes in the NMI amd64 workload cluster.",
+          "gridPos": { "x": 0, "y": 0, "w": 6, "h": 4 },
+          "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "none" },
+          "fieldConfig": { "defaults": { "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 4 }] } } },
+          "targets": [{ "expr": "sum(kube_node_status_condition{condition=\"Ready\",status=\"true\",cluster!=\"cic-arm\"})", "legendFormat": "NMI", "refId": "A" }],
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        },
+        {
+          "id": 2,
+          "type": "stat",
+          "title": "CIC ARM Nodes Ready",
+          "description": "Ready nodes reported by kube-state-metrics in the remote CIC cluster.",
+          "gridPos": { "x": 6, "y": 0, "w": 6, "h": 4 },
+          "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "none" },
+          "fieldConfig": { "defaults": { "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 2 }] } } },
+          "targets": [{ "expr": "sum(kube_node_status_condition{cluster=\"cic-arm\",condition=\"Ready\",status=\"true\"})", "legendFormat": "CIC", "refId": "A" }],
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        },
+        {
+          "id": 3,
+          "type": "stat",
+          "title": "CIC Metrics Targets",
+          "description": "Two node-exporter endpoints plus one kube-state-metrics endpoint.",
+          "gridPos": { "x": 12, "y": 0, "w": 6, "h": 4 },
+          "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "none" },
+          "fieldConfig": { "defaults": { "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 3 }] } } },
+          "targets": [{ "expr": "sum(up{job=~\"cic-node-exporter|cic-kube-state-metrics\"})", "legendFormat": "UP", "refId": "A" }],
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        },
+        {
+          "id": 4,
+          "type": "stat",
+          "title": "CIC Running Pods",
+          "description": "Running Pods in all namespaces of the CIC ARM cluster.",
+          "gridPos": { "x": 18, "y": 0, "w": 6, "h": 4 },
+          "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "graphMode": "area" },
+          "fieldConfig": { "defaults": { "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] } } },
+          "targets": [{ "expr": "sum(kube_pod_status_phase{cluster=\"cic-arm\",phase=\"Running\"})", "legendFormat": "Pods", "refId": "A" }],
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        },
+        {
+          "id": 5,
+          "type": "timeseries",
+          "title": "CIC ARM CPU Usage",
+          "description": "CPU utilisation reported by node-exporter on each Ampere VM.",
+          "gridPos": { "x": 0, "y": 4, "w": 12, "h": 8 },
+          "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "table", "placement": "bottom" } },
+          "fieldConfig": { "defaults": { "unit": "percentunit", "min": 0, "max": 1, "custom": { "lineWidth": 2, "fillOpacity": 8 } } },
+          "targets": [{ "expr": "1 - avg by(node)(rate(node_cpu_seconds_total{site=\"cic\",mode=\"idle\"}[2m]))", "legendFormat": "{{ "{{" }}node{{ "}}" }}", "refId": "A" }],
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        },
+        {
+          "id": 6,
+          "type": "timeseries",
+          "title": "CIC ARM Memory Usage",
+          "description": "Used memory ratio on each Ampere VM.",
+          "gridPos": { "x": 12, "y": 4, "w": 12, "h": 8 },
+          "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "table", "placement": "bottom" } },
+          "fieldConfig": { "defaults": { "unit": "percentunit", "min": 0, "max": 1, "custom": { "lineWidth": 2, "fillOpacity": 8 } } },
+          "targets": [{ "expr": "1 - node_memory_MemAvailable_bytes{site=\"cic\"} / node_memory_MemTotal_bytes{site=\"cic\"}", "legendFormat": "{{ "{{" }}node{{ "}}" }}", "refId": "A" }],
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        },
+        {
+          "id": 7,
+          "type": "timeseries",
+          "title": "CIC Pods by Namespace",
+          "description": "Running Pod count makes scheduling experiments visible from NMI.",
+          "gridPos": { "x": 0, "y": 12, "w": 12, "h": 8 },
+          "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "table", "placement": "bottom" } },
+          "fieldConfig": { "defaults": { "min": 0, "custom": { "lineWidth": 2, "fillOpacity": 8 } } },
+          "targets": [{ "expr": "sum by(namespace)(kube_pod_status_phase{cluster=\"cic-arm\",phase=\"Running\"})", "legendFormat": "{{ "{{" }}namespace{{ "}}" }}", "refId": "A" }],
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        },
+        {
+          "id": 8,
+          "type": "timeseries",
+          "title": "CIC Pod Restarts",
+          "description": "Container restart increases in the remote ARM cluster.",
+          "gridPos": { "x": 12, "y": 12, "w": 12, "h": 8 },
+          "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "table", "placement": "bottom" } },
+          "fieldConfig": { "defaults": { "min": 0, "custom": { "lineWidth": 2 }, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 1 }, { "color": "red", "value": 5 }] } } },
+          "targets": [{ "expr": "increase(kube_pod_container_status_restarts_total{cluster=\"cic-arm\"}[5m])", "legendFormat": "{{ "{{" }}namespace{{ "}}" }}/{{ "{{" }}pod{{ "}}" }}", "refId": "A" }],
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        }
+      ]
+    }

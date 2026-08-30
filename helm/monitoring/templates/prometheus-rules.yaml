@@ -60,6 +60,36 @@ spec:
             summary: "The simulated UE is unavailable"
             description: "The srsUE deployment has no available replica."
 
+        - alert: CICMetricsTargetDown
+          expr: up{job=~"cic-node-exporter|cic-kube-state-metrics"} == 0
+          for: 5m
+          labels:
+            severity: warning
+            component: cic-arm
+          annotations:
+            summary: "CIC ARM metrics target {{ `{{ $labels.instance }}` }} is unavailable"
+            description: "The NMI Prometheus server has not scraped this CIC target for five minutes."
+
+        - alert: CICKubernetesNodeNotReady
+          expr: kube_node_status_condition{cluster="cic-arm",condition="Ready",status="true"} == 0
+          for: 5m
+          labels:
+            severity: warning
+            component: cic-arm
+          annotations:
+            summary: "CIC ARM node {{ `{{ $labels.node }}` }} is not Ready"
+            description: "The remote CIC workload cluster reports this node as NotReady."
+
+        - alert: CICPodCrashLooping
+          expr: max_over_time(kube_pod_container_status_waiting_reason{cluster="cic-arm",reason="CrashLoopBackOff"}[5m]) >= 1
+          for: 5m
+          labels:
+            severity: warning
+            component: cic-arm
+          annotations:
+            summary: "CIC pod {{ `{{ $labels.namespace }}` }}/{{ `{{ $labels.pod }}` }} is crash-looping"
+            description: "A container in the CIC ARM workload cluster remains in CrashLoopBackOff."
+
     - name: oran.telemetry
       rules:
         - alert: ORANKPMTelemetryStale

@@ -6,6 +6,19 @@ _Last updated: 2026-08-30_
 
 ## 0. Recent Changes
 
+### 2026-08-30 — CIC ARM64 metrics integrated into NMI Grafana
+
+- Deployed node-exporter `v1.12.1` on both CIC ARM nodes and
+  kube-state-metrics `v2.16.0` on `cic-k8s-w01`; all images ran natively as
+  `arm64` and all three endpoints returned HTTP 200 from NMI VM 105.
+- Added a stateless HAProxy `3.4.4-alpine` relay pinned to VM 105 because the
+  physical Prometheus node has no direct route to `192.168.0.0/24`. The relay
+  uses TCP mode, stores no metric data or access logs, and avoids a broad new
+  pfSense rule.
+- Added labeled Prometheus scrape jobs (`cluster=cic-arm`, `site=cic`,
+  `architecture=arm64`), CIC target/node/crash-loop alerts, and the Grafana
+  dashboard `O-RAN Multi-Site Lab` for NMI/CIC node, Pod, CPU and memory views.
+
 ### 2026-08-30 — CIC ARM64 two-host Kubernetes cluster validated
 
 - Created VM `120` (`cic-k8s-cp01`, `192.168.0.210`) on Ampere 2 and VM `121`

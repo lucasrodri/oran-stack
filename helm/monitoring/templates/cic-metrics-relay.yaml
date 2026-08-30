@@ -1,0 +1,129 @@
+{{- if .Values.cicMonitoring.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cic-metrics-relay
+  namespace: {{ .Values.namespace }}
+  labels:
+    app.kubernetes.io/name: cic-metrics-relay
+    app.kubernetes.io/part-of: oran-stack
+data:
+  haproxy.cfg: |
+    global
+      maxconn 64
+
+    defaults
+      mode tcp
+      timeout connect 5s
+      timeout client 30s
+      timeout server 30s
+
+    frontend fe_cic_cp_node_exporter
+      bind *:19100
+      default_backend be_cic_cp_node_exporter
+    backend be_cic_cp_node_exporter
+      server cic-k8s-cp01 {{ .Values.cicMonitoring.controlPlane.address }}:{{ .Values.cicMonitoring.controlPlane.nodeExporterPort }} check
+
+    frontend fe_cic_worker_node_exporter
+      bind *:19101
+      default_backend be_cic_worker_node_exporter
+    backend be_cic_worker_node_exporter
+      server cic-k8s-w01 {{ .Values.cicMonitoring.worker.address }}:{{ .Values.cicMonitoring.worker.nodeExporterPort }} check
+
+    frontend fe_cic_kube_state_metrics
+      bind *:19102
+      default_backend be_cic_kube_state_metrics
+    backend be_cic_kube_state_metrics
+      server cic-kube-state-metrics {{ .Values.cicMonitoring.controlPlane.address }}:{{ .Values.cicMonitoring.kubeStateMetricsNodePort }} check
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cic-metrics-relay
+  namespace: {{ .Values.namespace }}
+  labels:
+    app.kubernetes.io/name: cic-metrics-relay
+    app.kubernetes.io/part-of: oran-stack
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: cic-metrics-relay
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: cic-metrics-relay
+        app.kubernetes.io/part-of: oran-stack
+      annotations:
+        checksum/config: {{ .Values.cicMonitoring | toJson | sha256sum }}
+    spec:
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      nodeSelector:
+        kubernetes.io/hostname: {{ .Values.cicMonitoring.relay.nodeName | quote }}
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+      containers:
+        - name: haproxy
+          image: {{ .Values.cicMonitoring.relay.image | quote }}
+          imagePullPolicy: IfNotPresent
+          args: ["-f", "/usr/local/etc/haproxy/haproxy.cfg"]
+          ports:
+            - name: cic-cp
+              containerPort: 19100
+            - name: cic-worker
+              containerPort: 19101
+            - name: cic-ksm
+              containerPort: 19102
+          resources:
+            requests:
+              cpu: 5m
+              memory: 16Mi
+            limits:
+              memory: 64Mi
+          securityContext:
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 99
+            runAsGroup: 99
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          readinessProbe:
+            tcpSocket:
+              port: cic-cp
+            initialDelaySeconds: 3
+            periodSeconds: 10
+          volumeMounts:
+            - name: config
+              mountPath: /usr/local/etc/haproxy
+              readOnly: true
+      volumes:
+        - name: config
+          configMap:
+            name: cic-metrics-relay
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cic-metrics-relay
+  namespace: {{ .Values.namespace }}
+  labels:
+    app.kubernetes.io/name: cic-metrics-relay
+    app.kubernetes.io/part-of: oran-stack
+spec:
+  selector:
+    app.kubernetes.io/name: cic-metrics-relay
+  ports:
+    - name: cic-cp
+      port: 19100
+      targetPort: cic-cp
+    - name: cic-worker
+      port: 19101
+      targetPort: cic-worker
+    - name: cic-ksm
+      port: 19102
+      targetPort: cic-ksm
+{{- end }}

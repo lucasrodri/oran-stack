@@ -9,7 +9,7 @@ description: >
 
   Also ships a Grafana dashboard ConfigMap for O-RAN KPIs.
 type: application
-version: 0.2.5
+version: 0.3.0
 appVersion: "O-RAN observability"
 
 dependencies:

@@ -10,6 +10,22 @@
 
 namespace: monitoring
 
+# CIC ARM metrics are collected in the remote cluster and forwarded through
+# the NMI control-plane VM, the only NMI node with a route to 192.168.0.0/24.
+# HAProxy runs in TCP mode and does not retain request logs or metric data.
+cicMonitoring:
+  enabled: true
+  controlPlane:
+    address: 192.168.0.210
+    nodeExporterPort: 9100
+  worker:
+    address: 192.168.0.211
+    nodeExporterPort: 9100
+  kubeStateMetricsNodePort: 30102
+  relay:
+    nodeName: oran-k8s-01
+    image: haproxy:3.4.4-alpine
+
 # ----------------------------------------------------------------------------
 # kube-prometheus-stack sub-chart values
 # https://github.com/prometheus-community/helm-charts/blob/main/charts/kube-prometheus-stack/values.yaml
@@ -46,6 +62,29 @@ kube-prometheus-stack:
       podMonitorNamespaceSelector: {}
       podMonitorSelector: {}
       ruleNamespaceSelector: {}
+
+      additionalScrapeConfigs:
+        - job_name: cic-node-exporter
+          static_configs:
+            - targets: ["cic-metrics-relay.monitoring.svc.cluster.local:19100"]
+              labels:
+                cluster: cic-arm
+                site: cic
+                node: cic-k8s-cp01
+                architecture: arm64
+            - targets: ["cic-metrics-relay.monitoring.svc.cluster.local:19101"]
+              labels:
+                cluster: cic-arm
+                site: cic
+                node: cic-k8s-w01
+                architecture: arm64
+        - job_name: cic-kube-state-metrics
+          static_configs:
+            - targets: ["cic-metrics-relay.monitoring.svc.cluster.local:19102"]
+              labels:
+                cluster: cic-arm
+                site: cic
+                architecture: arm64
 
       storageSpec:
         volumeClaimTemplate:
