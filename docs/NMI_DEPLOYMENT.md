@@ -25,10 +25,12 @@ worker is selected with `workload=observability` and protected by the
 has passed scheduling, DNS, Flannel, Multus, and OVS-CNI tests.
 
 The three VM nodes have `n2br`, `f1cbr`, and `e2br` OVS bridges and a VXLAN full
-mesh. Secondary-network traffic is verified between `oran-k8s-01` and
-`oran-k8s-w02`. The `.71` ↔ `.72` path still needs a pfSense rule allowing
-UDP/4789 before SCTP-sensitive workloads are placed on `oran-k8s-w01`; the
-primary Flannel overlay already works across that boundary with 0% packet loss.
+mesh protected by RSTP. Secondary-network traffic is verified across
+Proxmox001 and Proxmox002 with 0% packet loss. Both pfSense instances use Hybrid
+Outbound NAT with narrowly scoped NO-NAT and WAN pass rules for UDP/4789 between
+`192.168.71.0/24` and `192.168.72.0/24`. `Block private networks` is disabled on
+these inter-router WAN interfaces; the default-deny policy and bogon protection
+remain active.
 
 ## Verified state
 

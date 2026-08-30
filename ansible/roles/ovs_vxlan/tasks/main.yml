@@ -19,6 +19,24 @@
     label: "{{ item.name }}"
   changed_when: true
 
+# A full mesh with three or more bridges contains redundant Layer-2 paths.
+# RSTP preserves that redundancy while blocking the loop that would otherwise
+# replicate broadcast/unknown-unicast frames indefinitely across the tunnels.
+- name: Read RSTP state on OVS bridges
+  command: "ovs-vsctl get bridge {{ item.name }} rstp_enable"
+  loop: "{{ ovs_bridges }}"
+  loop_control:
+    label: "{{ item.name }}"
+  register: _ovs_rstp_state
+  changed_when: false
+
+- name: Enable RSTP on OVS bridges
+  command: "ovs-vsctl set bridge {{ item.item.name }} rstp_enable=true"
+  loop: "{{ _ovs_rstp_state.results }}"
+  loop_control:
+    label: "{{ item.item.name }}"
+  when: (item.stdout | trim) != 'true'
+
 - name: Create VXLAN ports on each OVS bridge to every other node
   include_tasks: create_vxlan.yml
   loop: "{{ ovs_bridges }}"

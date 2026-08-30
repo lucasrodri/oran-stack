@@ -393,14 +393,14 @@ class xAppBase(object):
         sbuf = rmr.rmr_send_msg(self.rmr_client, sbuf)
 
     def _run(self):
-        # RMR 4.9.4 can return a NULL pointer on timeout when old_mbuf is
-        # NULL.  Passing the allocated buffer back to rmr_torcv_msg avoids a
-        # tight exception loop and lets the same buffer receive the next data
-        # message.  This also avoids allocating/freeing one buffer per poll.
+        # Use the blocking receive call with a reusable buffer. RMR 4.9.4 can
+        # leave the timed receive path spinning on a timeout state even while
+        # the TCP stream is delivering indications. Closing the RMR context in
+        # stop() unblocks this call during shutdown.
         print("xAppBase: RMR receive loop started", flush=True)
         while self.running:
             try:
-                sbuf = rmr.rmr_torcv_msg(self.rmr_client, self.rmr_sbuf, 100)
+                sbuf = rmr.rmr_rcv_msg(self.rmr_client, self.rmr_sbuf)
                 self.rmr_sbuf = sbuf
                 summary = rmr.message_summary(sbuf)
             except Exception as e:
