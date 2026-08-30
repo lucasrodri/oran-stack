@@ -17,6 +17,9 @@ RUN git clone --filter=blob:none https://github.com/o-ran-sc/ric-plt-lib-rmr.git
     && git checkout --detach "${RMR_COMMIT}" \
     && test "$(git describe --tags --exact-match HEAD)" = "${RMR_VERSION}"
 
+COPY dockerfiles/xapp/ric-plt-lib-rmr-arm64.patch /src/rmr/ric-plt-lib-rmr-arm64.patch
+RUN cd /src/rmr && git apply ./ric-plt-lib-rmr-arm64.patch
+
 RUN cmake -S /src/rmr -B /src/rmr/.build \
       -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_INSTALL_PREFIX=/usr/local \

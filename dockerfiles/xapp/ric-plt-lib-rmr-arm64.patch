@@ -1,0 +1,27 @@
+diff --git a/src/rmr/common/src/rt_generic_static.c b/src/rmr/common/src/rt_generic_static.c
+index 95f2813..7569163 100644
+--- a/src/rmr/common/src/rt_generic_static.c
++++ b/src/rmr/common/src/rt_generic_static.c
+@@ -46,6 +46,13 @@
+ #include <netdb.h>
+ #include <pthread.h>
+-#include <immintrin.h>
+ #include <stdbool.h>
+ 
++#if defined(__x86_64__) || defined(__i386__)
++#include <immintrin.h>
++#define RMR_READ_FENCE() _mm_lfence()
++#else
++#include <stdatomic.h>
++#define RMR_READ_FENCE() atomic_thread_fence(memory_order_acquire)
++#endif
++
+ #include <RIC_message_types.h>		// needed for route manager messages
+@@ -373,6 +380,6 @@ static void check_drop_alarm( uta_ctx_t* uctx, uta_ctx_t* pctx ) {
+ // ---- utility -----------------------------------------------------------------------------------
+ 
+ int isspace_with_fence(int c) {
+-	_mm_lfence();
++	RMR_READ_FENCE();
+ 	return isspace( c );
+ }
