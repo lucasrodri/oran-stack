@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nephio-delivery-smoke
+  namespace: nephio-lab
+  labels:
+    app.kubernetes.io/name: nephio-delivery-smoke
+    app.kubernetes.io/part-of: oran-stack-lab
+    nephio.org/site: cic
+data:
+  message: "Package approved by Porch in NMI and reconciled by Flux in CIC"
+  site: "cic"
+  architecture: "arm64"
+  revision: "v1"

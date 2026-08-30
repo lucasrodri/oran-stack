@@ -10,8 +10,8 @@ hosts. The same software can run on one VM, but it would not demonstrate those
 inter-host paths.
 
 The cluster is initially empty of the O-RAN application stack. NMI remains the
-validated `amd64` reference environment. CIC is the `arm64` workload target for
-multi-architecture images, xApps and later Nephio site variants.
+validated `amd64` reference environment. CIC is now registered as the `arm64`
+Nephio workload target for multi-architecture images, xApps and site variants.
 
 ## Deployed topology
 
@@ -58,6 +58,7 @@ required for this cluster.
 | Storage | Rancher local-path `v0.0.36` |
 | Node metrics | node-exporter `v1.12.1` on both nodes |
 | Kubernetes object metrics | kube-state-metrics `v2.16.0` on Ampere 3 |
+| GitOps runtime | Flux `v2.7.5`, source + kustomize controllers only |
 | Pod CIDR | `10.246.0.0/16` |
 | Service CIDR | `10.97.0.0/16` |
 
@@ -127,18 +128,37 @@ kubectl --kubeconfig kubeconfig apply \
 The relay is part of the NMI `helm/monitoring` chart. No Prometheus or Grafana
 instance is duplicated at CIC, and no metric access logs are retained.
 
+## Nephio and GitOps onboarding
+
+Nephio/Porch remains in the NMI cluster. CIC does not run a second Nephio
+management plane; it runs the minimum Flux workload agent. Flux reads the CIC
+deployment repository through the private routed path to
+`192.168.72.10:30302`.
+
+The first accepted package, `cic.cic-lab-smoke.v1`, was approved by Porch in
+NMI and reconciled in CIC at Git revision
+`1f3c994c090da3033100aaa93ee186647e08115c`. It created
+`nephio-lab/nephio-delivery-smoke` with `site=cic` and
+`architecture=arm64`. Both Flux controllers and both reconciliation resources
+were `Ready=True`.
+
+Reproduction manifests and bounded scripts live in
+`infra/nephio/cic-onboarding/`. The Flux ARM64 archive is pinned and checked by
+SHA-256 before execution. Its ServiceAccount can modify only ConfigMaps in the
+test namespace.
+
 ## Current boundary and next use
 
-This completes the infrastructure portion of the CIC ARM integration. It does
-not claim that the whole O-RAN stack already runs on ARM64. The next useful
-steps are:
+This completes the infrastructure and GitOps portions of the CIC ARM
+integration. It does not claim that the whole O-RAN stack already runs on
+ARM64. The next useful steps are:
 
 1. build and validate a small multi-architecture workload, preferably the
    `simple-mon` xApp or a telemetry-only component;
 2. keep the current Near-RT RIC on NMI until its RMR/SDL image chain has a
    tested ARM64 build;
-3. later register CIC as a Nephio workload cluster and create a CIC package
-   variant.
+3. generate a CIC `PackageVariant` from the same `r4-simple-mon` team blueprint
+   once the ARM64 image exists.
 
 Ampere 1 remains available as a physical Ubuntu ARM64 machine, but it is not a
 member of this cluster. Keeping it separate preserves a useful bare-metal test

@@ -1,0 +1,15 @@
+apiVersion: infra.nephio.org/v1alpha1
+kind: Repository
+metadata:
+  name: team-blueprints
+  namespace: default
+spec:
+  description: Reusable xApp blueprints owned by the UnB OpenRAN laboratory
+  defaultBranch: main
+---
+apiVersion: infra.nephio.org/v1alpha1
+kind: Token
+metadata:
+  name: team-blueprints-access-token-porch
+  namespace: default
+spec: {}

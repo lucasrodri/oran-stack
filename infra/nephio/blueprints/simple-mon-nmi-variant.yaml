@@ -1,0 +1,17 @@
+apiVersion: config.porch.kpt.dev/v1alpha1
+kind: PackageVariant
+metadata:
+  name: simple-mon-nmi
+  namespace: default
+spec:
+  upstream:
+    repo: team-blueprints
+    package: r4-simple-mon
+    revision: 1
+  downstream:
+    repo: nmi
+    package: r4-simple-mon-nmi
+  annotations:
+    approval.nephio.org/policy: initial
+  injectors:
+    - name: nmi

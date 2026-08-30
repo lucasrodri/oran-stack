@@ -1,0 +1,30 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nephio-webui-package-parser-patch
+  namespace: nephio-webui
+data:
+  patch-webui.js: |
+    const fs = require('fs');
+    const path = require('path');
+
+    const staticDirectory = '/patched-static';
+    const chunks = fs.readdirSync(staticDirectory)
+      .filter(name => /^3706\..+\.chunk\.js$/.test(name));
+
+    if (chunks.length !== 1) {
+      throw new Error(`expected one CAD chunk, found ${chunks.length}`);
+    }
+
+    const chunkPath = path.join(staticDirectory, chunks[0]);
+    const original = fs.readFileSync(chunkPath, 'utf8');
+    const needle = 'return d?[{id:`${d.kind}:';
+    const replacement = 'return d&&d.metadata?[{id:`${d.kind}:';
+    const occurrences = original.split(needle).length - 1;
+
+    if (occurrences !== 1) {
+      throw new Error(`expected one package parser match, found ${occurrences}`);
+    }
+
+    fs.writeFileSync(chunkPath, original.replace(needle, replacement));
+    console.log(`patched ${chunks[0]} to ignore non-KRM YAML documents`);

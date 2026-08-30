@@ -1,0 +1,63 @@
+apiVersion: fn.kpt.dev/v1alpha1
+kind: ApplyReplacements
+metadata:
+  name: specialize-simple-mon
+  annotations:
+    config.kubernetes.io/local-config: "true"
+replacements:
+  - source:
+      kind: WorkloadCluster
+      name: workload-cluster
+      fieldPath: metadata.annotations.[oran.unb.br/site]
+    targets:
+      - select:
+          kind: Deployment
+          name: r4-simple-mon
+        fieldPaths:
+          - metadata.labels.[nephio.org/site]
+          - spec.template.metadata.labels.[nephio.org/site]
+      - select:
+          kind: Service
+        fieldPaths:
+          - metadata.labels.[nephio.org/site]
+  - source:
+      kind: WorkloadCluster
+      name: workload-cluster
+      fieldPath: metadata.annotations.[oran.unb.br/xapp-node]
+    targets:
+      - select:
+          kind: Deployment
+          name: r4-simple-mon
+        fieldPaths:
+          - spec.template.spec.nodeSelector.[kubernetes.io/hostname]
+  - source:
+      kind: WorkloadCluster
+      name: workload-cluster
+      fieldPath: metadata.annotations.[oran.unb.br/xapp-image]
+    targets:
+      - select:
+          kind: Deployment
+          name: r4-simple-mon
+        fieldPaths:
+          - spec.template.spec.containers.[name=xapp].image
+  - source:
+      kind: WorkloadCluster
+      name: workload-cluster
+      fieldPath: metadata.annotations.[oran.unb.br/e2-node-id]
+    targets:
+      - select:
+          kind: Deployment
+          name: r4-simple-mon
+        fieldPaths:
+          - spec.template.spec.initContainers.[name=wait-for-gnb].env.[name=E2_NODE_ID].value
+          - spec.template.spec.containers.[name=xapp].env.[name=E2_NODE_ID].value
+  - source:
+      kind: WorkloadCluster
+      name: workload-cluster
+      fieldPath: metadata.annotations.[oran.unb.br/kpm-metric]
+    targets:
+      - select:
+          kind: Deployment
+          name: r4-simple-mon
+        fieldPaths:
+          - spec.template.spec.containers.[name=xapp].env.[name=KPM_METRIC].value

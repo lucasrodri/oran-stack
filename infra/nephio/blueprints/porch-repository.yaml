@@ -1,0 +1,14 @@
+apiVersion: config.porch.kpt.dev/v1alpha1
+kind: Repository
+metadata:
+  name: team-blueprints
+  namespace: default
+spec:
+  content: Package
+  git:
+    branch: main
+    directory: /
+    repo: http://gitea.gitea.svc.cluster.local:3000/nephio/team-blueprints.git
+    secretRef:
+      name: team-blueprints-access-token-porch
+  type: git

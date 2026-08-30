@@ -18,10 +18,10 @@ NMI Kubernetes v1.30.14
 +-- nephio-k8s-w01    Gitea + Porch + Nephio + Flux + WebUI
                           |
                           v
-        Draft -> Proposed -> Published -> Git -> Flux
-                          |
-                          v
-             namespace nephio-lab (first POC package)
+     blueprint -> PackageVariant -> Published -> Git
+                       |                         |
+                       |                         +--> NMI Flux -> NMI workload
+                       +--> CIC package -> CIC Flux ARM64 -> CIC workload
 ```
 
 Namespaces separate the Nephio services from `5g-core`, `near-rt-ric`, `ran`,
@@ -30,8 +30,8 @@ and `ricxapp`. The main Deployments and StatefulSets also use
 cluster-scoped by Kubernetes design.
 
 Proxmox, pfSense, Kubernetes bootstrap, Multus/OVS, RAN, Near-RT RIC and 5G Core
-remain under the existing Ansible/Helm path. Nephio owns the harmless smoke
-package and, after the validated handoff, the `r4-simple-mon` xApp only.
+remain under the existing Ansible/Helm path. Nephio owns the harmless NMI/CIC
+smoke packages and, after the validated handoff, the `r4-simple-mon` xApp only.
 
 ## Reused VM 113
 
@@ -106,6 +106,48 @@ Package approved by Porch and reconciled by Flux | revision=v1
 Because Flux now runs in the target cluster, no cross-cluster kubeconfig or
 public Kubernetes API exposure is needed.
 
+## Blueprint, intent and site specialization
+
+`team-blueprints/r4-simple-mon` is the reusable student-facing package. It does
+not target a cluster directly. A `PackageVariant` combines that blueprint with
+the `WorkloadCluster/nmi` inventory and runs a KRM replacement function. The
+result is the published deployment package `nmi/r4-simple-mon-nmi` consumed by
+Flux.
+
+The NMI variant injects the site, target node, digest-pinned image, E2 node id
+and KPM metric. This is the concrete meaning of an intent in this POC: choose
+the blueprint and site; Nephio renders the site-specific package; Porch
+publishes it; Flux applies it. Students still write and test xApp code,
+container images and Kubernetes resources. Nephio manages their reusable
+configuration lifecycle, not the RMR runtime or the radio protocol.
+
+The WebUI parser shipped by the pinned Nephio image assumed every YAML file was
+a Kubernetes resource with `metadata.name`. Real kpt packages also contain
+files such as `Kustomization`, so the frontend crashed while the Porch API
+remained healthy. `infra/nephio/webui-compat/` installs a reproducible
+init-container patch that skips non-KRM documents.
+
+## CIC workload-cluster delivery proof
+
+The CIC inventory is now more than a catalog entry. The management side has a
+Porch deployment repository named `cic`; CIC runs only Flux v2.7.5
+`source-controller` and `kustomize-controller`. Version 2.7 is pinned because
+it is the newest Flux minor supporting Kubernetes 1.32.
+
+```text
+WorkloadCluster/cic
+  -> Porch revision cic.cic-lab-smoke.v1 (Published)
+  -> Gitea nephio/cic, commit 1f3c994c090da3033100aaa93ee186647e08115c
+  -> CIC GitRepository Ready=True
+  -> CIC Kustomization Ready=True
+  -> ConfigMap nephio-lab/nephio-delivery-smoke
+     site=cic, architecture=arm64, revision=v1
+```
+
+The CIC GitOps identity can modify only ConfigMaps in `nephio-lab`. Gitea is
+reachable from the routed laboratory networks through NMI NodePort `30302`; no
+pfSense WAN publication or remote Kubernetes API credential is used.
+
 ## Restricted delivery identities
 
 The Flux Kustomization uses ServiceAccount
@@ -146,8 +188,9 @@ The accepted lifecycle was:
 | `nmi.r4-simple-mon.v3` | `ca9e3ee` | `v3-rollback / baseline` | rollback healthy and KPM received |
 
 Rollback is a new forward revision copied from the known-good v1 content. Git
-history never moves backwards. The final pod received E2SM-KPM on subscription
-47, with both RMR and decoded KPM counters increasing.
+history never moves backwards. That demonstration ended on subscription 47.
+The later `PackageVariant` rollout subscribed as ID 50 and had 832 RMR/decoded
+KPM indications at the final acceptance check.
 
 During the first Helm-to-Flux adoption, RTMgr needed one controlled restart to
 republish its complete route table. The old REST subscription and only the xApp
@@ -163,8 +206,9 @@ the package with Helm.
 
 ## Private access over the NMI VPN
 
-Gitea and the WebUI are `ClusterIP` services. Neither has a NodePort nor a
-public pfSense rule.
+The WebUI remains a `ClusterIP` service. Gitea also keeps its normal ClusterIP,
+with a separate NodePort `30302` used by CIC Flux over the routed private lab
+networks. Neither service has a public pfSense rule.
 
 Open the WebUI by keeping this tunnel active and browsing to
 `http://127.0.0.1:7007`:
@@ -212,6 +256,10 @@ Declarative onboarding files are in `infra/nephio/nmi-onboarding/`; package
 sources are in `packages/nephio/nmi-lab-smoke/` and
 `packages/nephio/r4-simple-mon/`.
 
+The blueprint and CIC workload-cluster flows are reproducible from
+`infra/nephio/blueprints/`, `infra/nephio/cic-onboarding/` and
+`packages/nephio/cic-lab-smoke/`.
+
 Run the complete, idempotent onboarding after installing the controllers:
 
 ```bash
@@ -246,6 +294,8 @@ Repeat the update/rollback demonstration with unique Porch workspaces:
 kubectl get nodes -L workload
 kubectl get pods -A --field-selector=status.phase!=Running,status.phase!=Succeeded
 kubectl get repository.config.porch.kpt.dev
+kubectl get workloadcluster.infra.nephio.org
+kubectl get packagevariant.config.porch.kpt.dev
 porchctl rpkg get -n default
 kubectl get gitrepository,kustomization -n flux-system
 kubectl get configmap nephio-delivery-smoke -n nephio-lab
@@ -256,9 +306,11 @@ kubectl get deployment r4-simple-mon -n ricxapp \
 
 ## Next step
 
-The xApp deploy/update/rollback POC is complete. The next step is to render an
-ARM64-compatible variant for the CIC workload cluster while the complete RIC,
-RAN and Core remain outside Nephio ownership.
+The blueprint, NMI `PackageVariant` and CIC GitOps onboarding are complete. The
+next step is to build a native multi-architecture `simple-mon` image, generate
+the CIC variant from the same blueprint and test how far the xApp can run
+without porting the complete Near-RT RIC to ARM64. RIC, RAN and Core remain on
+the validated NMI amd64 environment during that experiment.
 
 ## Primary references
 

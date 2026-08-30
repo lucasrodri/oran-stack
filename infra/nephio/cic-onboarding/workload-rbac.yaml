@@ -1,0 +1,35 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: nephio-lab
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: nephio-deployer
+  namespace: flux-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: nephio-deployer
+  namespace: nephio-lab
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: nephio-deployer
+  namespace: nephio-lab
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: nephio-deployer
+subjects:
+  - kind: ServiceAccount
+    name: nephio-deployer
+    namespace: flux-system

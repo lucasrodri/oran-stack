@@ -5,9 +5,14 @@ metadata:
   annotations:
     config.kubernetes.io/local-config: "true"
 info:
-  description: NMI simple-mon E2SM-KPM xApp managed through Porch and Flux
+  description: Reusable simple-mon E2SM-KPM xApp blueprint for the UnB labs
   keywords:
     - nephio
     - xapp
     - kpm
-    - nmi
+    - openran
+    - multi-site
+pipeline:
+  mutators:
+    - image: ghcr.io/kptdev/krm-functions-catalog/apply-replacements:v0.1.1
+      configPath: apply-replacements.yaml

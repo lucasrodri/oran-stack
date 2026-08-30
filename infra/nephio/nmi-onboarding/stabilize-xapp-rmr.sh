@@ -31,13 +31,19 @@ if [[ "${route_ready}" != true ]]; then
   exit 1
 fi
 
-rest_subscription_id=$(kubectl logs --namespace="${XAPP_NAMESPACE}" \
-  deployment/"${XAPP_DEPLOYMENT}" -c xapp --since=15m | \
-  sed -nE \
-    's/.*Successfully subscribed with Subscription ID:[[:space:]]+([^[:space:]]+).*/\1/p' | \
-  tail -1 || true)
+delete_latest_rest_subscription() {
+  local rest_subscription_id submgr_ip status
 
-if [[ -n "${rest_subscription_id}" ]]; then
+  rest_subscription_id=$(kubectl logs --namespace="${XAPP_NAMESPACE}" \
+    deployment/"${XAPP_DEPLOYMENT}" -c xapp --since=15m | \
+    sed -nE \
+      's/.*Successfully subscribed with Subscription ID:[[:space:]]+([^[:space:]]+).*/\1/p' | \
+    tail -1 || true)
+
+  if [[ -z "${rest_subscription_id}" ]]; then
+    return
+  fi
+
   submgr_ip=$(kubectl get service ric-submgr \
     --namespace="${RIC_NAMESPACE}" \
     --output=jsonpath='{.spec.clusterIP}')
@@ -47,19 +53,38 @@ if [[ -n "${rest_subscription_id}" ]]; then
     printf 'Subscription delete returned HTTP %s\n' "${status}" >&2
     exit 1
   fi
+}
+
+recreate_xapp_process() {
+  local pod
+
+  delete_latest_rest_subscription
+  pod=$(kubectl get pods --namespace="${XAPP_NAMESPACE}" \
+    --selector=app=r4-simple-mon \
+    --output=jsonpath='{.items[0].metadata.name}')
+  kubectl delete pod "${pod}" --namespace="${XAPP_NAMESPACE}" --wait=true
+  kubectl wait pod --namespace="${XAPP_NAMESPACE}" \
+    --selector=app=r4-simple-mon \
+    --for=condition=Ready \
+    --timeout=300s
+}
+
+wait_for_kpm_indication() {
+  local timeout_seconds="${1}"
+
+  timeout "${timeout_seconds}" sh -c \
+    "kubectl logs -f --namespace='${XAPP_NAMESPACE}' deployment/'${XAPP_DEPLOYMENT}' -c xapp --pod-running-timeout=60s | grep -m1 'RIC Indication Received'"
+}
+
+recreate_xapp_process
+if ! wait_for_kpm_indication 75; then
+  # In this lab RTMgr can publish the subscription-specific route only after
+  # the first recreated process registers. One bounded second cycle lets the
+  # next process consume that route without touching E2Term or SCTP.
+  printf 'No KPM indication in the first cycle; retrying the xApp once\n' >&2
+  recreate_xapp_process
+  wait_for_kpm_indication 120
 fi
-
-pod=$(kubectl get pods --namespace="${XAPP_NAMESPACE}" \
-  --selector=app=r4-simple-mon \
-  --output=jsonpath='{.items[0].metadata.name}')
-kubectl delete pod "${pod}" --namespace="${XAPP_NAMESPACE}" --wait=true
-kubectl wait pod --namespace="${XAPP_NAMESPACE}" \
-  --selector=app=r4-simple-mon \
-  --for=condition=Ready \
-  --timeout=300s
-
-timeout 120 sh -c \
-  "kubectl logs -f --namespace='${XAPP_NAMESPACE}' deployment/'${XAPP_DEPLOYMENT}' -c xapp --pod-running-timeout=60s | grep -m1 'RIC Indication Received'"
 
 kubectl exec --namespace="${XAPP_NAMESPACE}" \
   deployment/"${XAPP_DEPLOYMENT}" -c xapp -- \

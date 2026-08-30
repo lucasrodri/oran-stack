@@ -6,6 +6,24 @@ _Last updated: 2026-08-30_
 
 ## 0. Recent Changes
 
+### 2026-08-30 — Nephio blueprint and CIC workload GitOps validated
+
+- Published `team-blueprints/r4-simple-mon` as a reusable Porch package and
+  created the NMI deployment package through a real `PackageVariant` backed by
+  `WorkloadCluster/nmi`. Flux now consumes `r4-simple-mon-nmi`, not the source
+  blueprint.
+- Patched the pinned Nephio WebUI frontend at startup to ignore valid non-KRM
+  YAML documents instead of crashing on a missing `metadata.name`.
+- Registered `WorkloadCluster/cic`, created its Porch/Gitea deployment
+  repository and exposed Gitea only to routed lab networks at NMI NodePort
+  `30302`; no public pfSense publication was added.
+- Installed only Flux v2.7.5 source and kustomize controllers on the CIC ARM64
+  cluster. Published `cic.cic-lab-smoke.v1`; CIC reconciled Git commit
+  `1f3c994c` and created the expected `site=cic`, `architecture=arm64` ConfigMap.
+- Restricted the CIC Flux identity to ConfigMaps in `nephio-lab`. The complete
+  Nephio management plane remains in NMI; CIC did not receive a duplicate
+  Nephio installation.
+
 ### 2026-08-30 — simple-mon deployed and rolled back through Nephio
 
 - Packaged the complete `r4-simple-mon` contract for Porch/Flux: digest-pinned
@@ -18,7 +36,8 @@ _Last updated: 2026-08-30_
   xApp, preventing two reconcilers from fighting over the same Deployment.
 - Demonstrated v2 update (`state=tuned`, Git `0f2773a`) and a forward rollback
   copied from v1 (`state=baseline`, Git `ca9e3ee`). Both rollouts became Flux
-  Ready and received real E2SM-KPM indications; final subscription ID was 47.
+  Ready and received real E2SM-KPM indications; that demonstration ended on
+  subscription ID 47 before the later PackageVariant rollout.
 - Added bounded scripts for baseline publication, first-adoption RMR
   stabilization, functional verification, and repeatable update/rollback.
 
@@ -31,8 +50,9 @@ _Last updated: 2026-08-30_
 - Installed pinned Nephio R6 components in NMI namespaces: Gitea, Porch
   `v1.5.7`, Nephio operator `v6.0.0`, kpt `v1.0.0-beta.64`, WebUI and Flux.
   Main Deployments and StatefulSets select `workload=nephio` and run on VM 113.
-- Kept Gitea and WebUI private as ClusterIP services. WebUI access uses an SSH
-  tunnel over the NMI VPN and its service account cannot read Secrets.
+- Kept the WebUI private as a ClusterIP service. Its access uses an SSH tunnel
+  over the NMI VPN and its service account cannot read Secrets. Gitea retained
+  its ClusterIP and later gained a separate lab-routed NodePort for CIC Flux.
 - Published Porch package revision `nmi.nmi-lab-smoke.v1` through
   `Draft -> Proposed -> Published`; Flux reconciled Git commit `e7e3352` and
   created `nephio-lab/nephio-delivery-smoke`.

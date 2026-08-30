@@ -1,0 +1,16 @@
+---
+apiVersion: infra.nephio.org/v1alpha1
+kind: Repository
+metadata:
+  name: cic
+  namespace: default
+spec:
+  description: CIC ARM laboratory deployment repository
+  defaultBranch: main
+---
+apiVersion: infra.nephio.org/v1alpha1
+kind: Token
+metadata:
+  name: cic-access-token-porch
+  namespace: default
+spec: {}

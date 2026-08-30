@@ -197,6 +197,18 @@ deploy_components() {
   kpt fn render "${PACKAGES_DIR}/webui"
   apply_kpt_package "${PACKAGES_DIR}/webui"
   kubectl wait pods --all -n nephio-webui --for=condition=Ready --timeout=10m
+
+  # R6 WebUI assumes every YAML document has metadata. Kustomization files do
+  # not require it, so keep the upstream image immutable and patch its static
+  # bundle in an init container until the upstream guard is available.
+  kubectl apply -f "${SCRIPT_DIR}/webui-compat/patch-configmap.yaml"
+  kubectl patch deployment nephio-webui \
+    --namespace=nephio-webui \
+    --type=strategic \
+    --patch-file="${SCRIPT_DIR}/webui-compat/deployment-patch.yaml"
+  kubectl rollout status deployment/nephio-webui \
+    --namespace=nephio-webui \
+    --timeout=10m
 }
 
 validate_installation() {

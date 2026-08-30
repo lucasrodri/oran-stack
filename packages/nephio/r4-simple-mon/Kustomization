@@ -13,4 +13,3 @@ generatorOptions:
   labels:
     app.kubernetes.io/name: r4-simple-mon
     app.kubernetes.io/managed-by: Nephio
-    nephio.org/site: nmi

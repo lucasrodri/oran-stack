@@ -1,0 +1,34 @@
+spec:
+  template:
+    metadata:
+      annotations:
+        oran.unb.br/webui-package-parser-patch: "v1"
+    spec:
+      initContainers:
+        - name: patch-package-resource-parser
+          image: docker.io/nephio/kpt-backstage-plugins@sha256:45937b27d1bd682cbef34c8e2b0b028399b949e06c1db71ddea70d6f5ffef9e1
+          imagePullPolicy: IfNotPresent
+          command:
+            - sh
+            - -ec
+          args:
+            - |
+              cp -a /app/packages/app/dist/static/. /patched-static/
+              node /patch/patch-webui.js
+          volumeMounts:
+            - name: patched-static
+              mountPath: /patched-static
+            - name: package-parser-patch
+              mountPath: /patch
+              readOnly: true
+      containers:
+        - name: main
+          volumeMounts:
+            - name: patched-static
+              mountPath: /app/packages/app/dist/static
+      volumes:
+        - name: patched-static
+          emptyDir: {}
+        - name: package-parser-patch
+          configMap:
+            name: nephio-webui-package-parser-patch

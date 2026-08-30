@@ -26,6 +26,7 @@ Baseline reviewed on 2026-08-24:
 | kpt | v1.0.0-beta.64 | R6-compatible KRM package CLI |
 | Nephio worker Kubernetes | v1.30.14 | Matches the existing NMI control plane |
 | Flux controllers | Nephio R6 catalog baseline | Local GitOps reconciliation in NMI |
+| Flux workload agent (CIC) | v2.7.5, source + kustomize only | Latest Flux minor compatible with CIC Kubernetes 1.32; native ARM64 |
 | xApp runner | O-RAN SC I release compatibility baseline | Legacy exception: Python 3.8 and amd64-only RMR packages must be replaced before CIC/arm64 deployment |
 
 ### Near-RT RIC upstream baseline

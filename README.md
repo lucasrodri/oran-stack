@@ -195,7 +195,9 @@ traffic across both Flannel and the E2 Multus/OVS VXLAN from Ampere 2. See
 results and current ARM porting boundary. ARM node and Kubernetes object
 metrics are also exported through VM 105 to the existing NMI Prometheus and the
 `O-RAN Multi-Site Lab` Grafana dashboard; CIC does not duplicate the monitoring
-control plane.
+control plane. CIC is registered as a Nephio workload cluster: a minimal native
+ARM64 Flux agent reconciled the first Porch-approved package from NMI without a
+second Nephio installation or a remote Kubernetes API credential.
 
 ### Option E: Nephio management POC
 
@@ -205,8 +207,11 @@ Porch, Flux, controller and WebUI workloads are placed there with the label
 `workload=nephio`. The validated package flow delivered a restricted ConfigMap
 through `Draft -> Proposed -> Published -> Git -> Flux`. The same lifecycle now
 owns `r4-simple-mon`: v1 deploy, v2 update and a v3 forward rollback were all
-validated with real KPM indications. Proxmox, Kubernetes bootstrap and the
-complete RAN/RIC/Core deployment remain under Ansible and Helm. See
+validated with real KPM indications. A reusable Team Blueprint and NMI
+`PackageVariant` now generate the site-specific xApp package, while CIC has a
+separate deployment repository and minimal Flux workload agent. Proxmox,
+Kubernetes bootstrap and the complete RAN/RIC/Core deployment remain under
+Ansible and Helm. See
 [docs/NEPHIO_MANAGEMENT_CLUSTER.md](docs/NEPHIO_MANAGEMENT_CLUSTER.md) for the
 architecture, private UI access, versions and acceptance test.
 
