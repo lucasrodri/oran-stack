@@ -43,7 +43,9 @@ spec:
               GNB="{{ .Values.xapp.e2NodeId }}"
               echo "Waiting for connected gNB ${GNB} in e2mgr..."
               until curl -sf "${E2MGR}" | \
-                grep -Eq "\"inventoryName\":\"${GNB}\"[^}]*\"connectionStatus\":\"CONNECTED\""; do
+                sed 's/},{"inventoryName"/}\n{"inventoryName"/g' | \
+                grep -F "\"inventoryName\":\"${GNB}\"" | \
+                grep -Fq '"connectionStatus":"CONNECTED"'; do
                 echo "gNB is absent or disconnected, retrying in 10s..."
                 sleep 10
               done
