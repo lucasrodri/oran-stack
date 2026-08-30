@@ -8,7 +8,7 @@
 #
 # Ports scraped:
 #   Open5GS NFs (AMF, SMF, UPF, PCF)  — port 9090  (Prometheus pull)
-#   Near-RT RIC (e2term, submgr)        — port 8088  (Prometheus pull)
+#   Near-RT RIC e2term                   — port 8088  (Prometheus pull)
 # ============================================================================
 
 # --- Open5GS AMF -------------------------------------------------------------
@@ -111,27 +111,6 @@ spec:
   selector:
     matchLabels:
       app: ric-e2term
-  endpoints:
-    - port: metrics
-      path: /metrics
-      interval: 15s
----
-# --- Near-RT RIC submgr -------------------------------------------------------
-apiVersion: monitoring.coreos.com/v1
-kind: ServiceMonitor
-metadata:
-  name: ric-submgr
-  namespace: {{ .Values.namespace }}
-  labels:
-    app.kubernetes.io/part-of: oran-stack
-    release: {{ .Release.Name }}
-spec:
-  namespaceSelector:
-    matchNames:
-      - near-rt-ric
-  selector:
-    matchLabels:
-      app: ric-submgr
   endpoints:
     - port: metrics
       path: /metrics
