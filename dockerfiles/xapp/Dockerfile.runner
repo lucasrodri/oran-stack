@@ -40,6 +40,9 @@ COPY --from=rmr-builder /usr/local/lib/librmr_si.so* /usr/local/lib/
 COPY --from=rmr-builder /usr/local/bin/rmr_probe /opt/e2/rmr_probe
 RUN ldconfig && chmod 0755 /opt/e2/rmr_probe
 
+ENV LD_LIBRARY_PATH=/usr/local/lib \
+    PYTHONUNBUFFERED=1
+
 WORKDIR /opt
 RUN git clone --filter=blob:none https://github.com/o-ran-sc/ric-plt-xapp-frame-py.git \
       /opt/ric-plt-xapp-frame-py \
@@ -64,9 +67,6 @@ RUN cd /opt/ric-plt-xapp-frame-py \
 
 RUN mkdir -p /opt/xApps /opt/ric/config \
     && chmod 0755 /opt/xApps /opt/ric/config
-
-ENV LD_LIBRARY_PATH=/usr/local/lib \
-    PYTHONUNBUFFERED=1
 
 WORKDIR /opt/xApps
 CMD ["/bin/bash"]
