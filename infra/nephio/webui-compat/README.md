@@ -15,7 +15,8 @@ equivalent guard.
 The overlay also keeps the laboratory identity and access path explicit:
 
 - `unb-configmap.yaml` sets the external NMI VPN URL, keeps the Nephio title,
-  embeds the UnB logo and clears the upstream decorative background;
+  embeds the [official 2025 UnB logo](https://cen.unb.br/wp-content/uploads/2025/02/logo_unb_oficial_2025.png)
+  and clears the upstream decorative background;
 - `nodeport-service.yaml` publishes the WebUI on TCP `30707`;
 - pfSense must allow only the NMI VPN network to reach
   `192.168.71.30:30707`.

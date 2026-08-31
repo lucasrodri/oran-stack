@@ -2,7 +2,7 @@ spec:
   template:
     metadata:
       annotations:
-        oran.unb.br/webui-package-parser-patch: "v4-unb-logo-only"
+        oran.unb.br/webui-package-parser-patch: "v5-unb-official-logo"
     spec:
       initContainers:
         - name: patch-package-resource-parser
