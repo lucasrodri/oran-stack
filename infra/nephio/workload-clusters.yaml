@@ -10,6 +10,16 @@ metadata:
     oran.unb.br/xapp-image: docker.io/x0tok/oran-xapps@sha256:752c9edc56b8644c78a1fc81d1106d0c34e02a55b48b58f880eaaf3240519a71
     oran.unb.br/e2-node-id: gnbd_001_001_00019b_e2
     oran.unb.br/kpm-metric: DRB.UEThpDl
+    oran.unb.br/rmr-flags: "0"
+    oran.unb.br/e2mgr-uri: http://ric-e2mgr.near-rt-ric:3800/v1/nodeb/states
+    oran.unb.br/xapp-name: r4-simple-mon
+    oran.unb.br/xapp-ip: service-ricxapp-r4-simple-mon-rmr.ricxapp
+    oran.unb.br/xapp-rmr-endpoint: service-ricxapp-r4-simple-mon-rmr.ricxapp:4561
+    oran.unb.br/xapp-http-endpoint: service-ricxapp-r4-simple-mon-http.ricxapp:8091
+    oran.unb.br/xapp-advertised-rmr-port: "4561"
+    oran.unb.br/xapp-advertised-http-port: "8091"
+    oran.unb.br/submgr-uri: http://ric-submgr.near-rt-ric:8088/ric/v1
+    oran.unb.br/appmgr-register-uri: http://ric-appmgr.near-rt-ric:8080/ric/v1/register
   labels:
     nephio.org/site-type: laboratory
     nephio.org/region: nmi
@@ -29,9 +39,19 @@ metadata:
     oran.unb.br/site: cic
     oran.unb.br/architecture: arm64
     oran.unb.br/xapp-node: cic-k8s-w01
-    oran.unb.br/xapp-image: pending-arm64-image
-    oran.unb.br/e2-node-id: pending-cic-e2-node
+    oran.unb.br/xapp-image: ghcr.io/lucasrodri/oran-stack/oran-xapps@sha256:dd52cb4bc7508357d0407d1a977850a27fab932155fd589e1fe36676ec8fd0f9
+    oran.unb.br/e2-node-id: gnbd_001_001_00019b_e2
     oran.unb.br/kpm-metric: DRB.UEThpDl
+    oran.unb.br/rmr-flags: "0"
+    oran.unb.br/e2mgr-uri: http://192.168.72.10:30380/v1/nodeb/states
+    oran.unb.br/xapp-name: r4-simple-mon-cic
+    oran.unb.br/xapp-ip: service-ricxapp-r4-simple-mon-cic-rmr.ricxapp
+    oran.unb.br/xapp-rmr-endpoint: service-ricxapp-r4-simple-mon-cic-rmr.ricxapp:30611
+    oran.unb.br/xapp-http-endpoint: service-ricxapp-r4-simple-mon-cic-rmr.ricxapp:30691
+    oran.unb.br/xapp-advertised-rmr-port: "30611"
+    oran.unb.br/xapp-advertised-http-port: "30691"
+    oran.unb.br/submgr-uri: http://192.168.72.10:30088/ric/v1
+    oran.unb.br/appmgr-register-uri: http://192.168.72.10:30080/ric/v1/register
   labels:
     nephio.org/site-type: laboratory
     nephio.org/region: cic

@@ -5,6 +5,7 @@ SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 SOURCE_DIR="${1:-${SCRIPT_DIR}/../../../packages/nephio/cic-lab-smoke}"
 
 kubectl apply --filename="${SCRIPT_DIR}/gitea-nodeport.yaml"
+kubectl apply --filename="${SCRIPT_DIR}/nmi-ric-nodeports.yaml"
 kubectl apply --filename="${SCRIPT_DIR}/repository.yaml"
 kubectl wait repository.infra.nephio.org/cic \
   --for=jsonpath='{.status.conditions[0].status}'=True \

@@ -1,0 +1,50 @@
+apiVersion: config.porch.kpt.dev/v1alpha1
+kind: PackageVariant
+metadata:
+  name: simple-mon-cic-arm64
+  namespace: default
+spec:
+  upstream:
+    repo: team-blueprints
+    package: r4-simple-mon
+    workspaceName: v4
+  downstream:
+    repo: cic
+    package: r4-simple-mon-cic-arm64
+  annotations:
+    approval.nephio.org/policy: initial
+  injectors:
+    - name: cic
+  pipeline:
+    mutators:
+      # PackageVariant mutators are prepended to the blueprint pipeline. This
+      # makes the CIC parameters explicit before apply-replacements renders the
+      # Deployment and Services.
+      - name: specialize-cic-workload
+        image: ghcr.io/kptdev/krm-functions-catalog/set-annotations:v0.1.4
+        selectors:
+          - apiVersion: infra.nephio.org/v1alpha1
+            kind: WorkloadCluster
+            name: workload-cluster
+        configMap:
+          oran.unb.br/site: cic
+          oran.unb.br/architecture: arm64
+          oran.unb.br/xapp-node: cic-k8s-w01
+          oran.unb.br/xapp-image: ghcr.io/lucasrodri/oran-stack/oran-xapps@sha256:dd52cb4bc7508357d0407d1a977850a27fab932155fd589e1fe36676ec8fd0f9
+          oran.unb.br/e2-node-id: gnbd_001_001_00019b_e2
+          oran.unb.br/kpm-metric: DRB.UEThpDl
+          # Keep the dynamic route collector enabled. RTMgr uses it to admit
+          # the cross-cluster endpoint and publish the subscription route. The
+          # multiarch image carries the ARM64-safe RMR symbol-table hash.
+          oran.unb.br/rmr-flags: "0"
+          oran.unb.br/e2mgr-uri: http://192.168.72.10:30380/v1/nodeb/states
+          oran.unb.br/xapp-name: r4-simple-mon-cic
+          # AppMgr/RTMgr identify xApps by the canonical RIC Service name. The
+          # selectorless NMI Service forwards these ports to 192.168.0.211.
+          oran.unb.br/xapp-ip: service-ricxapp-r4-simple-mon-cic-rmr.ricxapp
+          oran.unb.br/xapp-rmr-endpoint: service-ricxapp-r4-simple-mon-cic-rmr.ricxapp:30611
+          oran.unb.br/xapp-http-endpoint: service-ricxapp-r4-simple-mon-cic-rmr.ricxapp:30691
+          oran.unb.br/xapp-advertised-rmr-port: "30611"
+          oran.unb.br/xapp-advertised-http-port: "30691"
+          oran.unb.br/submgr-uri: http://192.168.72.10:30088/ric/v1
+          oran.unb.br/appmgr-register-uri: http://192.168.72.10:30080/ric/v1/register

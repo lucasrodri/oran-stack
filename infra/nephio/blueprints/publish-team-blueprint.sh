@@ -4,7 +4,9 @@ set -euo pipefail
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 SOURCE_DIR="${1:-${SCRIPT_DIR}/../../../packages/nephio/r4-simple-mon}"
 REPOSITORY="team-blueprints"
-REVISION_NAME="${REPOSITORY}.r4-simple-mon.v1"
+WORKSPACE="${2:-v4}"
+REVISION_NAME="${REPOSITORY}.r4-simple-mon.${WORKSPACE}"
+BASE_REVISION="${REPOSITORY}.r4-simple-mon.v3"
 
 if [[ ! -f "${SOURCE_DIR}/Kptfile" ]] || \
    [[ ! -f "${SOURCE_DIR}/Kustomization" ]] || \
@@ -22,10 +24,16 @@ if kubectl get packagerevision.porch.kpt.dev "${REVISION_NAME}" \
     exit 0
   fi
 else
-  porchctl rpkg init r4-simple-mon \
-    --repository="${REPOSITORY}" \
-    --workspace=v1 \
-    --namespace=default
+  if [[ "${WORKSPACE}" == "v1" ]]; then
+    porchctl rpkg init r4-simple-mon \
+      --repository="${REPOSITORY}" \
+      --workspace="${WORKSPACE}" \
+      --namespace=default
+  else
+    porchctl rpkg copy "${BASE_REVISION}" \
+      --workspace="${WORKSPACE}" \
+      --namespace=default
+  fi
 fi
 
 work_dir=$(mktemp -d)
@@ -34,6 +42,12 @@ trap 'rm -r "${work_dir}"' EXIT
 porchctl rpkg pull --namespace=default \
   "${REVISION_NAME}" "${work_dir}/package"
 cp -a "${SOURCE_DIR}/." "${work_dir}/package/"
+# Porch packages are configuration-as-data and accept text resources only.
+# Keep local Python/macOS build metadata out of the temporary package copy.
+find "${work_dir}/package" -type d -name __pycache__ -prune \
+  -exec rm -r -- {} +
+find "${work_dir}/package" -type f \( -name '*.pyc' -o -name '._*' \) \
+  -delete
 porchctl rpkg push --namespace=default \
   "${REVISION_NAME}" "${work_dir}/package"
 porchctl rpkg propose --namespace=default "${REVISION_NAME}"

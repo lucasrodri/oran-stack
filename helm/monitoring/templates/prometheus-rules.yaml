@@ -61,7 +61,7 @@ spec:
             description: "The srsUE deployment has no available replica."
 
         - alert: CICMetricsTargetDown
-          expr: up{job=~"cic-node-exporter|cic-kube-state-metrics"} == 0
+          expr: up{job=~"cic-node-exporter|cic-kube-state-metrics|cic-simple-mon"} == 0
           for: 5m
           labels:
             severity: warning

@@ -35,6 +35,12 @@ data:
       default_backend be_cic_kube_state_metrics
     backend be_cic_kube_state_metrics
       server cic-kube-state-metrics {{ .Values.cicMonitoring.controlPlane.address }}:{{ .Values.cicMonitoring.kubeStateMetricsNodePort }} check
+
+    frontend fe_cic_simple_mon
+      bind *:19103
+      default_backend be_cic_simple_mon
+    backend be_cic_simple_mon
+      server cic-simple-mon {{ .Values.cicMonitoring.worker.address }}:{{ .Values.cicMonitoring.worker.xappMetricsNodePort }} check
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -77,6 +83,8 @@ spec:
               containerPort: 19101
             - name: cic-ksm
               containerPort: 19102
+            - name: cic-xapp
+              containerPort: 19103
           resources:
             requests:
               cpu: 5m
@@ -126,4 +134,7 @@ spec:
     - name: cic-ksm
       port: 19102
       targetPort: cic-ksm
+    - name: cic-xapp
+      port: 19103
+      targetPort: cic-xapp
 {{- end }}

@@ -21,6 +21,7 @@ cicMonitoring:
   worker:
     address: 192.168.0.211
     nodeExporterPort: 9100
+    xappMetricsNodePort: 30691
   kubeStateMetricsNodePort: 30102
   relay:
     nodeName: oran-k8s-01
@@ -85,6 +86,15 @@ kube-prometheus-stack:
                 cluster: cic-arm
                 site: cic
                 architecture: arm64
+        - job_name: cic-simple-mon
+          metrics_path: /metrics
+          static_configs:
+            - targets: ["cic-metrics-relay.monitoring.svc.cluster.local:19103"]
+              labels:
+                cluster: cic-arm
+                site: cic
+                architecture: arm64
+                xapp: r4-simple-mon-cic
 
       storageSpec:
         volumeClaimTemplate:

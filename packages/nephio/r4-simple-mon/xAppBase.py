@@ -96,9 +96,13 @@ class xAppBase(object):
         # helper variables
         self.running = False
         
-        # Initialize RMR client.
+        # Initialize RMR client.  RMR_FLAGS is useful for receive-only xApps
+        # deployed outside the RIC cluster: setting it to RMRFL_NOTHREAD (1)
+        # disables the route-table collector while keeping the RMR listener.
+        # The KPM subscription itself is sent to SubMgr over REST.
+        rmr_flags = int(os.environ.get("RMR_FLAGS", str(rmr_flags)), 0)
         initbind = str(self.MY_RMR_PORT).encode('utf-8')
-        self.rmr_client = rmr.rmr_init(initbind, rmr.RMR_MAX_RCV_BYTES, rmr_flags) # flag: do not start an additional route collector thread
+        self.rmr_client = rmr.rmr_init(initbind, rmr.RMR_MAX_RCV_BYTES, rmr_flags)
         while rmr.rmr_ready(self.rmr_client) == 0:
             time.sleep(1)
 

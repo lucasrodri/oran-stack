@@ -4,6 +4,7 @@ namespace: ricxapp
 resources:
   - deployment.yaml
   - services.yaml
+  - services-external.yaml
 configMapGenerator:
   - name: r4-simple-mon-runtime
     files:

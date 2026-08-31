@@ -1,0 +1,100 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ric-appmgr-cic
+  namespace: near-rt-ric
+  labels:
+    app.kubernetes.io/part-of: oran-stack-lab
+spec:
+  type: NodePort
+  selector:
+    app: ric-appmgr
+  ports:
+    - name: http
+      protocol: TCP
+      port: 8080
+      targetPort: 8080
+      nodePort: 30080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ric-submgr-cic
+  namespace: near-rt-ric
+  labels:
+    app.kubernetes.io/part-of: oran-stack-lab
+spec:
+  type: NodePort
+  selector:
+    app: ric-submgr
+  ports:
+    - name: http
+      protocol: TCP
+      port: 8088
+      targetPort: 8088
+      nodePort: 30088
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ric-e2mgr-cic
+  namespace: near-rt-ric
+  labels:
+    app.kubernetes.io/part-of: oran-stack-lab
+spec:
+  type: NodePort
+  selector:
+    app: ric-e2mgr
+  ports:
+    - name: http
+      protocol: TCP
+      port: 3800
+      targetPort: 3800
+      nodePort: 30380
+---
+# RIC Platform components assume that every registered xApp has a Kubernetes
+# Service in the RIC xApp namespace.  This selectorless bridge preserves that
+# contract while forwarding RMR and HTTP callbacks to the ARM64 workload
+# cluster in the CIC laboratory.
+apiVersion: v1
+kind: Service
+metadata:
+  name: service-ricxapp-r4-simple-mon-cic-rmr
+  namespace: ricxapp
+  labels:
+    app.kubernetes.io/part-of: oran-stack-lab
+    oran.unb.br/remote-site: cic
+spec:
+  ports:
+    - name: rmr
+      protocol: TCP
+      port: 30611
+      targetPort: 30611
+    - name: http
+      protocol: TCP
+      port: 30691
+      targetPort: 30691
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: service-ricxapp-r4-simple-mon-cic-rmr
+  namespace: ricxapp
+  labels:
+    kubernetes.io/service-name: service-ricxapp-r4-simple-mon-cic-rmr
+    endpointslice.kubernetes.io/managed-by: oran-stack-lab
+    oran.unb.br/remote-site: cic
+addressType: IPv4
+ports:
+  - name: rmr
+    protocol: TCP
+    port: 30611
+  - name: http
+    protocol: TCP
+    port: 30691
+endpoints:
+  - addresses:
+      - 192.168.0.211
+    conditions:
+      ready: true

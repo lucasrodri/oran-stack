@@ -1,0 +1,44 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ricxapp
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: r4-simple-mon-cic-deployer
+  namespace: flux-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: r4-simple-mon-cic-deployer
+  namespace: ricxapp
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps", "services"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: ["apps"]
+    resources: ["replicasets"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: r4-simple-mon-cic-deployer
+  namespace: ricxapp
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: r4-simple-mon-cic-deployer
+subjects:
+  - kind: ServiceAccount
+    name: r4-simple-mon-cic-deployer
+    namespace: flux-system
