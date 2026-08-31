@@ -65,8 +65,9 @@ RUN cd /opt/ric-plt-xapp-frame-py \
       msgpack==1.2.2 \
       protobuf==3.20.3 \
       requests==2.34.2 \
+      six==1.17.0 \
     && python -m pip install --no-cache-dir --no-deps /opt/ric-plt-xapp-frame-py \
-    && python -c 'from ricxappframe.rmr import rmr; assert rmr.RMR_MAX_RCV_BYTES > 0'
+    && python -c 'from ricxappframe.rmr import rmr; import ricxappframe.xapp_rest; import ricxappframe.xapp_subscribe; from ricxappframe.e2ap.asn1 import IndicationMsg; assert rmr.RMR_MAX_RCV_BYTES > 0'
 
 RUN mkdir -p /opt/xApps /opt/ric/config \
     && chmod 0755 /opt/xApps /opt/ric/config
