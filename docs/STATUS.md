@@ -1,10 +1,24 @@
 # O-RAN Lab Stack — Status
 
-_Last updated: 2026-08-30_
+_Last updated: 2026-08-31_
 
 ---
 
 ## 0. Recent Changes
+
+### 2026-08-31 — deterministic KPM delivery on NMI and CIC
+
+- Isolated intermittent zero KPM counters to two SI95 listeners sharing xApp
+  port `4561`: the application listener and RMR's private route collector.
+  Depending on the TCP four-tuple, E2Term indications could land in the
+  collector queue instead of the Python receive loop.
+- Set `RMR_FLAGS=1` for both receive-only variants. The xApps continue to
+  subscribe through SubMgr REST and receive RMR indications, without opening
+  the redundant collector listener.
+- Made the DU identifier stable (`226`, rendered as E2 inventory suffix `e2`)
+  so pod recreation no longer invalidates every xApp subscription.
+- Restored the legacy srsUE hexadecimal log limit to the bounded accepted value
+  `32`; the parser rejects zero even when warning-level logging is selected.
 
 ### 2026-08-30 — repeatable student xApp laboratory added
 
@@ -36,8 +50,9 @@ _Last updated: 2026-08-30_
   The container runs natively as `aarch64` on `cic-k8s-w01`; the RIC, RAN,
   Open5GS and UE remain on the validated NMI `amd64` cluster.
 - Fixed undefined signed-overflow behavior in the RMR 4.9.4 symbol-table hash
-  which caused the route collector to crash only on ARM64. Dynamic RMR routing
-  now remains enabled with `RMR_FLAGS=0`.
+  which caused the route collector to crash only on ARM64. That validation
+  originally used `RMR_FLAGS=0`; the deterministic receive-only setting above
+  supersedes it with `RMR_FLAGS=1`.
 - Published `cic.r4-simple-mon-cic-arm64.packagevariant-3` from the shared
   `team-blueprints/r4-simple-mon.v4` blueprint. CIC Flux reconciled Git revision
   `fbad22adb6eaaaea2845171a33fec1affd2d349c` and kept the xApp Ready.

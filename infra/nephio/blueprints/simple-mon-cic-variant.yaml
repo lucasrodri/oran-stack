@@ -7,7 +7,7 @@ spec:
   upstream:
     repo: team-blueprints
     package: r4-simple-mon
-    workspaceName: v6
+    workspaceName: v7
   downstream:
     repo: cic
     package: r4-simple-mon-cic-arm64
@@ -36,10 +36,10 @@ spec:
           # A distinct period prevents SubMgr from merging this experiment
           # with NMI's otherwise identical KPM subscription.
           oran.unb.br/kpm-report-period: "2000"
-          # Keep the dynamic route collector enabled. RTMgr uses it to admit
-          # the cross-cluster endpoint and publish the subscription route. The
-          # multiarch image carries the ARM64-safe RMR symbol-table hash.
-          oran.unb.br/rmr-flags: "0"
+          # This receive-only xApp subscribes through SubMgr's REST API. Keep
+          # the private route collector off so it cannot open a second listener
+          # on 4561 and randomly consume the E2Term indication connection.
+          oran.unb.br/rmr-flags: "1"
           oran.unb.br/e2mgr-uri: http://192.168.72.10:30380/v1/nodeb/states
           oran.unb.br/xapp-name: r4-simple-mon-cic
           # AppMgr/RTMgr identify xApps by the canonical RIC Service name. The

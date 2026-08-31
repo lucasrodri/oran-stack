@@ -238,17 +238,10 @@ spec:
             - sh
             - -c
             - |
-              # Derive a unique gNB-DU-ID from the pod IP so that every new
-              # pod gets a fresh DU ID, eliminating the "Duplicate DU ID"
-              # F1SetupFailure that occurs when the CU still holds a stale
-              # entry for the previous pod.
-              #
-              # Algorithm: treat the last two octets of POD_IP as a 16-bit
-              # number (octet3*256 + octet4). This gives values 0–65535,
-              # well within the gnb_du_id range of 0–68719476735.
-              OCT3=$(echo "${POD_IP}" | cut -d. -f3)
-              OCT4=$(echo "${POD_IP}" | cut -d. -f4)
-              export GNB_DU_ID=$(( OCT3 * 256 + OCT4 ))
+              # Keep the E2 node identity stable across pod recreation. xApps
+              # subscribe by inventory name, whose suffix is derived from this
+              # value; tying it to POD_IP strands every subscription on restart.
+              export GNB_DU_ID="{{ .Values.radio.gnbDuId }}"
               # envsubst replaces ${POD_IP}, ${GNB_DU_ID}, ${F1C_IP}, ${CU_F1C_IP},
               # ${E2_IP}, ${E2TERM_IP} in the template.
               apk add --no-cache gettext > /dev/null 2>&1

@@ -9,7 +9,7 @@ metadata:
     app.kubernetes.io/managed-by: Nephio
     nephio.org/site: nmi
   annotations:
-    nephio.org/package-revision: blueprint-v6
+    nephio.org/package-revision: blueprint-v7
     nephio.org/demo-state: student-lab-ready
 spec:
   replicas: 1
@@ -29,7 +29,7 @@ spec:
         nephio.org/site: nmi
       annotations:
         checksum/runtime-override: 4ff2ae9d3b75edaeffdea94998d42d25622d43f684edc9d10a0467897c26c699
-        nephio.org/package-revision: blueprint-v6
+        nephio.org/package-revision: blueprint-v7
         nephio.org/demo-state: student-lab-ready
     spec:
       nodeSelector:
@@ -93,7 +93,7 @@ spec:
             - name: RMR_RTG_SVC
               value: ""
             - name: RMR_FLAGS
-              value: "0"
+              value: "1"
             - name: XAPP_NAME
               value: r4-simple-mon
             - name: XAPP_NAMESPACE
@@ -115,7 +115,7 @@ spec:
             - name: PYTHONFAULTHANDLER
               value: "1"
             - name: NEPHIO_PACKAGE_REVISION
-              value: blueprint-v6
+              value: blueprint-v7
             - name: NEPHIO_DEMO_STATE
               value: student-lab-ready
           volumeMounts:

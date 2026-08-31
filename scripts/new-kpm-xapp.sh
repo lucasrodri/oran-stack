@@ -52,6 +52,13 @@ mkdir -p \
 cp "${repo_root}/xapps/templates/kpm-monitor/student_kpm_xapp.py.tpl" \
   "${python_target}"
 cp -a "${repo_root}/packages/nephio/r4-simple-mon" "${package_target}"
+# Local validation may leave Python bytecode beside the blueprint sources.
+# Nephio packages contain configuration-as-data only; keep generated binary
+# metadata out before the text substitution pass.
+find "${package_target}" -type d -name __pycache__ -prune \
+  -exec rm -r -- {} +
+find "${package_target}" -type f \( -name '*.pyc' -o -name '._*' \) \
+  -delete
 cp "${repo_root}/infra/nephio/blueprints/simple-mon-nmi-variant.yaml" \
   "${variant_target}"
 cp "${repo_root}/infra/nephio/nmi-onboarding/xapp-rbac.yaml" "${rbac_target}"
@@ -84,7 +91,7 @@ done
 # A new Team Blueprint starts at v1. The exact multiarch image digest is known
 # only after the generated Python file is committed and GitHub Actions runs.
 sed -i.bak \
-  -e 's/workspaceName: v3/workspaceName: v1/' \
+  -e 's/workspaceName: v[0-9][0-9]*/workspaceName: v1/' \
   -e 's#oran.unb.br/xapp-image: .*#oran.unb.br/xapp-image: REPLACE_WITH_MULTIARCH_IMAGE_DIGEST#' \
   "${variant_target}"
 rm "${variant_target}.bak"

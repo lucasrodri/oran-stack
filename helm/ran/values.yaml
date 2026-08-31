@@ -13,7 +13,9 @@ logging:
   f1apLevel: warning
   f1apJsonEnabled: false
   ueLevel: warning
-  ueHexLimit: 0
+  # The legacy srsUE argument parser rejects zero. Keep the bounded, proven
+  # value while the log level remains at warning for the lab.
+  ueHexLimit: 32
 
 images:
   ocudu:
@@ -59,6 +61,11 @@ secondaryNetworks:
 # Radio / Cell configuration (mirrors .env / du.yml values)
 # ----------------------------------------------------------------------------
 radio:
+  # Stable DU identity used by E2 subscriptions. 226 is rendered by the RIC as
+  # the hexadecimal suffix "e2" (gnbd_001_001_00019b_e2). Do not derive this
+  # value from the ephemeral pod IP: doing so invalidates every xApp
+  # subscription after a DU restart.
+  gnbDuId: 226
   dlArfcn: 368500
   band: 3
   # Known-good OCUDU + srsUE ZMQ profile from the upstream tutorial.

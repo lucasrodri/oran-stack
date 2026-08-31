@@ -166,6 +166,12 @@ table across the two clusters. At acceptance, CIC reported one active
 subscription and 401 RMR/E2SM-KPM indications; Prometheus target
 `job="cic-simple-mon"` was up.
 
+The receive-only xApp uses `RMR_FLAGS=1`. Its subscription is created through
+SubMgr's REST API, so it does not need a private route collector. Disabling that
+collector also guarantees that only one process listener owns port `4561`;
+otherwise the SI95 collector and application listener both use `SO_REUSEPORT`
+and an E2Term connection can be consumed by the wrong queue.
+
 ```text
 NMI RTMgr/AppMgr/SubMgr
   -> service-ricxapp-r4-simple-mon-cic-rmr:4561/8091

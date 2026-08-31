@@ -28,8 +28,8 @@ if [[ "${architecture}" != "aarch64" ]]; then
   printf 'Expected native aarch64 runtime, got: %s\n' "${architecture}" >&2
   exit 1
 fi
-if [[ "${rmr_flags}" != "0" ]]; then
-  printf 'Expected the dynamic RMR route collector (RMR_FLAGS=0), got: %s\n' \
+if [[ "${rmr_flags}" != "1" ]]; then
+  printf 'Expected the receive-only RMR listener (RMR_FLAGS=1), got: %s\n' \
     "${rmr_flags}" >&2
   exit 1
 fi
