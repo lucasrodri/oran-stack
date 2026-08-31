@@ -7,6 +7,7 @@ SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 kubectl apply --filename="${SCRIPT_DIR}/workload-rbac.yaml"
 kubectl apply --filename="${SCRIPT_DIR}/flux-sync.yaml"
 kubectl apply --filename="${SCRIPT_DIR}/cic-xapp-rbac.yaml"
+kubectl apply --filename="${SCRIPT_DIR}/cic-rmr-return-bridge.yaml"
 kubectl apply --filename="${SCRIPT_DIR}/cic-xapp-flux-sync.yaml"
 
 kubectl wait gitrepository.source.toolkit.fluxcd.io/cic \

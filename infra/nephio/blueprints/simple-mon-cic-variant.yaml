@@ -42,9 +42,9 @@ spec:
           # AppMgr/RTMgr identify xApps by the canonical RIC Service name. The
           # selectorless NMI Service forwards these ports to 192.168.0.211.
           oran.unb.br/xapp-ip: service-ricxapp-r4-simple-mon-cic-rmr.ricxapp
-          oran.unb.br/xapp-rmr-endpoint: service-ricxapp-r4-simple-mon-cic-rmr.ricxapp:30611
-          oran.unb.br/xapp-http-endpoint: service-ricxapp-r4-simple-mon-cic-rmr.ricxapp:30691
-          oran.unb.br/xapp-advertised-rmr-port: "30611"
-          oran.unb.br/xapp-advertised-http-port: "30691"
+          oran.unb.br/xapp-rmr-endpoint: service-ricxapp-r4-simple-mon-cic-rmr.ricxapp:4561
+          oran.unb.br/xapp-http-endpoint: service-ricxapp-r4-simple-mon-cic-rmr.ricxapp:8091
+          oran.unb.br/xapp-advertised-rmr-port: "4561"
+          oran.unb.br/xapp-advertised-http-port: "8091"
           oran.unb.br/submgr-uri: http://192.168.72.10:30088/ric/v1
           oran.unb.br/appmgr-register-uri: http://192.168.72.10:30080/ric/v1/register

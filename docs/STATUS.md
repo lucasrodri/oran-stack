@@ -6,6 +6,29 @@ _Last updated: 2026-08-30_
 
 ## 0. Recent Changes
 
+### 2026-08-30 — simple-mon ARM64 delivered to CIC with real KPM
+
+- Built and verified the multi-architecture xApp image at
+  `ghcr.io/lucasrodri/oran-stack/oran-xapps@sha256:dd52cb4bc7508357d0407d1a977850a27fab932155fd589e1fe36676ec8fd0f9`.
+  The container runs natively as `aarch64` on `cic-k8s-w01`; the RIC, RAN,
+  Open5GS and UE remain on the validated NMI `amd64` cluster.
+- Fixed undefined signed-overflow behavior in the RMR 4.9.4 symbol-table hash
+  which caused the route collector to crash only on ARM64. Dynamic RMR routing
+  now remains enabled with `RMR_FLAGS=0`.
+- Published `cic.r4-simple-mon-cic-arm64.packagevariant-3` from the shared
+  `team-blueprints/r4-simple-mon.v4` blueprint. CIC Flux reconciled Git revision
+  `fbad22adb6eaaaea2845171a33fec1affd2d349c` and kept the xApp Ready.
+- Added bidirectional, private RMR bridges: NMI canonical xApp ports
+  `4561/8091` map to CIC NodePorts `30611/30691`, and the CIC
+  `ric-rtmgr.near-rt-ric:4560` bridge maps back to NMI NodePort `30460`.
+- RTMgr accepted the remote route table, AppMgr listed `r4-simple-mon-cic`, and
+  the ARM xApp established one active subscription and received real E2SM-KPM
+  indications. The acceptance sample reached 401 indications; E2Term retained
+  UID `87985448-eafa-43fa-a605-9005256c1372` with zero restarts.
+- Prometheus now scrapes the `cic-simple-mon` job through the log-free relay;
+  Grafana dashboard `O-RAN Multi-Site Lab` displays CIC subscription and KPM
+  rate alongside the existing NMI telemetry.
+
 ### 2026-08-30 — Nephio blueprint and CIC workload GitOps validated
 
 - Published `team-blueprints/r4-simple-mon` as a reusable Porch package and

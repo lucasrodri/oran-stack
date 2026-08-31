@@ -1,0 +1,43 @@
+---
+# Route-table updates are RMR call messages. Their response address is the
+# canonical NMI name ric-rtmgr.near-rt-ric:4560. Recreate that name in CIC and
+# forward it to the internal-only NodePort exposed by nmi-ric-nodeports.yaml.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: near-rt-ric
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ric-rtmgr
+  namespace: near-rt-ric
+  labels:
+    app.kubernetes.io/part-of: oran-stack-lab
+    oran.unb.br/remote-site: nmi
+spec:
+  ports:
+    - name: rmr
+      protocol: TCP
+      port: 4560
+      targetPort: 30460
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: ric-rtmgr-nmi
+  namespace: near-rt-ric
+  labels:
+    kubernetes.io/service-name: ric-rtmgr
+    endpointslice.kubernetes.io/managed-by: oran-stack-lab
+    oran.unb.br/remote-site: nmi
+addressType: IPv4
+ports:
+  - name: rmr
+    protocol: TCP
+    port: 30460
+endpoints:
+  - addresses:
+      - 192.168.72.10
+    conditions:
+      ready: true

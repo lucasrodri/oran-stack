@@ -14,7 +14,7 @@ across the NMI control plane and its two Proxmox workers.
 | Alertmanager | Groups and displays lab alerts | 2 GiB, 5 days |
 | Loki | O-RAN and monitoring container-log store | 20 GiB, 24 hours |
 | Alloy | One log collector on every Kubernetes node | Stateless |
-| CIC metrics relay | Forwards three metric ports through VM 105 | Stateless, no access log |
+| CIC metrics relay | Forwards node, object and ARM xApp metrics through VM 105 | Stateless, no access log |
 | CIC node-exporter | CPU, memory, disk and network for both ARM VMs | Stateless |
 | CIC kube-state-metrics | Node, Pod, namespace and workload state | Stateless |
 
@@ -51,6 +51,7 @@ The chart therefore pins a small, TCP-only HAProxy relay to VM 105:
 cic-k8s-cp01:9100 ----\
 cic-k8s-w01:9100 ------> VM 105 relay ---> NMI Prometheus ---> Grafana
 CIC kube-state:30102 --/
+CIC simple-mon:30691 --/
 ```
 
 HAProxy does not terminate HTTP, inspect metric contents or retain access logs.
@@ -60,12 +61,17 @@ left unchanged because all three targets return HTTP 200 from VM 105.
 Prometheus attaches `cluster="cic-arm"`, `site="cic"` and
 `architecture="arm64"` labels to the remote series. This prevents CIC
 kube-state-metrics from being confused with the NMI cluster's local metrics.
+The xApp scrape is labeled `job="cic-simple-mon"`, `site="cic"`,
+`architecture="arm64"` and `xapp="r4-simple-mon-cic"`. The multi-site
+dashboard shows its active subscription and KPM indication rate; an idle
+simulated UE may legitimately report a `DRB.UEThpDl` value of zero while the
+indication counter continues to increase.
 
 ## Lab alerts
 
 The chart installs alerts for Kubernetes nodes, pod crash loops, E2Term, the
 `r4-simple-mon` xApp, the simulated UE, stale KPM indications, RMR receive
-errors, monitoring storage and the three CIC metric targets. Alertmanager uses
+errors, monitoring storage and the CIC metric targets. Alertmanager uses
 a local UI receiver, which is sufficient for this laboratory PoC.
 
 ## Laboratory storage boundary

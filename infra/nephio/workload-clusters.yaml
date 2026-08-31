@@ -46,10 +46,10 @@ metadata:
     oran.unb.br/e2mgr-uri: http://192.168.72.10:30380/v1/nodeb/states
     oran.unb.br/xapp-name: r4-simple-mon-cic
     oran.unb.br/xapp-ip: service-ricxapp-r4-simple-mon-cic-rmr.ricxapp
-    oran.unb.br/xapp-rmr-endpoint: service-ricxapp-r4-simple-mon-cic-rmr.ricxapp:30611
-    oran.unb.br/xapp-http-endpoint: service-ricxapp-r4-simple-mon-cic-rmr.ricxapp:30691
-    oran.unb.br/xapp-advertised-rmr-port: "30611"
-    oran.unb.br/xapp-advertised-http-port: "30691"
+    oran.unb.br/xapp-rmr-endpoint: service-ricxapp-r4-simple-mon-cic-rmr.ricxapp:4561
+    oran.unb.br/xapp-http-endpoint: service-ricxapp-r4-simple-mon-cic-rmr.ricxapp:8091
+    oran.unb.br/xapp-advertised-rmr-port: "4561"
+    oran.unb.br/xapp-advertised-http-port: "8091"
     oran.unb.br/submgr-uri: http://192.168.72.10:30088/ric/v1
     oran.unb.br/appmgr-register-uri: http://192.168.72.10:30080/ric/v1/register
   labels:

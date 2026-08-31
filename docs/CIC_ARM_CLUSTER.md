@@ -147,18 +147,44 @@ Reproduction manifests and bounded scripts live in
 SHA-256 before execution. Its ServiceAccount can modify only ConfigMaps in the
 test namespace.
 
+## ARM xApp acceptance
+
+The first real O-RAN workload now runs in CIC. Porch generated and published
+`cic.r4-simple-mon-cic-arm64.packagevariant-3` from
+`team-blueprints/r4-simple-mon.v4`; CIC Flux reconciled Git revision
+`fbad22adb6eaaaea2845171a33fec1affd2d349c`. The Deployment uses the verified
+multi-architecture image index:
+
+```text
+ghcr.io/lucasrodri/oran-stack/oran-xapps
+  @sha256:dd52cb4bc7508357d0407d1a977850a27fab932155fd589e1fe36676ec8fd0f9
+```
+
+The xApp process reports `aarch64`, registers in the NMI AppMgr and subscribes
+to `DRB.UEThpDl` through the NMI SubMgr. RTMgr distributes its dynamic route
+table across the two clusters. At acceptance, CIC reported one active
+subscription and 401 RMR/E2SM-KPM indications; Prometheus target
+`job="cic-simple-mon"` was up.
+
+```text
+NMI RTMgr/AppMgr/SubMgr
+  -> service-ricxapp-r4-simple-mon-cic-rmr:4561/8091
+  -> 192.168.0.211:30611/30691
+  -> simple-mon ARM64
+
+simple-mon RMR acknowledgement
+  -> ric-rtmgr.near-rt-ric:4560 (CIC bridge)
+  -> 192.168.72.10:30460
+  -> NMI RTMgr
+```
+
 ## Current boundary and next use
 
-This completes the infrastructure and GitOps portions of the CIC ARM
-integration. It does not claim that the whole O-RAN stack already runs on
-ARM64. The next useful steps are:
-
-1. build and validate a small multi-architecture workload, preferably the
-   `simple-mon` xApp or a telemetry-only component;
-2. keep the current Near-RT RIC on NMI until its RMR/SDL image chain has a
-   tested ARM64 build;
-3. generate a CIC `PackageVariant` from the same `r4-simple-mon` team blueprint
-   once the ARM64 image exists.
+This validates a distributed experiment, not a complete ARM64 port of the
+stack. Near-RT RIC, simulated RAN/UE and Open5GS deliberately remain in NMI;
+only `simple-mon` runs in CIC. The next useful step is the student tutorial and
+package template for building, publishing, deploying and rolling back new
+xApps on either architecture.
 
 Ampere 1 remains available as a physical Ubuntu ARM64 machine, but it is not a
 member of this cluster. Keeping it separate preserves a useful bare-metal test

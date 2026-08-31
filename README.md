@@ -197,7 +197,11 @@ metrics are also exported through VM 105 to the existing NMI Prometheus and the
 `O-RAN Multi-Site Lab` Grafana dashboard; CIC does not duplicate the monitoring
 control plane. CIC is registered as a Nephio workload cluster: a minimal native
 ARM64 Flux agent reconciled the first Porch-approved package from NMI without a
-second Nephio installation or a remote Kubernetes API credential.
+second Nephio installation or a remote Kubernetes API credential. The same
+flow now deploys `r4-simple-mon` natively on Ampere 3 from a digest-pinned
+multi-architecture image. Private bidirectional RMR bridges keep AppMgr, RTMgr,
+SubMgr and E2Term in NMI while the ARM xApp receives real E2SM-KPM indications
+in CIC.
 
 ### Option E: Nephio management POC
 
@@ -209,7 +213,9 @@ through `Draft -> Proposed -> Published -> Git -> Flux`. The same lifecycle now
 owns `r4-simple-mon`: v1 deploy, v2 update and a v3 forward rollback were all
 validated with real KPM indications. A reusable Team Blueprint and NMI
 `PackageVariant` now generate the site-specific xApp package, while CIC has a
-separate deployment repository and minimal Flux workload agent. Proxmox,
+separate deployment repository and minimal Flux workload agent. The CIC
+variant has also been validated on `aarch64` with a real KPM subscription;
+Prometheus/Grafana expose its counters in the multi-site dashboard. Proxmox,
 Kubernetes bootstrap and the complete RAN/RIC/Core deployment remain under
 Ansible and Helm. See
 [docs/NEPHIO_MANAGEMENT_CLUSTER.md](docs/NEPHIO_MANAGEMENT_CLUSTER.md) for the

@@ -306,11 +306,17 @@ kubectl get deployment r4-simple-mon -n ricxapp \
 
 ## Next step
 
-The blueprint, NMI `PackageVariant` and CIC GitOps onboarding are complete. The
-next step is to build a native multi-architecture `simple-mon` image, generate
-the CIC variant from the same blueprint and test how far the xApp can run
-without porting the complete Near-RT RIC to ARM64. RIC, RAN and Core remain on
-the validated NMI amd64 environment during that experiment.
+The ARM experiment is complete. The multi-architecture `simple-mon` image runs
+natively on `cic-k8s-w01`, and Porch revision
+`cic.r4-simple-mon-cic-arm64.packagevariant-3` is reconciled by CIC Flux. A
+bidirectional RMR bridge preserves the canonical RIC service names and ports;
+the xApp registered, subscribed and received real KPM indications while RIC,
+RAN and Core remained on the validated NMI `amd64` environment.
+
+The next step is to prepare a bounded student workflow: start from the Team
+Blueprint, build a digest-pinned multi-architecture image, create an NMI or CIC
+variant, approve it in Porch, observe Flux reconciliation, verify KPM in
+Grafana, and demonstrate a forward rollback.
 
 ## Primary references
 

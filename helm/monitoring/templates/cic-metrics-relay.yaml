@@ -52,6 +52,10 @@ metadata:
     app.kubernetes.io/part-of: oran-stack
 spec:
   replicas: 1
+  # hostNetwork reserves the relay ports on a single routed NMI node. A rolling
+  # update cannot schedule old and new pods there at the same time.
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app.kubernetes.io/name: cic-metrics-relay

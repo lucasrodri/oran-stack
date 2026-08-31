@@ -15,9 +15,12 @@ the CIC cluster.
 4. The smoke deployer can modify only ConfigMaps in `nephio-lab`; the xApp
    deployer is separately confined to Deployment, Service and ConfigMap objects
    in `ricxapp`.
-5. The ARM xApp registers its CIC NodePort endpoints in the NMI AppMgr, asks the
-   NMI SubMgr for KPM, and receives RMR indications routed back to CIC. The RIC,
-   E2Term, simulated RAN and UE remain in NMI.
+5. The ARM xApp registers the canonical RIC-side ports (`4561`/`8091`) in the
+   NMI AppMgr. A selectorless Service translates them to the CIC worker
+   NodePorts (`30611`/`30691`). A reciprocal bridge resolves the canonical
+   `ric-rtmgr.near-rt-ric:4560` name in CIC and forwards RMR acknowledgements to
+   NMI NodePort `30460`. The xApp can therefore request KPM from NMI and receive
+   indications in CIC while the RIC, E2Term, simulated RAN and UE remain in NMI.
 
 The Gitea repository is intentionally public inside the routed laboratory
 networks. Porch still uses a generated token for writes. Do not publish the
