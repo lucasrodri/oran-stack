@@ -89,7 +89,7 @@ at `http://192.168.72.10:30300/d/oran-overview/o-ran-stack-overview`. On VM 105,
 run:
 
 ```bash
-cd /home/lucasrc/oran-stack-main
+cd /home/aluno/oran-stack-main
 ./scripts/demo-kpm.sh
 ```
 

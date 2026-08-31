@@ -43,3 +43,10 @@ kubectl.sha256
 # Kubernetes credentials
 kubeconfig
 kubeconfig-*
+
+# Local artifact build and QA workspaces (may contain absolute user paths)
+/tmp/
+/qa/
+*.inspect.ndjson
+output/presentations/*/
+~$*

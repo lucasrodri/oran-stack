@@ -215,7 +215,7 @@ networks. Neither service has a public Internet rule.
 For Gitea, browse to `http://127.0.0.1:3000` while this tunnel is active:
 
 ```bash
-ssh -L 3000:127.0.0.1:3000 -t lucasrc@192.168.72.10 \
+ssh -L 3000:127.0.0.1:3000 -t aluno@192.168.72.10 \
   'kubectl -n gitea port-forward --address=127.0.0.1 service/gitea 3000:3000'
 ```
 

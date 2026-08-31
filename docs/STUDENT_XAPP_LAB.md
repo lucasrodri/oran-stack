@@ -39,7 +39,7 @@ NodePorts e bridges RMR exclusivos. O aluno não deve inventar portas no pfSense
 Verifique o estado antes de programar:
 
 ```bash
-ssh lucasrc@192.168.72.10
+ssh aluno@192.168.72.10
 sudo kubectl -n near-rt-ric get pods
 sudo kubectl -n ran get pods
 curl -fsS http://127.0.0.1:30380/v1/nodeb/states
@@ -153,7 +153,7 @@ desse worker é apenas porque `porchctl` e o kubeconfig administrativo root-only
 estão instalados nele; não existe um segundo cluster de management:
 
 ```bash
-ssh -J lucasrc@192.168.72.10 lucasrc@192.168.71.30
+ssh -J aluno@192.168.72.10 aluno@192.168.71.30
 cd /caminho/para/oran-stack
 export KUBECONFIG=/etc/nephio/nmi-admin.conf
 
@@ -234,7 +234,7 @@ com `r4-simple-mon`.
 O script existente aceita a xApp por variável de ambiente:
 
 ```bash
-cd /home/lucasrc/oran-stack-main
+cd /home/aluno/oran-stack-main
 sudo env KUBECONFIG=/etc/kubernetes/admin.conf \
   XAPP_DEPLOYMENT=kpm-latency-lab ./scripts/demo-kpm.sh
 ```

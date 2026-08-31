@@ -19,8 +19,8 @@ resultados ao vivo e terminar com uma proposta clara de uso por alunos.
 - Em outro terminal, entre no control plane:
 
 ```bash
-ssh lucasrc@192.168.72.10
-cd /home/lucasrc/oran-stack-main
+ssh aluno@192.168.72.10
+cd /home/aluno/oran-stack-main
 ```
 
 ## Abertura — 40 segundos
@@ -64,7 +64,7 @@ sudo kubectl get nodes -o wide
 Prova do CIC, em um segundo terminal local no notebook:
 
 ```bash
-ssh -J lucasrc@192.168.72.10 lucasrc@192.168.0.210 \
+ssh -J aluno@192.168.72.10 aluno@192.168.0.210 \
   'sudo kubectl get nodes -o wide'
 ```
 

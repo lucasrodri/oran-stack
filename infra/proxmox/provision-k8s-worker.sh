@@ -52,7 +52,7 @@ qm resize "$vmid" scsi0 "$disk_size"
 qm set "$vmid" --ide2 "${storage}:cloudinit"
 qm set "$vmid" --boot order=scsi0
 qm set "$vmid" --serial0 socket --vga serial0
-qm set "$vmid" --ciuser lucasrc
+qm set "$vmid" --ciuser "${CLOUD_INIT_USER:-aluno}"
 qm set "$vmid" --sshkeys "$ssh_public_key_file"
 qm set "$vmid" --ipconfig0 "ip=${ip_cidr},gw=${gateway}"
 qm set "$vmid" --nameserver "$gateway"
