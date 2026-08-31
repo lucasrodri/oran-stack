@@ -25,3 +25,25 @@ index 95f2813..7569163 100644
 +	RMR_READ_FENCE();
  	return isspace( c );
  }
+diff --git a/src/rmr/common/src/symtab.c b/src/rmr/common/src/symtab.c
+index a87a02a..23ed3a1 100644
+--- a/src/rmr/common/src/symtab.c
++++ b/src/rmr/common/src/symtab.c
+@@ -85,12 +85,7 @@ static int sym_hash( const char *n, long size )
+ {
+-	const char *p;
+-	long t = 0;
+-
+-	for( p = n; *p; p++ )      /* a bit of magic */
+-		t = (t * 79 ) + *p;
+-
+-	if( t < 0 )
+-		t = ~t;
+-
+-	return (int ) (t % size);
++	const unsigned char *p;
++	uint64_t t = 0;
++	for( p = (const unsigned char *) n; *p; p++ )      /* a bit of magic */
++		t = (t * 79) + *p;
++	return (int) (t % (uint64_t) size);
+ }
