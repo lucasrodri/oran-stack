@@ -4,6 +4,8 @@ FROM python:3.11-slim-bookworm AS rmr-builder
 
 ARG RMR_VERSION=4.9.4
 ARG RMR_COMMIT=f447e29dffd0a24fcf02288b9591ce7d03a8fb9d
+ARG E2AP_VERSION=1.1.0
+ARG E2AP_COMMIT=746aa4bfe7cbd3ac8f3193c25b301efc3a151c5a
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
       build-essential \
@@ -29,6 +31,20 @@ RUN cmake -S /src/rmr -B /src/rmr/.build \
     && cmake --build /src/rmr/.build --parallel \
     && cmake --install /src/rmr/.build
 
+RUN git clone --filter=blob:none https://github.com/o-ran-sc/ric-plt-libe2ap.git /src/libe2ap \
+    && cd /src/libe2ap \
+    && git checkout --detach "${E2AP_COMMIT}" \
+    && test "$(git describe --tags --exact-match HEAD)" = "${E2AP_VERSION}"
+
+RUN cmake -S /src/libe2ap -B /src/libe2ap/.build \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX=/usr/local \
+      -DCMAKE_INSTALL_LIBDIR=lib \
+      -DDEV_PKG=0 \
+      -DBUILD_DOC=0 \
+    && cmake --build /src/libe2ap/.build --parallel \
+    && cmake --install /src/libe2ap/.build
+
 FROM python:3.11-slim-bookworm
 
 ARG SC_RIC_COMMIT=7fb94911c4197e6c0c93d20bc2e6e73d9444d14f
@@ -40,6 +56,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=rmr-builder /usr/local/lib/librmr_si.so* /usr/local/lib/
+COPY --from=rmr-builder /usr/local/lib/libriclibe2ap.so* /usr/local/lib/
 COPY --from=rmr-builder /usr/local/bin/rmr_probe /opt/e2/rmr_probe
 RUN ldconfig && chmod 0755 /opt/e2/rmr_probe
 
@@ -64,6 +81,7 @@ RUN cd /opt/ric-plt-xapp-frame-py \
       mdclogpy==1.1.4 \
       msgpack==1.2.2 \
       protobuf==3.20.3 \
+      python-dateutil==2.9.0.post0 \
       requests==2.34.2 \
       six==1.17.0 \
     && python -m pip install --no-cache-dir --no-deps /opt/ric-plt-xapp-frame-py \
