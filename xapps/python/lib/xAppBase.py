@@ -96,7 +96,7 @@ class xAppBase(object):
 
         # helper variables
         self.running = False
-        
+
         # Initialize RMR client.  RMR_FLAGS is useful for receive-only xApps
         # deployed outside the RIC cluster: setting it to RMRFL_NOTHREAD (1)
         # disables the route-table collector while keeping the RMR listener.

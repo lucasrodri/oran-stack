@@ -1,0 +1,43 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: service-ricxapp-kpm-load-watch-rmr
+  labels:
+    app: kpm-load-watch
+    app.kubernetes.io/name: kpm-load-watch
+    app.kubernetes.io/managed-by: Nephio
+    nephio.org/site: nmi
+spec:
+  publishNotReadyAddresses: true
+  selector:
+    app: kpm-load-watch
+    release: kpm-load-watch
+  ports:
+    - name: rmr
+      port: 4561
+      targetPort: 4561
+      protocol: TCP
+    - name: http
+      port: 8091
+      targetPort: 8091
+      protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: service-ricxapp-kpm-load-watch-http
+  labels:
+    app: kpm-load-watch
+    monitoring: "true"
+    app.kubernetes.io/name: kpm-load-watch
+    app.kubernetes.io/managed-by: Nephio
+    nephio.org/site: nmi
+spec:
+  selector:
+    app: kpm-load-watch
+    release: kpm-load-watch
+  ports:
+    - name: http
+      port: 8091
+      targetPort: 8091
+      protocol: TCP

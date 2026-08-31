@@ -13,6 +13,7 @@ on:
       - xapps/python/**
       - xapps/templates/**
       - scripts/new-kpm-xapp.sh
+      - tests/test_load_classifier.py
 
 permissions:
   contents: read
@@ -37,9 +38,17 @@ jobs:
             ./scripts/new-kpm-xapp.sh kpm-ci-sample DRB.UEThpDl 2000
           python3 -m py_compile \
             "${scaffold_root}/xapps/python/kpm_ci_sample_xapp.py"
+          python3 -m unittest tests/test_load_classifier.py
           grep -Fq 'exec ./kpm_ci_sample_xapp.py' \
             "${scaffold_root}/packages/nephio/kpm-ci-sample/deployment.yaml"
           grep -Fq 'package: kpm-ci-sample-nmi' \
+            "${scaffold_root}/infra/nephio/blueprints/kpm-ci-sample-nmi-variant.yaml"
+          test ! -e \
+            "${scaffold_root}/packages/nephio/kpm-ci-sample/services-external.yaml"
+          ! grep -Fq 'services-external.yaml' \
+            "${scaffold_root}/packages/nephio/kpm-ci-sample/Kustomization"
+          ! grep -RFq 'simple-mon' \
+            "${scaffold_root}/packages/nephio/kpm-ci-sample" \
             "${scaffold_root}/infra/nephio/blueprints/kpm-ci-sample-nmi-variant.yaml"
           test "$(grep -RFl 'REPLACE_WITH_MULTIARCH_IMAGE_DIGEST' \
             "${scaffold_root}" | wc -l)" -eq 2

@@ -52,6 +52,12 @@ mkdir -p \
 cp "${repo_root}/xapps/templates/kpm-monitor/student_kpm_xapp.py.tpl" \
   "${python_target}"
 cp -a "${repo_root}/packages/nephio/r4-simple-mon" "${package_target}"
+# The source package contains the fixed NodePorts used by the existing CIC
+# bridge. A new NMI xApp needs only its internal Services; remote variants must
+# receive dedicated ports during the infrastructure-assisted CIC step.
+rm "${package_target}/services-external.yaml"
+sed -i.bak '/services-external\.yaml/d' "${package_target}/Kustomization"
+rm "${package_target}/Kustomization.bak"
 # Local validation may leave Python bytecode beside the blueprint sources.
 # Nephio packages contain configuration-as-data only; keep generated binary
 # metadata out before the text substitution pass.
@@ -84,6 +90,11 @@ for file in "${generated_files[@]}"; do
     -e "s/__REPORT_PERIOD__/${report_period}/g" \
     -e "s/oran\.unb\.br\/kpm-report-period: \"1000\"/oran.unb.br\/kpm-report-period: \"${report_period}\"/g" \
     -e "s/__XAPP_NAME__/${xapp_name}/g" \
+    -e "s/${xapp_name}-nmi-v5/${xapp_name}-nmi/g" \
+    -e "s/simple-mon/${xapp_name}/g" \
+    -e '/The original downstream started at blueprint-v1/d' \
+    -e '/cleanly by Porch.*three-way merge/d' \
+    -e '/Start one clean v5 lineage/d' \
     "${file}"
   rm "${file}.bak"
 done
