@@ -11,7 +11,7 @@ metadata:
     oran.unb.br/xapp-image: ghcr.io/lucasrodri/oran-stack/oran-xapps@sha256:3e9c671cd4cae63e41b4835a83a25fb1b2dc44420f534c5ee9904c0980699e55
     oran.unb.br/e2-node-id: gnbd_001_001_00019b_e2
     oran.unb.br/kpm-metric: DRB.UEThpDl
-    oran.unb.br/kpm-report-period: "2000"
+    oran.unb.br/kpm-report-period: "3000"
     oran.unb.br/load-window-size: "5"
     oran.unb.br/load-active-threshold-kbps: "1000"
     oran.unb.br/load-busy-threshold-kbps: "20000"

@@ -9,7 +9,7 @@ metadata:
     app.kubernetes.io/managed-by: Nephio
     nephio.org/site: nmi
   annotations:
-    nephio.org/package-revision: blueprint-v7
+    nephio.org/package-revision: blueprint-v2
     nephio.org/demo-state: student-lab-ready
 spec:
   replicas: 1
@@ -29,7 +29,7 @@ spec:
         nephio.org/site: nmi
       annotations:
         checksum/runtime-override: 4ff2ae9d3b75edaeffdea94998d42d25622d43f684edc9d10a0467897c26c699
-        nephio.org/package-revision: blueprint-v7
+        nephio.org/package-revision: blueprint-v2
         nephio.org/demo-state: student-lab-ready
     spec:
       nodeSelector:
@@ -124,7 +124,7 @@ spec:
             - name: PYTHONFAULTHANDLER
               value: "1"
             - name: NEPHIO_PACKAGE_REVISION
-              value: blueprint-v7
+              value: blueprint-v2
             - name: NEPHIO_DEMO_STATE
               value: student-lab-ready
           volumeMounts:

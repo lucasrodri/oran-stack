@@ -13,6 +13,8 @@ supports the site's CPU architecture.
 the current cell load as `idle`, `active` or `busy`. The package exposes the
 window and both thresholds as `WorkloadCluster` annotations so a PackageVariant
 can express site-specific intent without changing the Python code.
+The NMI v2 specialization requests reports every 3 seconds so it remains
+independent from the 1-second NMI and 2-second CIC simple-mon subscriptions.
 
 Additional Prometheus series:
 

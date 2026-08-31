@@ -92,6 +92,7 @@ for file in "${generated_files[@]}"; do
     -e "s/__XAPP_NAME__/${xapp_name}/g" \
     -e "s/${xapp_name}-nmi-v5/${xapp_name}-nmi/g" \
     -e "s/simple-mon/${xapp_name}/g" \
+    -e 's/blueprint-v7/blueprint-v1/g' \
     -e '/The original downstream started at blueprint-v1/d' \
     -e '/cleanly by Porch.*three-way merge/d' \
     -e '/Start one clean v5 lineage/d' \
