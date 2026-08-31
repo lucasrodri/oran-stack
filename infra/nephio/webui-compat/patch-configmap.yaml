@@ -21,10 +21,19 @@ data:
     const needle = 'return d?[{id:`${d.kind}:';
     const replacement = 'return d&&d.metadata?[{id:`${d.kind}:';
     const occurrences = original.split(needle).length - 1;
+    const logoSizeNeedle = 'maxHeight:"45px"';
+    const logoSizeReplacement = 'maxHeight:"80px"';
+    const logoSizeOccurrences = original.split(logoSizeNeedle).length - 1;
 
     if (occurrences !== 1) {
       throw new Error(`expected one package parser match, found ${occurrences}`);
     }
+    if (logoSizeOccurrences !== 1) {
+      throw new Error(`expected one logo size match, found ${logoSizeOccurrences}`);
+    }
 
-    fs.writeFileSync(chunkPath, original.replace(needle, replacement));
-    console.log(`patched ${chunks[0]} to ignore non-KRM YAML documents`);
+    const patched = original
+      .replace(needle, replacement)
+      .replace(logoSizeNeedle, logoSizeReplacement);
+    fs.writeFileSync(chunkPath, patched);
+    console.log(`patched ${chunks[0]} for KRM parsing and the UnB logo size`);
