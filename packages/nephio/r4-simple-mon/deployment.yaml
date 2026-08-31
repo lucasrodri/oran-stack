@@ -73,7 +73,9 @@ spec:
                 --rmr_port=4561 \
                 --http_server_port=8091 \
                 --e2_node_id="${E2_NODE_ID}" \
-                --ran_func_id=2
+                --ran_func_id=2 \
+                --report_period="${KPM_REPORT_PERIOD}" \
+                --granul_period="${KPM_REPORT_PERIOD}"
           ports:
             - name: rmr
               containerPort: 4561
@@ -86,6 +88,8 @@ spec:
               value: gnbd_001_001_00019b_e2
             - name: KPM_METRIC
               value: DRB.UEThpDl
+            - name: KPM_REPORT_PERIOD
+              value: "1000"
             - name: RMR_RTG_SVC
               value: ""
             - name: RMR_FLAGS

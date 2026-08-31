@@ -207,7 +207,7 @@ data:
           "id": 6,
           "type": "stat",
           "title": "KPM Indications/s",
-          "description": "Rate of E2SM-KPM indications decoded and dispatched by r4-simple-mon",
+          "description": "Rate of E2SM-KPM indications decoded and dispatched by each monitoring xApp",
           "gridPos": { "x": 18, "y": 0, "w": 6, "h": 4 },
           "options": {
             "reduceOptions": { "calcs": ["lastNotNull"] },
@@ -230,7 +230,7 @@ data:
           "targets": [
             {
               "expr": "rate(oran_xapp_kpm_indications_total[1m])",
-              "legendFormat": "KPM",
+              "legendFormat": "{{ "{{" }}service{{ "}}" }}",
               "refId": "A"
             }
           ],
@@ -241,7 +241,7 @@ data:
           "id": 7,
           "type": "timeseries",
           "title": "UE Downlink Throughput — E2SM-KPM",
-          "description": "DRB.UEThpDl decoded by r4-simple-mon. Generate traffic through tun_srsue to make this series rise.",
+          "description": "DRB.UEThpDl decoded by the monitoring xApps. Generate traffic through tun_srsue to make this series rise.",
           "gridPos": { "x": 0, "y": 4, "w": 24, "h": 8 },
           "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "table", "placement": "bottom" } },
           "fieldConfig": {
@@ -254,7 +254,7 @@ data:
           "targets": [
             {
               "expr": "oran_kpm_drb_ue_throughput_dl_kbps",
-              "legendFormat": "{{ "{{" }}e2_node{{ "}}" }} / {{ "{{" }}scope{{ "}}" }}",
+              "legendFormat": "{{ "{{" }}service{{ "}}" }} / {{ "{{" }}e2_node{{ "}}" }} / {{ "{{" }}scope{{ "}}" }}",
               "refId": "A"
             }
           ],

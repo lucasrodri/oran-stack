@@ -1,14 +1,18 @@
-name: Build multi-architecture simple-mon xApp
+name: Build multi-architecture laboratory xApps
 
 on:
   workflow_dispatch:
   push:
     branches:
       - main
+      - 'aluno/**'
+      - 'student/**'
     paths:
       - .github/workflows/xapp-multiarch.yml
       - dockerfiles/xapp/**
       - xapps/python/**
+      - xapps/templates/**
+      - scripts/new-kpm-xapp.sh
 
 permissions:
   contents: read
@@ -19,8 +23,30 @@ env:
   IMAGE_PREFIX: ghcr.io/${{ github.repository }}
 
 jobs:
+  validate-student-scaffold:
+    name: Validate student xApp scaffold
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - name: Generate and validate a sample xApp
+        shell: bash
+        run: |
+          set -euo pipefail
+          scaffold_root="$(mktemp -d)"
+          XAPP_SCAFFOLD_ROOT="${scaffold_root}" \
+            ./scripts/new-kpm-xapp.sh kpm-ci-sample DRB.UEThpDl 2000
+          python3 -m py_compile \
+            "${scaffold_root}/xapps/python/kpm_ci_sample_xapp.py"
+          grep -Fq 'exec ./kpm_ci_sample_xapp.py' \
+            "${scaffold_root}/packages/nephio/kpm-ci-sample/deployment.yaml"
+          grep -Fq 'package: kpm-ci-sample-nmi' \
+            "${scaffold_root}/infra/nephio/blueprints/kpm-ci-sample-nmi-variant.yaml"
+          test "$(grep -RFl 'REPLACE_WITH_MULTIARCH_IMAGE_DIGEST' \
+            "${scaffold_root}" | wc -l)" -eq 2
+
   build-runner:
     name: Build ARM64/AMD64 xApp runner
+    needs: validate-student-scaffold
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
@@ -70,11 +96,11 @@ jobs:
           push: true
           tags: |
             ${{ env.IMAGE_PREFIX }}/oran-xapps:i-release-multiarch
-            ${{ env.IMAGE_PREFIX }}/oran-xapps:step6-${{ github.sha }}
+            ${{ env.IMAGE_PREFIX }}/oran-xapps:build-${{ github.sha }}
           labels: |
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
             org.opencontainers.image.revision=${{ github.sha }}
-            org.opencontainers.image.version=step6-${{ github.sha }}
+            org.opencontainers.image.version=build-${{ github.sha }}
           cache-from: type=gha,scope=oran-xapps
           cache-to: type=gha,mode=max,scope=oran-xapps
           provenance: mode=max
@@ -90,7 +116,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          image="${IMAGE_PREFIX}/oran-xapps:step6-${GITHUB_SHA}"
+          image="${IMAGE_PREFIX}/oran-xapps:build-${GITHUB_SHA}"
           manifest=$(docker buildx imagetools inspect "${image}")
           grep -Fq 'Platform:    linux/amd64' <<<"${manifest}"
           grep -Fq 'Platform:    linux/arm64' <<<"${manifest}"

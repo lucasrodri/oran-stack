@@ -7,7 +7,7 @@ spec:
   upstream:
     repo: team-blueprints
     package: r4-simple-mon
-    workspaceName: v3
+    workspaceName: v5
   downstream:
     repo: nmi
     package: r4-simple-mon-nmi
@@ -30,6 +30,7 @@ spec:
           oran.unb.br/xapp-image: docker.io/x0tok/oran-xapps@sha256:752c9edc56b8644c78a1fc81d1106d0c34e02a55b48b58f880eaaf3240519a71
           oran.unb.br/e2-node-id: gnbd_001_001_00019b_e2
           oran.unb.br/kpm-metric: DRB.UEThpDl
+          oran.unb.br/kpm-report-period: "1000"
           oran.unb.br/rmr-flags: "0"
           oran.unb.br/e2mgr-uri: http://ric-e2mgr.near-rt-ric:3800/v1/nodeb/states
           oran.unb.br/xapp-name: r4-simple-mon

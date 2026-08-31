@@ -221,6 +221,22 @@ Ansible and Helm. See
 [docs/NEPHIO_MANAGEMENT_CLUSTER.md](docs/NEPHIO_MANAGEMENT_CLUSTER.md) for the
 architecture, private UI access, versions and acceptance test.
 
+### Student xApp laboratory
+
+Students can generate a new E2SM-KPM monitoring xApp without copying the whole
+stack by hand:
+
+```bash
+./scripts/new-kpm-xapp.sh kpm-latency-lab DRB.UEThpDl 2000
+```
+
+The generator creates the Python entry point, a reusable Nephio Team Blueprint,
+the NMI `PackageVariant` and a least-privilege Flux identity. CI verifies the
+scaffold and publishes one digest-pinned `amd64/arm64` laboratory image;
+Prometheus discovers every generated xApp service labeled `monitoring=true`.
+Follow [docs/STUDENT_XAPP_LAB.md](docs/STUDENT_XAPP_LAB.md) for build,
+publication, deploy, real KPM traffic, update and forward rollback.
+
 ---
 
 ## Verify

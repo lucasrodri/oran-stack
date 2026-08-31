@@ -64,6 +64,16 @@ replacements:
   - source:
       kind: WorkloadCluster
       name: workload-cluster
+      fieldPath: metadata.annotations.[oran.unb.br/kpm-report-period]
+    targets:
+      - select:
+          kind: Deployment
+          name: r4-simple-mon
+        fieldPaths:
+          - spec.template.spec.containers.[name=xapp].env.[name=KPM_REPORT_PERIOD].value
+  - source:
+      kind: WorkloadCluster
+      name: workload-cluster
       fieldPath: metadata.annotations.[oran.unb.br/rmr-flags]
     targets:
       - select:

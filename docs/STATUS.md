@@ -6,6 +6,24 @@ _Last updated: 2026-08-30_
 
 ## 0. Recent Changes
 
+### 2026-08-30 — repeatable student xApp laboratory added
+
+- Added `scripts/new-kpm-xapp.sh`, which creates a bounded-log E2SM-KPM Python
+  entry point, reusable Nephio blueprint, NMI `PackageVariant` and restricted
+  Flux delivery identity from one DNS-safe xApp name.
+- Added generic Porch helpers to publish any generated Team Blueprint and move
+  the downstream package through `Draft -> Proposed -> Published`.
+- Added CI validation for the generated contract before the shared
+  multi-architecture xApp image is built.
+- Generalized NMI ServiceMonitor discovery and Grafana KPM legends so multiple
+  student xApps can be compared by Kubernetes Service without editing the
+  monitoring chart for each experiment.
+- Made the KPM report period a workload parameter. Concurrent xApps requesting
+  the same metric use distinct periods so SubMgr does not merge them into one
+  E2 subscription and one RMR subscription ID.
+- Documented the complete student path in `docs/STUDENT_XAPP_LAB.md`, including
+  real KPM acceptance, UE egress traffic, update and forward rollback.
+
 ### 2026-08-30 — simple-mon ARM64 delivered to CIC with real KPM
 
 - Built and verified the multi-architecture xApp image at

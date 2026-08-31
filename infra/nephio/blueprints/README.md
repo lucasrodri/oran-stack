@@ -16,3 +16,25 @@ The site inventory is stored as `WorkloadCluster` resources. The blueprint
 injects the selected site's values and executes `apply-replacements` before the
 downstream package is published. Flux only consumes the downstream deployment
 package; it never applies the blueprint directly.
+
+For a new student xApp, generate the Python entry point, reusable blueprint,
+NMI variant and restricted Flux identity with:
+
+```bash
+./scripts/new-kpm-xapp.sh kpm-latency-lab DRB.UEThpDl 2000
+```
+
+Publish any generated blueprint and approve its downstream variant with the
+generic helpers:
+
+```bash
+sudo -E ./infra/nephio/blueprints/publish-xapp-blueprint.sh \
+  kpm-latency-lab packages/nephio/kpm-latency-lab v1
+kubectl apply -f infra/nephio/blueprints/kpm-latency-lab-nmi-variant.yaml
+sudo -E ./infra/nephio/blueprints/approve-packagevariant.sh \
+  kpm-latency-lab-nmi
+```
+
+The complete student workflow, acceptance checks and safe update/rollback
+procedure are documented in
+[`docs/STUDENT_XAPP_LAB.md`](../../../docs/STUDENT_XAPP_LAB.md).

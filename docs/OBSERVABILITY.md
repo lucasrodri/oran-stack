@@ -67,6 +67,10 @@ dashboard shows its active subscription and KPM indication rate; an idle
 simulated UE may legitimately report a `DRB.UEThpDl` value of zero while the
 indication counter continues to increase.
 
+Inside NMI, one ServiceMonitor discovers every Service in `ricxapp` carrying
+`monitoring="true"`. Generated student xApps therefore appear in the overview
+dashboard automatically and are separated by the Prometheus `service` label.
+
 ## Lab alerts
 
 The chart installs alerts for Kubernetes nodes, pod crash loops, E2Term, the

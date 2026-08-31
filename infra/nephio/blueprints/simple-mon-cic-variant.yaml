@@ -7,7 +7,7 @@ spec:
   upstream:
     repo: team-blueprints
     package: r4-simple-mon
-    workspaceName: v4
+    workspaceName: v5
   downstream:
     repo: cic
     package: r4-simple-mon-cic-arm64
@@ -33,6 +33,9 @@ spec:
           oran.unb.br/xapp-image: ghcr.io/lucasrodri/oran-stack/oran-xapps@sha256:dd52cb4bc7508357d0407d1a977850a27fab932155fd589e1fe36676ec8fd0f9
           oran.unb.br/e2-node-id: gnbd_001_001_00019b_e2
           oran.unb.br/kpm-metric: DRB.UEThpDl
+          # A distinct period prevents SubMgr from merging this experiment
+          # with NMI's otherwise identical KPM subscription.
+          oran.unb.br/kpm-report-period: "2000"
           # Keep the dynamic route collector enabled. RTMgr uses it to admit
           # the cross-cluster endpoint and publish the subscription route. The
           # multiarch image carries the ARM64-safe RMR symbol-table hash.

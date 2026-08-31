@@ -24,7 +24,7 @@ kctl() {
 
 read_kpm_kbps() {
   kctl -n "${XAPP_NAMESPACE}" exec "deployment/${XAPP_DEPLOYMENT}" -c xapp -- \
-    sh -c 'wget -qO- http://127.0.0.1:8091/metrics' 2>/dev/null | \
+    sh -c 'if command -v curl >/dev/null 2>&1; then curl -fsS http://127.0.0.1:8091/metrics; else wget -qO- http://127.0.0.1:8091/metrics; fi' 2>/dev/null | \
     awk '
       $1 ~ /^oran_kpm_drb_ue_throughput_dl_kbps\{/ {
         value = $2 + 0
