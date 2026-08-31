@@ -426,9 +426,15 @@ spec:
             - -c
             - |
               cp /templates/ue.conf.tpl /rendered/ue.conf
-              sed -i "s|__UE_K__|${UE_K}|g; s|__UE_OPC__|${UE_OPC}|g" /rendered/ue.conf
+              sed -i \
+                "s|__UE_K__|${UE_K}|g; s|__UE_OPC__|${UE_OPC}|g; s|__UE_IMSI__|${UE_IMSI}|g; s|__UE_IMEI__|${UE_IMEI}|g" \
+                /rendered/ue.conf
               chmod 0400 /rendered/ue.conf
           env:
+            - name: UE_IMSI
+              value: {{ .Values.ue.imsi | quote }}
+            - name: UE_IMEI
+              value: {{ .Values.ue.imei | quote }}
             - name: UE_K
               valueFrom:
                 secretKeyRef:

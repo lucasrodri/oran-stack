@@ -90,6 +90,7 @@ plmn:
 # ----------------------------------------------------------------------------
 ue:
   imsi: "001010000000001"
+  imei: "353490069873319"
   credentialsSecretName: "oran-subscriber"
   apn: "internet"
 

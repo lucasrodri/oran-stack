@@ -74,6 +74,10 @@ for _ in $(seq 1 24); do
   state="$(parse_state <<<"${snapshot}")"
   average="$(parse_average <<<"${snapshot}")"
   printf 'cooldown: state=%s average=%s kbps\n' "${state}" "${average}"
+  # A 3 s KPM sampling interval can legitimately jump from idle straight to
+  # busy on the rising edge. Count active on the falling edge as well.
+  [[ "${state}" == active ]] && seen_active=1
+  [[ "${state}" == busy ]] && seen_busy=1
   if [[ "${state}" == idle ]]; then
     returned_idle=1
     break

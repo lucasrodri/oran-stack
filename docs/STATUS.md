@@ -285,6 +285,17 @@ _Last updated: 2026-08-31_
 - Added native Prometheus counters to the xApp and a Grafana KPM indication-rate
   panel, making the working RMR/KPM path visible without reading pod logs.
 
+### 2026-08-31 — Nephio xApp and sequential multi-UE laboratory
+
+- Published `kpm-load-watch` as a Nephio Team Blueprint and NMI PackageVariant;
+  Flux deploys the xApp and Prometheus/Grafana expose its moving-average load
+  state (`idle`, `active`, `busy`).
+- Added three Open5GS laboratory subscriber/handset identities and a bounded,
+  one-command attach/traffic/KPM demonstration.
+- Kept the simulation technically honest: the current DU has one direct ZMQ RF
+  peer, so profiles attach sequentially rather than by scaling invalid srsUE
+  replicas. Concurrent UEs require a multi-UE radio or RF emulator.
+
 
 ### 2026-08-25 — NMI srsUE attach and PDU session completed
 
