@@ -148,12 +148,14 @@ O último `rg` deve retornar vazio. Faça commit e push do digest.
 
 ## 6. Publicar o Team Blueprint e gerar o pacote NMI
 
-No control plane NMI, com um checkout do mesmo commit:
+No worker Nephio do mesmo cluster NMI, com um checkout do mesmo commit. O uso
+desse worker é apenas porque `porchctl` e o kubeconfig administrativo root-only
+estão instalados nele; não existe um segundo cluster de management:
 
 ```bash
-ssh lucasrc@192.168.72.10
+ssh -J lucasrc@192.168.72.10 lucasrc@192.168.71.30
 cd /caminho/para/oran-stack
-export KUBECONFIG=/etc/kubernetes/admin.conf
+export KUBECONFIG=/etc/nephio/nmi-admin.conf
 
 sudo -E ./infra/nephio/blueprints/publish-xapp-blueprint.sh \
   kpm-latency-lab packages/nephio/kpm-latency-lab v1
@@ -270,7 +272,34 @@ IMSI/chaves distintos no Open5GS, configurações UE separadas e ZMQ/recursos de
 rádio coerentes; ele deve ser tratado como um roteiro próprio, não como cópia
 do mesmo SIM.
 
-## 10. Atualização e rollback
+## 10. Exemplo executado: `kpm-load-watch`
+
+O exemplo de referência implementa algo além do simple-mon: calcula a média
+móvel de cinco amostras de `DRB.UEThpDl` e classifica a carga como `idle`,
+`active` ou `busy`. Os limiares e o tamanho da janela são intenções do
+PackageVariant, não constantes que exigem recompilar a imagem.
+
+O aceite de 2026-08-31 publicou `team-blueprints.kpm-load-watch.v2`, entregou
+`nmi.kpm-load-watch-nmi.packagevariant-2` pelo Flux e abriu a assinatura KPM
+independente `69`, com período de 3 segundos. Uma transferência limitada de
+50 MB atingiu 28.841 kbps e produziu o ciclo:
+
+```text
+idle -> active -> busy -> active -> idle
+```
+
+Para repetir a demonstração completa:
+
+```bash
+sudo env KUBECONFIG=/etc/kubernetes/admin.conf \
+  ./scripts/demo-load-watch.sh
+```
+
+O script só retorna `DEMO_LOAD_WATCH_OK` se observar carga ativa, carga alta e
+o retorno a idle. O dashboard `O-RAN Stack Overview` mostra o KPI instantâneo,
+a média móvel e o estado classificado.
+
+## 11. Atualização e rollback
 
 Uma atualização é uma nova revisão imutável:
 
@@ -285,7 +314,7 @@ Rollback também é para frente: copie o conteúdo conhecido de `v1` para uma
 nova revisão `v3-rollback`. Não faça `git reset`, não mova tags publicadas e não
 edite um PackageRevision já Published.
 
-## 11. Falhas comuns
+## 12. Falhas comuns
 
 | Sintoma | Verificação principal |
 |---|---|
@@ -300,7 +329,7 @@ edite um PackageRevision já Published.
 | imagem funciona no NMI, não no CIC | índice sem `linux/arm64` ou dependência nativa não portada |
 | Grafana `No Data` | Service sem `monitoring=true`, target Prometheus down ou scrape recente |
 
-## 12. Checklist para entrega do aluno
+## 13. Checklist para entrega do aluno
 
 - [ ] código e objetivo da xApp documentados;
 - [ ] logs limitados e nenhum segredo no código;

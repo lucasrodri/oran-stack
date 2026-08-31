@@ -6,6 +6,30 @@ _Last updated: 2026-08-31_
 
 ## 0. Recent Changes
 
+### 2026-08-31 — first student xApp created and delivered through Nephio
+
+- Created `kpm-load-watch`, a real E2SM-KPM xApp that computes a five-sample
+  moving average and classifies `DRB.UEThpDl` as `idle`, `active` or `busy`.
+  Window size and thresholds are PackageVariant parameters; the callback keeps
+  logs bounded and exports four algorithm-specific Prometheus series.
+- Added dependency-free unit tests and extended the multiarch workflow. GitHub
+  Actions verified `amd64/arm64` and published the immutable image index
+  `sha256:3e9c671cd4cae63e41b4835a83a25fb1b2dc44420f534c5ee9904c0980699e55`.
+- Fixed the student generator so NMI packages do not inherit the CIC bridge's
+  fixed NodePorts, new packages start with a clean `*-nmi` lineage and package
+  annotations begin at their actual blueprint revision.
+- Published `team-blueprints.kpm-load-watch.v1`, then demonstrated a real
+  Nephio update to v2 after detecting a 2-second report-period collision. The
+  active downstream is `nmi.kpm-load-watch-nmi.packagevariant-2`, reconciled by
+  its own restricted Flux identity.
+- RTMgr rebuilt its inventory without restarting E2Term. The new xApp opened
+  independent subscription `69`, received KPM and classified a bounded 50 MB
+  UE transfer at a peak of 28,841 kbps through the full
+  `idle -> active -> busy -> active -> idle` cycle.
+- Added `scripts/demo-load-watch.sh` and Grafana panels for instantaneous KPI,
+  moving average and classified state. Prometheus scrapes the new Service and
+  the live monitoring release advanced atomically to revision 19.
+
 ### 2026-08-31 — Nephio ARM variant accepted end to end
 
 - Published `team-blueprints.r4-simple-mon.v7` and the two active downstream

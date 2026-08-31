@@ -22,7 +22,7 @@ data:
       "title": "O-RAN Stack Overview",
       "uid": "oran-overview",
       "schemaVersion": 38,
-      "version": 1,
+      "version": 2,
       "refresh": "15s",
       "time": { "from": "now-30m", "to": "now" },
       "tags": ["oran", "5g", "ric"],
@@ -32,7 +32,7 @@ data:
           "id": 1,
           "type": "stat",
           "title": "O-RAN Pod Health",
-          "description": "Count of Running pods across 5g-core, near-rt-ric, and ran namespaces",
+          "description": "Count of Running pods across 5g-core, near-rt-ric, ran, and ricxapp namespaces",
           "gridPos": { "x": 0, "y": 0, "w": 6, "h": 4 },
           "options": {
             "reduceOptions": { "calcs": ["lastNotNull"] },
@@ -55,7 +55,7 @@ data:
           },
           "targets": [
             {
-              "expr": "count(kube_pod_status_phase{phase=\"Running\", namespace=~\"5g-core|near-rt-ric|ran\"})",
+              "expr": "count(kube_pod_status_phase{phase=\"Running\", namespace=~\"5g-core|near-rt-ric|ran|ricxapp\"})",
               "legendFormat": "Running Pods",
               "refId": "A"
             }
@@ -262,11 +262,81 @@ data:
         },
 
         {
+          "id": 8,
+          "type": "timeseries",
+          "title": "kpm-load-watch — média móvel",
+          "description": "Algoritmo da xApp nova: compara o KPI instantâneo com a média móvel de cinco amostras.",
+          "gridPos": { "x": 0, "y": 12, "w": 16, "h": 6 },
+          "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "table", "placement": "bottom" } },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "Kbits",
+              "min": 0,
+              "custom": { "lineWidth": 3, "fillOpacity": 10, "spanNulls": false }
+            }
+          },
+          "targets": [
+            {
+              "expr": "oran_kpm_drb_ue_throughput_dl_kbps{service=\"service-ricxapp-kpm-load-watch-http\"}",
+              "legendFormat": "KPI instantâneo",
+              "refId": "A"
+            },
+            {
+              "expr": "oran_kpm_load_watch_average_kbps",
+              "legendFormat": "média móvel",
+              "refId": "B"
+            }
+          ],
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        },
+
+        {
+          "id": 9,
+          "type": "stat",
+          "title": "kpm-load-watch — estado",
+          "description": "0=idle, 1=active, 2=busy, calculado pela média móvel da xApp.",
+          "gridPos": { "x": 16, "y": 12, "w": 8, "h": 6 },
+          "options": {
+            "reduceOptions": { "calcs": ["lastNotNull"] },
+            "colorMode": "background",
+            "graphMode": "area",
+            "textMode": "value_and_name"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "green", "value": null },
+                  { "color": "yellow", "value": 1 },
+                  { "color": "red", "value": 2 }
+                ]
+              },
+              "mappings": [
+                { "type": "value", "options": {
+                  "0": { "text": "IDLE" },
+                  "1": { "text": "ACTIVE" },
+                  "2": { "text": "BUSY" }
+                }}
+              ]
+            }
+          },
+          "targets": [
+            {
+              "expr": "max(oran_kpm_load_watch_state{state=\"busy\"}) * 2 + max(oran_kpm_load_watch_state{state=\"active\"})",
+              "legendFormat": "estado",
+              "refId": "A"
+            }
+          ],
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        },
+
+        {
           "id": 10,
           "type": "timeseries",
           "title": "Pod Restarts — O-RAN Namespaces",
           "description": "Container restart count per pod. Restarts indicate crashes or SCTP failures.",
-          "gridPos": { "x": 0, "y": 12, "w": 12, "h": 8 },
+          "gridPos": { "x": 0, "y": 18, "w": 12, "h": 8 },
           "options": { "tooltip": { "mode": "multi" } },
           "fieldConfig": {
             "defaults": {
@@ -283,7 +353,7 @@ data:
           },
           "targets": [
             {
-              "expr": "increase(kube_pod_container_status_restarts_total{namespace=~\"5g-core|near-rt-ric|ran\"}[5m])",
+              "expr": "increase(kube_pod_container_status_restarts_total{namespace=~\"5g-core|near-rt-ric|ran|ricxapp\"}[5m])",
               "legendFormat": "{{ "{{" }}namespace{{ "}}" }}/{{ "{{" }}pod{{ "}}" }}/{{ "{{" }}container{{ "}}" }}",
               "refId": "A"
             }
@@ -296,7 +366,7 @@ data:
           "type": "timeseries",
           "title": "Node CPU Usage",
           "description": "Per-node CPU utilisation. High CPU on the node hosting ocudu-cu/amf can cause SCTP RTO.",
-          "gridPos": { "x": 12, "y": 12, "w": 12, "h": 8 },
+          "gridPos": { "x": 12, "y": 18, "w": 12, "h": 8 },
           "options": { "tooltip": { "mode": "multi" } },
           "fieldConfig": {
             "defaults": {
@@ -320,7 +390,7 @@ data:
           "type": "table",
           "title": "O-RAN Deployment Status",
           "description": "Ready vs desired replicas for all O-RAN deployments",
-          "gridPos": { "x": 0, "y": 20, "w": 24, "h": 8 },
+          "gridPos": { "x": 0, "y": 26, "w": 24, "h": 8 },
           "options": { "sortBy": [{ "displayName": "Namespace", "desc": false }] },
           "fieldConfig": {
             "defaults": { "custom": { "align": "left" } },
@@ -345,7 +415,7 @@ data:
           },
           "targets": [
             {
-              "expr": "kube_deployment_status_replicas_ready{namespace=~\"5g-core|near-rt-ric|ran\"}",
+              "expr": "kube_deployment_status_replicas_ready{namespace=~\"5g-core|near-rt-ric|ran|ricxapp\"}",
               "legendFormat": "",
               "refId": "A",
               "instant": true,
