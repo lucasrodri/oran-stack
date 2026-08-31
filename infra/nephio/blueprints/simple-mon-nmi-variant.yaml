@@ -1,7 +1,10 @@
 apiVersion: config.porch.kpt.dev/v1alpha1
 kind: PackageVariant
 metadata:
-  name: simple-mon-nmi
+  # The original downstream started at blueprint-v1 and cannot be upgraded
+  # cleanly by Porch's three-way merge because required env fields are absent.
+  # Start one clean v5 lineage; subsequent revisions upgrade this package.
+  name: simple-mon-nmi-v5
   namespace: default
 spec:
   upstream:
@@ -10,7 +13,7 @@ spec:
     workspaceName: v5
   downstream:
     repo: nmi
-    package: r4-simple-mon-nmi
+    package: r4-simple-mon-nmi-v5
   annotations:
     approval.nephio.org/policy: initial
   injectors:

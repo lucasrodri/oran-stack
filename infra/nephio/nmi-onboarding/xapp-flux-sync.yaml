@@ -9,7 +9,7 @@ spec:
   retryInterval: 20s
   wait: true
   prune: true
-  path: ./r4-simple-mon-nmi
+  path: ./r4-simple-mon-nmi-v5
   sourceRef:
     kind: GitRepository
     name: nmi

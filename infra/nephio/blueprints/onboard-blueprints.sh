@@ -21,17 +21,17 @@ kubectl wait repository.config.porch.kpt.dev/team-blueprints \
   --timeout=180s
 
 "${SCRIPT_DIR}/publish-team-blueprint.sh" "${SOURCE_DIR}" v4
-nmi_previous=$(kubectl get packagevariant simple-mon-nmi --namespace=default \
+nmi_previous=$(kubectl get packagevariant simple-mon-nmi-v5 --namespace=default \
   --output=jsonpath='{.status.downstreamTargets[-1].name}' 2>/dev/null || true)
 cic_previous=$(kubectl get packagevariant simple-mon-cic-arm64 --namespace=default \
   --output=jsonpath='{.status.downstreamTargets[-1].name}' 2>/dev/null || true)
-nmi_generation_before=$(kubectl get packagevariant simple-mon-nmi --namespace=default \
+nmi_generation_before=$(kubectl get packagevariant simple-mon-nmi-v5 --namespace=default \
   --output=jsonpath='{.metadata.generation}' 2>/dev/null || printf '0')
 cic_generation_before=$(kubectl get packagevariant simple-mon-cic-arm64 --namespace=default \
   --output=jsonpath='{.metadata.generation}' 2>/dev/null || printf '0')
 kubectl apply --filename="${SCRIPT_DIR}/simple-mon-nmi-variant.yaml"
 kubectl apply --filename="${SCRIPT_DIR}/simple-mon-cic-variant.yaml"
-nmi_generation_after=$(kubectl get packagevariant simple-mon-nmi --namespace=default \
+nmi_generation_after=$(kubectl get packagevariant simple-mon-nmi-v5 --namespace=default \
   --output=jsonpath='{.metadata.generation}')
 cic_generation_after=$(kubectl get packagevariant simple-mon-cic-arm64 --namespace=default \
   --output=jsonpath='{.metadata.generation}')
@@ -96,9 +96,9 @@ else
   cic_require_new=false
 fi
 
-approve_and_wait_for_variant simple-mon-nmi "${nmi_previous}" NMI \
+approve_and_wait_for_variant simple-mon-nmi-v5 "${nmi_previous}" NMI \
   "${nmi_require_new}" || {
-  kubectl get packagevariant simple-mon-nmi --namespace=default --output=yaml >&2
+  kubectl get packagevariant simple-mon-nmi-v5 --namespace=default --output=yaml >&2
   exit 1
 }
 approve_and_wait_for_variant simple-mon-cic-arm64 "${cic_previous}" CIC \

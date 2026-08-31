@@ -6,10 +6,18 @@ from lib.xAppBase import xAppBase
 
 
 class MyXapp(xAppBase):
-    def __init__(self, config, http_server_port, rmr_port):
+    def __init__(self, config, http_server_port, rmr_port, log_every):
         super(MyXapp, self).__init__(config, http_server_port, rmr_port)
+        self.log_every = max(1, log_every)
+        self.indication_count = 0
 
     def my_subscription_callback(self, e2_agent_id, subscription_id, indication_hdr, indication_msg, kpm_report_style, ue_id):
+        # xAppBase exports every decoded indication to Prometheus. Keep stdout
+        # bounded so an educational run does not create unbounded pod logs.
+        self.indication_count += 1
+        if self.indication_count != 1 and self.indication_count % self.log_every:
+            return
+
         if kpm_report_style == 2:
             print("\nRIC Indication Received from {} for Subscription ID: {}, KPM Report Style: {}, UE ID: {}".format(e2_agent_id, subscription_id, kpm_report_style, ue_id))
         else:
@@ -44,10 +52,7 @@ class MyXapp(xAppBase):
     # Mark the function as xApp start function using xAppBase.start_function decorator.
     # It is required to start the internal msg receive loop.
     @xAppBase.start_function
-    def start(self, e2_node_id, kpm_report_style, ue_ids, metric_names):
-        report_period = 1000
-        granul_period = 1000
-
+    def start(self, e2_node_id, kpm_report_style, ue_ids, metric_names, report_period, granul_period):
         # use always the same subscription callback, but bind kpm_report_style parameter
         subscription_callback = lambda agent, sub, hdr, msg: self.my_subscription_callback(agent, sub, hdr, msg, kpm_report_style, None)
 
@@ -105,6 +110,9 @@ if __name__ == '__main__':
     parser.add_argument("--kpm_report_style", type=int, default=1, help="xApp config file path")
     parser.add_argument("--ue_ids", type=str, default='0', help="UE ID")
     parser.add_argument("--metrics", type=str, default='DRB.UEThpUl,DRB.UEThpDl', help="Metrics name as comma-separated string")
+    parser.add_argument("--report_period", type=int, default=1000, help="KPM report period in milliseconds")
+    parser.add_argument("--granul_period", type=int, default=1000, help="KPM granularity period in milliseconds")
+    parser.add_argument("--log_every", type=int, default=30, help="Log one of every N KPM indications")
 
     args = parser.parse_args()
     config = args.config
@@ -115,7 +123,7 @@ if __name__ == '__main__':
     metrics = args.metrics.split(",")
 
     # Create MyXapp.
-    myXapp = MyXapp(config, args.http_server_port, args.rmr_port)
+    myXapp = MyXapp(config, args.http_server_port, args.rmr_port, args.log_every)
     myXapp.e2sm_kpm.set_ran_func_id(ran_func_id)
 
     # Connect exit signals.
@@ -124,5 +132,12 @@ if __name__ == '__main__':
     signal.signal(signal.SIGINT, myXapp.signal_handler)
 
     # Start xApp.
-    myXapp.start(e2_node_id, kpm_report_style, ue_ids, metrics)
+    myXapp.start(
+        e2_node_id,
+        kpm_report_style,
+        ue_ids,
+        metrics,
+        args.report_period,
+        args.granul_period,
+    )
     # Note: xApp will unsubscribe all active subscriptions at exit.

@@ -11,7 +11,7 @@ revision=""
 for _ in $(seq 1 60); do
   revision=$(kubectl get packagevariant.config.porch.kpt.dev "${variant}" \
     --namespace=default \
-    --output=jsonpath='{.status.downstreamTargets[0].name}' 2>/dev/null || true)
+    --output=jsonpath='{.status.downstreamTargets[-1].name}' 2>/dev/null || true)
   [[ -n "${revision}" ]] && break
   sleep 2
 done

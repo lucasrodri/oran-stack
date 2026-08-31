@@ -21,6 +21,9 @@ _Last updated: 2026-08-30_
 - Made the KPM report period a workload parameter. Concurrent xApps requesting
   the same metric use distinct periods so SubMgr does not merge them into one
   E2 subscription and one RMR subscription ID.
+- Started a clean `r4-simple-mon-nmi-v5` downstream lineage because Porch's
+  three-way upgrade correctly refused to invent env fields absent from the
+  original `blueprint-v1` NMI package.
 - Documented the complete student path in `docs/STUDENT_XAPP_LAB.md`, including
   real KPM acceptance, UE egress traffic, update and forward rollback.
 
@@ -51,8 +54,8 @@ _Last updated: 2026-08-30_
 
 - Published `team-blueprints/r4-simple-mon` as a reusable Porch package and
   created the NMI deployment package through a real `PackageVariant` backed by
-  `WorkloadCluster/nmi`. Flux now consumes `r4-simple-mon-nmi`, not the source
-  blueprint.
+  `WorkloadCluster/nmi`. Flux now consumes a specialized NMI downstream package,
+  not the source blueprint; its current clean lineage is `r4-simple-mon-nmi-v5`.
 - Patched the pinned Nephio WebUI frontend at startup to ignore valid non-KRM
   YAML documents instead of crashing on a missing `metadata.name`.
 - Registered `WorkloadCluster/cic`, created its Porch/Gitea deployment

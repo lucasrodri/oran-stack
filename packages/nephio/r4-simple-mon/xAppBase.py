@@ -73,6 +73,7 @@ class xAppBase(object):
         )
         self.XAPP_NAME = os.environ.get("XAPP_NAME")
         self.XAPP_NAMESPACE = os.environ.get("XAPP_NAMESPACE", "ricxapp")
+        self.LOG_EVERY = max(1, int(os.environ.get("XAPP_LOG_EVERY", "30")))
         self.xapp_thread = None
 
         if config is not None:
@@ -453,12 +454,16 @@ class xAppBase(object):
                 if (summary['message type'] == 12050):
                     with self._metrics_lock:
                         self._rmr_indications_total += 1
-                    print(
-                        "xAppBase: received RMR envelope mtype=12050 sub_id={} meid={}".format(
-                            summary.get('subscription id'), summary.get('meid')
-                        ),
-                        flush=True,
-                    )
+                        envelope_count = self._rmr_indications_total
+                    if envelope_count == 1 or envelope_count % self.LOG_EVERY == 0:
+                        print(
+                            "xAppBase: received RMR envelope #{} mtype=12050 sub_id={} meid={}".format(
+                                envelope_count,
+                                summary.get('subscription id'),
+                                summary.get('meid'),
+                            ),
+                            flush=True,
+                        )
                     e2_agent_id = str(summary['meid'].decode('utf-8'))
                     data = rmr.get_payload(sbuf)
                     try:

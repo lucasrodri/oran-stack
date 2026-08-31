@@ -111,7 +111,7 @@ public Kubernetes API exposure is needed.
 `team-blueprints/r4-simple-mon` is the reusable student-facing package. It does
 not target a cluster directly. A `PackageVariant` combines that blueprint with
 the `WorkloadCluster/nmi` inventory and runs a KRM replacement function. The
-result is the published deployment package `nmi/r4-simple-mon-nmi` consumed by
+result is the published deployment package `nmi/r4-simple-mon-nmi-v5` consumed by
 Flux.
 
 The NMI variant injects the site, target node, digest-pinned image, E2 node id
