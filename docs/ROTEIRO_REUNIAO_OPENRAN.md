@@ -13,13 +13,8 @@ resultados ao vivo e terminar com uma proposta clara de uso por alunos.
   - logs: `http://192.168.72.10:30300/d/oran-logs/o-ran-kubernetes-logs`;
   - painel CIC: `http://192.168.72.10:30300/d/oran-multisite/cic-arm-lab`;
   - Alertmanager: `http://192.168.72.10:30301`.
-- Abra a Web UI do Nephio com o túnel abaixo e acesse
-  `http://127.0.0.1:7007/config-as-data`:
-
-```bash
-ssh -L 7007:127.0.0.1:7007 -t lucasrc@192.168.72.10 \
-  'kubectl -n nephio-webui port-forward --address=127.0.0.1 service/nephio-webui 7007:7007'
-```
+- Abra a Web UI do Nephio pela VPN NMI:
+  `http://192.168.71.30:30707/config-as-data`.
 
 - Em outro terminal, entre no control plane:
 

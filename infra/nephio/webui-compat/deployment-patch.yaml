@@ -2,7 +2,7 @@ spec:
   template:
     metadata:
       annotations:
-        oran.unb.br/webui-package-parser-patch: "v1"
+        oran.unb.br/webui-package-parser-patch: "v2-unb-branding"
     spec:
       initContainers:
         - name: patch-package-resource-parser
@@ -32,3 +32,6 @@ spec:
         - name: package-parser-patch
           configMap:
             name: nephio-webui-package-parser-patch
+        - name: config-volume
+          configMap:
+            name: nephio-webui-unb-config

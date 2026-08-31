@@ -206,17 +206,11 @@ the package with Helm.
 
 ## Private access over the NMI VPN
 
-The WebUI remains a `ClusterIP` service. Gitea also keeps its normal ClusterIP,
+The WebUI is a NodePort service on TCP `30707`, restricted by pfSense to the
+NMI VPN network. Browse to
+`http://192.168.71.30:30707/config-as-data`. Gitea keeps its normal ClusterIP,
 with a separate NodePort `30302` used by CIC Flux over the routed private lab
-networks. Neither service has a public pfSense rule.
-
-Open the WebUI by keeping this tunnel active and browsing to
-`http://127.0.0.1:7007`:
-
-```bash
-ssh -L 7007:127.0.0.1:7007 -t lucasrc@192.168.72.10 \
-  'kubectl -n nephio-webui port-forward --address=127.0.0.1 service/nephio-webui 7007:7007'
-```
+networks. Neither service has a public Internet rule.
 
 For Gitea, browse to `http://127.0.0.1:3000` while this tunnel is active:
 

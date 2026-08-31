@@ -1,4 +1,4 @@
-# Nephio R6 WebUI package parser compatibility patch
+# Nephio R6 WebUI laboratory overlay
 
 The pinned R6 WebUI bundle parses every `*.yaml` file returned by Porch as a
 Kubernetes resource and dereferences `metadata.name` unconditionally. A valid
@@ -12,13 +12,25 @@ expression or chunk changes, preventing an unnoticed patch against a different
 WebUI release. Remove this overlay when the pinned upstream image contains an
 equivalent guard.
 
+The overlay also keeps the laboratory identity and access path explicit:
+
+- `unb-configmap.yaml` sets the external NMI VPN URL and embeds the UnB logo,
+  so the header does not depend on an Internet-hosted image;
+- `nodeport-service.yaml` publishes the WebUI on TCP `30707`;
+- pfSense must allow only the NMI VPN network to reach
+  `192.168.71.30:30707`.
+
 Apply it to an existing installation with:
 
 ```bash
 kubectl apply -f infra/nephio/webui-compat/patch-configmap.yaml
+kubectl apply -f infra/nephio/webui-compat/unb-configmap.yaml
+kubectl apply -f infra/nephio/webui-compat/nodeport-service.yaml
 kubectl patch deployment nephio-webui -n nephio-webui --type=strategic \
   --patch-file=infra/nephio/webui-compat/deployment-patch.yaml
 kubectl rollout status deployment/nephio-webui -n nephio-webui
 ```
 
 Browsers that previously cached the hashed chunk need one hard refresh.
+
+VPN URL: `http://192.168.71.30:30707/config-as-data`

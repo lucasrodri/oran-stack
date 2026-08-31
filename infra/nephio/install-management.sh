@@ -202,6 +202,8 @@ deploy_components() {
   # not require it, so keep the upstream image immutable and patch its static
   # bundle in an init container until the upstream guard is available.
   kubectl apply -f "${SCRIPT_DIR}/webui-compat/patch-configmap.yaml"
+  kubectl apply -f "${SCRIPT_DIR}/webui-compat/unb-configmap.yaml"
+  kubectl apply -f "${SCRIPT_DIR}/webui-compat/nodeport-service.yaml"
   kubectl patch deployment nephio-webui \
     --namespace=nephio-webui \
     --type=strategic \
