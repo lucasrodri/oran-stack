@@ -31,7 +31,9 @@ NodePorts e bridges RMR exclusivos. O aluno não deve inventar portas no pfSense
 - Branch criada a partir de `main` atualizado.
 - gNB `gnbd_001_001_00019b_e2` conectado ao E2Mgr.
 - RAN e UE simulados saudáveis.
-- acesso ao repositório, ao GitHub Actions e ao worker Nephio.
+- acesso ao repositório, ao GitHub Actions e ao control plane NMI. O Nephio
+  está no mesmo cluster e seus pods são agendados no worker
+  `nephio-k8s-w01`; ele não é um segundo cluster.
 - nome DNS único, em minúsculas, por exemplo `kpm-latency-lab`.
 
 Verifique o estado antes de programar:
@@ -146,12 +148,12 @@ O último `rg` deve retornar vazio. Faça commit e push do digest.
 
 ## 6. Publicar o Team Blueprint e gerar o pacote NMI
 
-No worker Nephio, com um checkout do mesmo commit:
+No control plane NMI, com um checkout do mesmo commit:
 
 ```bash
-ssh lucasrc@192.168.71.30
+ssh lucasrc@192.168.72.10
 cd /caminho/para/oran-stack
-export KUBECONFIG=/etc/nephio/nmi-admin.conf
+export KUBECONFIG=/etc/kubernetes/admin.conf
 
 sudo -E ./infra/nephio/blueprints/publish-xapp-blueprint.sh \
   kpm-latency-lab packages/nephio/kpm-latency-lab v1
@@ -213,6 +215,8 @@ Critérios:
 - AppMgr contém a xApp em `service-ricxapp-kpm-latency-lab-rmr:4561`;
 - `active_subscriptions 1`;
 - os contadores RMR e KPM aumentam entre duas leituras;
+- `RMR_FLAGS=1` e exatamente um listener TCP em `4561` para esta xApp de
+  monitoramento receive-only;
 - RTMgr não registra falha ao atualizar a rota dessa xApp.
 
 Prometheus descobre qualquer Service `ricxapp` com `monitoring="true"`. No
@@ -236,6 +240,30 @@ sudo env KUBECONFIG=/etc/kubernetes/admin.conf \
 Ele transfere um arquivo limitado pela interface `tun_srsue`, atravessa
 UE -> O-DU/O-CU -> UPF -> Internet e consulta o KPI durante o tráfego. Aceite:
 HTTP 200, pico `DRB.UEThpDl` maior que zero e `DEMO_KPM_OK`.
+
+Para o aceite da variante ARM já provisionada, a infraestrutura executa no
+control plane NMI:
+
+```bash
+sudo env KUBECONFIG=/etc/kubernetes/admin.conf \
+  ./scripts/demo-kpm-multisite.sh
+```
+
+Esse teste usa a mesma transferência limitada e exige KPI maior que zero tanto
+no xApp NMI/`amd64` quanto no CIC/`arm64`. O resultado esperado é
+`DEMO_KPM_MULTISITE_OK`.
+
+Se DU e UE precisarem ser recriados, não alterne rollouts em qualquer ordem. O
+ZMQ legado conserva endpoints antigos. Use o procedimento idempotente:
+
+```bash
+sudo env KUBECONFIG=/etc/kubernetes/admin.conf \
+  ./scripts/recover-ran-zmq.sh
+```
+
+Uma nova associação E2 invalida as assinaturas antigas. Depois de confirmar o
+gNB `CONNECTED`, recrie somente os pods stateless das xApps para que elas abram
+novas assinaturas; não reinicie o E2Term se ele já estiver registrado.
 
 Este primeiro laboratório usa um UE. O experimento com múltiplos UEs exige
 IMSI/chaves distintos no Open5GS, configurações UE separadas e ZMQ/recursos de
@@ -263,8 +291,10 @@ edite um PackageRevision já Published.
 |---|---|
 | init container esperando | E2 node ausente ou `DISCONNECTED` no E2Mgr |
 | AppMgr tem a xApp, assinatura falha | endpoint/nome de Service não coincide com o registro |
-| assinatura ativa, KPM zero | UE ocioso ou métrica não implementada pelo E2 node escolhido |
+| assinatura ativa, contadores congelados após restart do DU | associação E2 mudou; recrie apenas os pods stateless das xApps |
+| contadores avançam, KPI zero | UE ocioso ou métrica não implementada pelo E2 node escolhido |
 | duas xApps compartilham o mesmo ID e só uma recebe | métrica e período idênticos; use período distinto |
+| RMR intermitente com dois listeners em `4561` | use `RMR_FLAGS=1` na xApp receive-only e confirme um único listener |
 | RMR não recebe indicação | RTMgr, rota `12050`, porta `4561` e subscription ID |
 | Flux `Ready=False` | caminho Git, RBAC, imagem/digest ou manifesto inválido |
 | imagem funciona no NMI, não no CIC | índice sem `linux/arm64` ou dependência nativa não portada |

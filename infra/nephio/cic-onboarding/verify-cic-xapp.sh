@@ -19,6 +19,8 @@ image_id=$(kubectl get pod "${pod}" --namespace=ricxapp \
   --output=jsonpath='{.status.containerStatuses[?(@.name=="xapp")].imageID}')
 rmr_flags=$(kubectl get deployment r4-simple-mon --namespace=ricxapp \
   --output=jsonpath='{.spec.template.spec.containers[?(@.name=="xapp")].env[?(@.name=="RMR_FLAGS")].value}')
+rmr_listeners=$(kubectl exec --namespace=ricxapp "${pod}" -c xapp -- \
+  sh -c 'grep ":11D1 " /proc/net/tcp | grep -c " 0A "')
 
 if [[ "${node}" != "cic-k8s-w01" ]]; then
   printf 'Unexpected CIC xApp node: %s\n' "${node}" >&2
@@ -31,6 +33,11 @@ fi
 if [[ "${rmr_flags}" != "1" ]]; then
   printf 'Expected the receive-only RMR listener (RMR_FLAGS=1), got: %s\n' \
     "${rmr_flags}" >&2
+  exit 1
+fi
+if [[ "${rmr_listeners}" != "1" ]]; then
+  printf 'Expected one TCP listener on RMR port 4561, got: %s\n' \
+    "${rmr_listeners}" >&2
   exit 1
 fi
 
@@ -48,8 +55,8 @@ done
 grep -Eq '^oran_xapp_active_subscriptions 1(\.0)?$' <<<"${metrics}"
 grep -Eq '^oran_xapp_kpm_indications_total [1-9][0-9]*(\.0)?$' <<<"${metrics}"
 
-printf 'CIC xApp pod=%s node=%s architecture=%s rmr_flags=%s\n' \
-  "${pod}" "${node}" "${architecture}" "${rmr_flags}"
+printf 'CIC xApp pod=%s node=%s architecture=%s rmr_flags=%s listeners=%s\n' \
+  "${pod}" "${node}" "${architecture}" "${rmr_flags}" "${rmr_listeners}"
 printf 'imageID=%s\n' "${image_id}"
 grep -E '^(oran_xapp_rmr_indications_total|oran_xapp_kpm_indications_total|oran_xapp_active_subscriptions|oran_xapp_kpm_measurement)' \
   <<<"${metrics}"

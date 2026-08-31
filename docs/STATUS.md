@@ -6,6 +6,30 @@ _Last updated: 2026-08-31_
 
 ## 0. Recent Changes
 
+### 2026-08-31 — Nephio ARM variant accepted end to end
+
+- Published `team-blueprints.r4-simple-mon.v7` and the two active downstream
+  lineages: `nmi.r4-simple-mon-nmi-v5.packagevariant-3` and
+  `cic.r4-simple-mon-cic-arm64.packagevariant-6`.
+- Flux reconciled the digest-pinned v7 package on both workload clusters. The
+  NMI process runs as `x86_64`; the CIC process runs natively as `aarch64` on
+  `cic-k8s-w01`. Both use `RMR_FLAGS=1` and expose exactly one listener on
+  `4561`.
+- Recovered the lab radio in the documented order after an E2Term registration
+  loss: E2Term registration, CU, UE scaled to zero, DU, then UE. The stable DU
+  identity returned as `gnbd_001_001_00019b_e2`; the simulated UE established
+  a PDU session as `10.45.0.15`.
+- Recreated the two stateless xApp pods after the DU association changed. SubMgr
+  established independent subscriptions `66` (NMI) and `67` (CIC), and both
+  counters advanced with zero RMR receive errors.
+- Added `scripts/demo-kpm-multisite.sh`. A bounded 50 MB HTTP 200 transfer
+  through `tun_srsue` produced the same `DRB.UEThpDl` peak of **28,841 kbps**
+  in the NMI and CIC xApps and returned `DEMO_KPM_MULTISITE_OK`.
+- Prometheus contains both the local ServiceMonitor series and the relayed
+  `cic-simple-mon` series for the shared Grafana dashboard. Removed only the
+  obsolete v3/v5 PackageVariant objects; all published PackageRevision history
+  remains available in Porch.
+
 ### 2026-08-31 — deterministic KPM delivery on NMI and CIC
 
 - Isolated intermittent zero KPM counters to two SI95 listeners sharing xApp
