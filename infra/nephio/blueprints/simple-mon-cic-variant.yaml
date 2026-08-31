@@ -7,7 +7,7 @@ spec:
   upstream:
     repo: team-blueprints
     package: r4-simple-mon
-    workspaceName: v5
+    workspaceName: v6
   downstream:
     repo: cic
     package: r4-simple-mon-cic-arm64
@@ -30,7 +30,7 @@ spec:
           oran.unb.br/site: cic
           oran.unb.br/architecture: arm64
           oran.unb.br/xapp-node: cic-k8s-w01
-          oran.unb.br/xapp-image: ghcr.io/lucasrodri/oran-stack/oran-xapps@sha256:dd52cb4bc7508357d0407d1a977850a27fab932155fd589e1fe36676ec8fd0f9
+          oran.unb.br/xapp-image: ghcr.io/lucasrodri/oran-stack/oran-xapps@sha256:fd9aab365046bb666061db157520ae8552a3912072ae1da75385ec1b1dd65878
           oran.unb.br/e2-node-id: gnbd_001_001_00019b_e2
           oran.unb.br/kpm-metric: DRB.UEThpDl
           # A distinct period prevents SubMgr from merging this experiment

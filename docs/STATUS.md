@@ -8,6 +8,8 @@ _Last updated: 2026-08-30_
 
 ### 2026-08-30 — repeatable student xApp laboratory added
 
+- Built and verified the corrected student-lab image for both architectures at
+  `ghcr.io/lucasrodri/oran-stack/oran-xapps@sha256:fd9aab365046bb666061db157520ae8552a3912072ae1da75385ec1b1dd65878`.
 - Added `scripts/new-kpm-xapp.sh`, which creates a bounded-log E2SM-KPM Python
   entry point, reusable Nephio blueprint, NMI `PackageVariant` and restricted
   Flux delivery identity from one DNS-safe xApp name.

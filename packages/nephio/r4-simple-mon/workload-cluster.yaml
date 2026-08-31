@@ -8,7 +8,7 @@ metadata:
     oran.unb.br/site: nmi
     oran.unb.br/architecture: amd64
     oran.unb.br/xapp-node: oran-k8s-w02
-    oran.unb.br/xapp-image: docker.io/x0tok/oran-xapps@sha256:752c9edc56b8644c78a1fc81d1106d0c34e02a55b48b58f880eaaf3240519a71
+    oran.unb.br/xapp-image: ghcr.io/lucasrodri/oran-stack/oran-xapps@sha256:fd9aab365046bb666061db157520ae8552a3912072ae1da75385ec1b1dd65878
     oran.unb.br/e2-node-id: gnbd_001_001_00019b_e2
     oran.unb.br/kpm-metric: DRB.UEThpDl
     oran.unb.br/kpm-report-period: "1000"
