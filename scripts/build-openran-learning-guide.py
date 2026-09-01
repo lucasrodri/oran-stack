@@ -1202,7 +1202,7 @@ kubectl rollout status -n ricxapp deployment/<nome> --timeout=180s"""),
             ],
             [55 * mm, 114 * mm],
         ),
-        callout("VPN", "Use os endereços privados pela VPN NMI. Tailscale foi ferramenta operacional temporária, não é a arquitetura oficial apresentada aos alunos.", "green"),
+        callout("VPN", "Use os endereços privados pela VPN NMI.", "green"),
     ])
 
     chapter(story, "34", "Troubleshooting por cadeia", "Diagnostique do estímulo para a evidência, sem reiniciar tudo.", [
