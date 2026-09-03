@@ -1,0 +1,46 @@
+# Student access host
+
+The NMI laboratory uses Proxmox VM 102 as its student SSH entry point. It is
+reachable at `192.168.71.100` while connected to the NMI VPN. The VM continues
+to run its legacy DU/K3s workload; provisioning student access must not stop or
+replace those services.
+
+Each student has an individual Linux account and an individual Kubernetes
+client certificate. The certificates belong to the `openran-students` group,
+which is governed by `infra/student-access/rbac.yaml`:
+
+- read-only access to normal workload objects, logs, nodes and Nephio/Porch;
+- create, update and delete access only in the `student-lab` namespace;
+- no permission to read Kubernetes Secrets;
+- no write permission in `ran`, `5g-core`, `near-rt-ric`, `ricxapp`,
+  `monitoring` or the Nephio system namespaces.
+
+Students connect and validate their identity without `sudo`:
+
+```bash
+ssh USERNAME@192.168.71.100
+kubectl auth whoami
+kubectl get pods -A
+kubectl -n student-lab create deployment hello --image=nginx:alpine
+```
+
+`sudo kubectl` must not be used. VM 102 also contains a legacy local K3s agent;
+using root's kubeconfig can select a different cluster and bypass the laboratory
+RBAC model.
+
+## Provision or renew identities
+
+Apply the RBAC file from an administrative checkout, copy
+`scripts/provision-student-kubeconfigs.sh` to the NMI control plane, and run it
+as root with the desired Linux usernames. The generated kubeconfigs are valid
+for up to one year and must be installed as `~/.kube/config` owned by the
+matching user on VM 102.
+
+```bash
+kubectl apply -f infra/student-access/rbac.yaml
+sudo ./scripts/provision-student-kubeconfigs.sh /tmp/student-kubeconfigs \
+  student.one student.two
+```
+
+The provisioning script never creates Linux accounts and never grants Unix
+`sudo`; those are separate administrative decisions.
