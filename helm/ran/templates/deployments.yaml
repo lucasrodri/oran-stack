@@ -81,16 +81,33 @@ spec:
               echo "E2T endpoint ready: ${E2T_LIST}"
         {{ end }}
         - name: render-config
-          image: alpine:3.19
+          image: busybox:1.36
           command:
             - sh
             - -c
             - |
+              set -eu
               # Static secondary IPs are injected as env vars by the Downward API
               # equivalent: we pass them directly from Helm values via env vars.
-              # envsubst replaces ${N2_IP}, ${F1C_IP}, ${E2_IP} in the template.
-              apk add --no-cache gettext > /dev/null 2>&1
-              envsubst < /mnt/ocudu/templates/cu.yml.tpl > /mnt/ocudu/configs/cu.yml
+              # Render with BusyBox sed so pod startup never depends on an
+              # apk repository being reachable. Write atomically and reject
+              # empty or partially rendered configuration files.
+              output=/mnt/ocudu/configs/cu.yml
+              tmp="${output}.tmp"
+              sed \
+                -e "s|\${POD_IP}|${POD_IP}|g" \
+                -e "s|\${AMF_IP}|${AMF_IP}|g" \
+                -e "s|\${N2_IP}|${N2_IP}|g" \
+                -e "s|\${F1C_IP}|${F1C_IP}|g" \
+                -e "s|\${E2_IP}|${E2_IP}|g" \
+                -e "s|\${E2TERM_IP}|${E2TERM_IP}|g" \
+                /mnt/ocudu/templates/cu.yml.tpl > "${tmp}"
+              test -s "${tmp}"
+              if grep -q '\${' "${tmp}"; then
+                echo "Unresolved variable in rendered cu.yml" >&2
+                exit 1
+              fi
+              mv "${tmp}" "${output}"
               echo "Rendered cu.yml: N2_IP=${N2_IP} F1C_IP=${F1C_IP} E2_IP=${E2_IP}"
           env:
             - name: POD_IP
@@ -233,19 +250,34 @@ spec:
       {{- end }}
       initContainers:
         - name: render-config
-          image: alpine:3.19
+          image: busybox:1.36
           command:
             - sh
             - -c
             - |
+              set -eu
               # Keep the E2 node identity stable across pod recreation. xApps
               # subscribe by inventory name, whose suffix is derived from this
               # value; tying it to POD_IP strands every subscription on restart.
               export GNB_DU_ID="{{ .Values.radio.gnbDuId }}"
-              # envsubst replaces ${POD_IP}, ${GNB_DU_ID}, ${F1C_IP}, ${CU_F1C_IP},
-              # ${E2_IP}, ${E2TERM_IP} in the template.
-              apk add --no-cache gettext > /dev/null 2>&1
-              envsubst < /mnt/ocudu/templates/du.yml.tpl > /mnt/ocudu/configs/du.yml
+              # Render without a network-time package install. Validate the
+              # temporary file before publishing it to the OCUDU container.
+              output=/mnt/ocudu/configs/du.yml
+              tmp="${output}.tmp"
+              sed \
+                -e "s|\${POD_IP}|${POD_IP}|g" \
+                -e "s|\${GNB_DU_ID}|${GNB_DU_ID}|g" \
+                -e "s|\${F1C_IP}|${F1C_IP}|g" \
+                -e "s|\${CU_F1C_IP}|${CU_F1C_IP}|g" \
+                -e "s|\${E2_IP}|${E2_IP}|g" \
+                -e "s|\${E2TERM_IP}|${E2TERM_IP}|g" \
+                /mnt/ocudu/templates/du.yml.tpl > "${tmp}"
+              test -s "${tmp}"
+              if grep -q '\${' "${tmp}"; then
+                echo "Unresolved variable in rendered du.yml" >&2
+                exit 1
+              fi
+              mv "${tmp}" "${output}"
               echo "Rendered du.yml: POD_IP=${POD_IP} GNB_DU_ID=${GNB_DU_ID} F1C_IP=${F1C_IP}"
           env:
             - name: POD_IP
@@ -434,7 +466,10 @@ spec:
             - name: UE_IMSI
               value: {{ .Values.ue.imsi | quote }}
             - name: UE_IMEI
-              value: {{ .Values.ue.imei | quote }}
+              # Inventory/group-var YAML may deserialize an unquoted IMEI as
+              # a float and Helm would then render scientific notation. srsUE
+              # accepts exactly 15 decimal digits, so normalize it explicitly.
+              value: {{ .Values.ue.imei | int64 | quote }}
             - name: UE_K
               valueFrom:
                 secretKeyRef:
