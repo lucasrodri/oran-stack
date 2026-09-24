@@ -14,6 +14,7 @@ on:
       - xapps/templates/**
       - scripts/new-kpm-xapp.sh
       - tests/test_load_classifier.py
+      - tests/test_kpm_mon_tmt_xapp.py
 
 permissions:
   contents: read
@@ -38,7 +39,9 @@ jobs:
             ./scripts/new-kpm-xapp.sh kpm-ci-sample DRB.UEThpDl 2000
           python3 -m py_compile \
             "${scaffold_root}/xapps/python/kpm_ci_sample_xapp.py"
-          python3 -m unittest tests/test_load_classifier.py
+          python3 -m unittest \
+            tests/test_load_classifier.py \
+            tests/test_kpm_mon_tmt_xapp.py
           grep -Fq 'exec ./kpm_ci_sample_xapp.py' \
             "${scaffold_root}/packages/nephio/kpm-ci-sample/deployment.yaml"
           grep -Fq 'package: kpm-ci-sample-nmi' \
