@@ -21,9 +21,8 @@ from .e2sm_rc_module import e2sm_rc_module
 
 
 KPM_METRIC_UNITS = {
-    "DRB.UEThpDl": "kbps",
+    "DRB.PacketSuccessRateUlgNBUu": "-",
     "DRB.UEThpUl": "kbps",
-    "DRB.RlcPacketDropRateDl": "ratio",
 }
 
 
@@ -84,10 +83,6 @@ class xAppBase(object):
         self.e2sm_ccc = e2sm_ccc_module(self)
         self.e2sm_kpm = e2sm_kpm_module(self)
         self.e2sm_rc = e2sm_rc_module(self)
-        # Optional callable(outcome) for RIC_CONTROL_ACK ("ack") and
-        # RIC_CONTROL_FAILURE ("failure"). The E2 outcome does not carry the
-        # UE id, so the xApp correlates it with the control it just sent.
-        self.control_outcome_callback = None
         # dict to store active subscriptions
         self.my_subscriptions = {}
         self._subscription_lock = threading.Lock()
@@ -302,8 +297,8 @@ class xAppBase(object):
             '# TYPE oran_xapp_kpm_measurement_timestamp_seconds gauge\n'
             '# HELP oran_xapp_kpm_measurement_updates_total Number of decoded updates for a KPM series.\n'
             '# TYPE oran_xapp_kpm_measurement_updates_total counter\n'
-            '# HELP oran_kpm_drb_ue_throughput_dl_kbps Latest DRB.UEThpDl value reported by the RAN.\n'
-            '# TYPE oran_kpm_drb_ue_throughput_dl_kbps gauge\n'
+            '# HELP oran_kpm_drb_packet_success_rate_ul Latest DRB.PacketSuccessRateUlgNBUu value reported by the RAN.\n'
+            '# TYPE oran_kpm_drb_packet_success_rate_ul gauge\n'
         )
         for key, sample in sorted(kpm_measurements):
             metric_name, e2_node, scope, ue_id = key
@@ -327,8 +322,8 @@ class xAppBase(object):
             payload += 'oran_xapp_kpm_measurement_updates_total{{{}}} {}\n'.format(
                 labels, sample["updates"]
             )
-            if metric_name == "DRB.UEThpDl":
-                payload += 'oran_kpm_drb_ue_throughput_dl_kbps{{{}}} {:.12g}\n'.format(
+            if metric_name == "DRB.PacketSuccessRateUlgNBUu":
+                payload += 'oran_kpm_drb_packet_success_rate_ul{{{}}} {:.12g}\n'.format(
                     series_labels, sample["value"]
                 )
         response['payload'] = payload
@@ -522,21 +517,10 @@ class xAppBase(object):
                         pass
                 if (summary['message type'] == 12041):
                     print("Received RIC_CONTROL_ACK")
-                    self._notify_control_outcome("ack")
                 if (summary['message type'] == 12042):
                     print("Received RIC_CONTROL_FAILURE")
-                    self._notify_control_outcome("failure")
 
             rmr.rmr_free_msg(sbuf)
-
-    def _notify_control_outcome(self, outcome):
-        callback = self.control_outcome_callback
-        if callback is None:
-            return
-        try:
-            callback(outcome)
-        except Exception as exc:
-            print("xAppBase: control outcome callback failed: {}".format(exc), flush=True)
 
     def stop(self):
         self.unsubscribe_all()
