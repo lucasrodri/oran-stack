@@ -8,6 +8,7 @@ on:
       - 'aluno/**'
       - 'student/**'
       - 'lab/**'
+      - 'codex/**'
     paths:
       - .github/workflows/xapp-multiarch.yml
       - dockerfiles/xapp/**
