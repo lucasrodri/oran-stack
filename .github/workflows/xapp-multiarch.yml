@@ -7,6 +7,7 @@ on:
       - main
       - 'aluno/**'
       - 'student/**'
+      - 'lab/**'
     paths:
       - .github/workflows/xapp-multiarch.yml
       - dockerfiles/xapp/**
