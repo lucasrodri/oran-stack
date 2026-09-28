@@ -1,0 +1,237 @@
+# Two srsUE peers on one cell. Disabled unless zmq.broker.enabled is true,
+# so the single-UE Deployment named srsue stays the default.
+{{- if and .Values.deployUE .Values.zmq.broker.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: zmq-iq-broker
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: zmq-broker
+    app.kubernetes.io/part-of: oran-stack
+data:
+  zmq_iq_broker.py: |
+{{ .Files.Get "files/zmq_iq_broker.py" | indent 4 }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zmq-broker
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: zmq-broker
+    app.kubernetes.io/part-of: oran-stack
+spec:
+  replicas: 1
+  strategy:
+    type: {{ .Values.deploymentStrategy }}
+  selector:
+    matchLabels:
+      app: zmq-broker
+  template:
+    metadata:
+      labels:
+        app: zmq-broker
+    spec:
+      {{- with .Values.scheduling.du.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if .Values.imagePullSecretName }}
+      imagePullSecrets:
+        - name: {{ .Values.imagePullSecretName }}
+      {{- end }}
+      containers:
+        - name: zmq-broker
+          image: {{ .Values.zmq.broker.image }}
+          imagePullPolicy: IfNotPresent
+          command:
+            - sh
+            - -c
+            - |
+              pip install --no-cache-dir pyzmq
+              exec python /opt/broker/zmq_iq_broker.py \
+                --du-tx tcp://ocudu-du:{{ .Values.zmq.duTxPort }} \
+                --du-rx-bind tcp://0.0.0.0:{{ .Values.zmq.duRxPort }} \
+                {{- range .Values.zmq.broker.peers }}
+                --ue srsue-{{ .name }}:{{ .txPort }}:{{ .rxPort }} \
+                {{- end }}
+          ports:
+            - name: du-ul
+              containerPort: {{ .Values.zmq.duRxPort }}
+              protocol: TCP
+            {{- range .Values.zmq.broker.peers }}
+            - name: dl-{{ .name }}
+              containerPort: {{ .rxPort }}
+              protocol: TCP
+            {{- end }}
+          volumeMounts:
+            - name: broker-script
+              mountPath: /opt/broker
+              readOnly: true
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+      volumes:
+        - name: broker-script
+          configMap:
+            name: zmq-iq-broker
+            defaultMode: 0555
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.zmq.broker.serviceName }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: zmq-broker
+spec:
+  selector:
+    app: zmq-broker
+  ports:
+    - name: du-ul
+      port: {{ .Values.zmq.duRxPort }}
+      targetPort: {{ .Values.zmq.duRxPort }}
+      protocol: TCP
+    {{- range .Values.zmq.broker.peers }}
+    - name: dl-{{ .name }}
+      port: {{ .rxPort }}
+      targetPort: {{ .rxPort }}
+      protocol: TCP
+    {{- end }}
+{{- range .Values.zmq.broker.peers }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: srsue-{{ .name }}
+  namespace: {{ $.Values.namespace }}
+  labels:
+    app: srsue-{{ .name }}
+    app.kubernetes.io/part-of: oran-stack
+    oran.unb.br/ue-role: {{ .role }}
+spec:
+  replicas: 1
+  strategy:
+    type: {{ $.Values.deploymentStrategy }}
+  selector:
+    matchLabels:
+      app: srsue-{{ .name }}
+  template:
+    metadata:
+      labels:
+        app: srsue-{{ .name }}
+        oran.unb.br/ue-role: {{ .role }}
+      annotations:
+        checksum/ocudu-configs: {{ include (print $.Template.BasePath "/configmap-ocudu-configs.yaml") $ | sha256sum }}
+    spec:
+      {{- with $.Values.scheduling.ue.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if $.Values.imagePullSecretName }}
+      imagePullSecrets:
+        - name: {{ $.Values.imagePullSecretName }}
+      {{- end }}
+      initContainers:
+        - name: wait-for-broker
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              until nc -z {{ $.Values.zmq.broker.serviceName }} {{ .rxPort }}; do
+                echo "waiting for IQ broker downlink..."
+                sleep 3
+              done
+              echo "Broker downlink open — waiting {{ add $.Values.ueStartDelaySec .startDelaySec }}s before attach..."
+              sleep {{ add $.Values.ueStartDelaySec .startDelaySec }}
+        - name: render-ue-config
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              cp /templates/ue.conf.tpl /rendered/ue.conf
+              sed -i \
+                "s|__UE_K__|${UE_K}|g; s|__UE_OPC__|${UE_OPC}|g; s|__UE_IMSI__|${UE_IMSI}|g; s|__UE_IMEI__|${UE_IMEI}|g; s|__UE_TX_PORT__|${UE_TX_PORT}|g; s|__UE_RX_PORT__|${UE_RX_PORT}|g" \
+                /rendered/ue.conf
+              chmod 0400 /rendered/ue.conf
+          env:
+            - name: UE_IMSI
+              value: {{ .imsi | quote }}
+            - name: UE_IMEI
+              value: {{ .imei | quote }}
+            - name: UE_TX_PORT
+              value: {{ .txPort | quote }}
+            - name: UE_RX_PORT
+              value: {{ .rxPort | quote }}
+            - name: UE_K
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $.Values.ue.credentialsSecretName }}
+                  key: k
+            - name: UE_OPC
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $.Values.ue.credentialsSecretName }}
+                  key: opc
+          volumeMounts:
+            - name: ocudu-templates
+              mountPath: /templates
+              readOnly: true
+            - name: srsue-rendered
+              mountPath: /rendered
+      containers:
+        - name: srsue
+          image: {{ $.Values.images.srsue.repository }}:{{ $.Values.images.srsue.tag }}
+          imagePullPolicy: {{ $.Values.images.srsue.pullPolicy }}
+          command: ["/usr/local/bin/srsue", "/mnt/srsran/configs/ue.conf"]
+          securityContext:
+            privileged: true
+            capabilities:
+              add: [NET_ADMIN, SYS_ADMIN, NET_RAW]
+          ports:
+            - containerPort: {{ .txPort }}
+              name: zmq-ul
+              protocol: TCP
+          volumeMounts:
+            - name: srsue-rendered
+              mountPath: /mnt/srsran/configs
+              readOnly: true
+            - name: srsue-logs
+              mountPath: /mnt/srsran/logs
+          stdin: true
+          tty: true
+          resources:
+            requests:
+              cpu: 250m
+              memory: 256Mi
+      volumes:
+        - name: ocudu-templates
+          configMap:
+            name: ocudu-configs
+        - name: srsue-rendered
+          emptyDir: {}
+        - name: srsue-logs
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: srsue-{{ .name }}
+  namespace: {{ $.Values.namespace }}
+  labels:
+    app: srsue-{{ .name }}
+    oran.unb.br/ue-role: {{ .role }}
+spec:
+  selector:
+    app: srsue-{{ .name }}
+  ports:
+    - name: zmq-ul
+      port: {{ .txPort }}
+      targetPort: {{ .txPort }}
+      protocol: TCP
+{{- end }}
+{{- end }}

@@ -83,6 +83,10 @@ class xAppBase(object):
         self.e2sm_ccc = e2sm_ccc_module(self)
         self.e2sm_kpm = e2sm_kpm_module(self)
         self.e2sm_rc = e2sm_rc_module(self)
+        # Optional callable(outcome) for RIC_CONTROL_ACK ("ack") and
+        # RIC_CONTROL_FAILURE ("failure"). The E2 outcome does not carry the
+        # UE id, so the xApp correlates it with the control it just sent.
+        self.control_outcome_callback = None
         # dict to store active subscriptions
         self.my_subscriptions = {}
         self._subscription_lock = threading.Lock()
@@ -517,10 +521,21 @@ class xAppBase(object):
                         pass
                 if (summary['message type'] == 12041):
                     print("Received RIC_CONTROL_ACK")
+                    self._notify_control_outcome("ack")
                 if (summary['message type'] == 12042):
                     print("Received RIC_CONTROL_FAILURE")
+                    self._notify_control_outcome("failure")
 
             rmr.rmr_free_msg(sbuf)
+
+    def _notify_control_outcome(self, outcome):
+        callback = self.control_outcome_callback
+        if callback is None:
+            return
+        try:
+            callback(outcome)
+        except Exception as exc:
+            print("xAppBase: control outcome callback failed: {}".format(exc), flush=True)
 
     def stop(self):
         self.unsubscribe_all()

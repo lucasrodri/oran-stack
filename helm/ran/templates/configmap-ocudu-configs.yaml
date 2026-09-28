@@ -81,7 +81,7 @@ data:
         enable_rlc: true
     ru_sdr:
       device_driver: zmq
-      device_args: tx_port=tcp://0.0.0.0:{{ .Values.zmq.duTxPort }},rx_port=tcp://srsue:{{ .Values.zmq.duRxPort }},base_srate={{ .Values.radio.srate }}
+      device_args: tx_port=tcp://0.0.0.0:{{ .Values.zmq.duTxPort }},rx_port=tcp://{{ if .Values.zmq.broker.enabled }}{{ .Values.zmq.broker.serviceName }}{{ else }}srsue{{ end }}:{{ .Values.zmq.duRxPort }},base_srate={{ .Values.radio.srate }}
       srate: {{ .Values.radio.srateMhz }}
       tx_gain: 0
       rx_gain: 0
@@ -125,7 +125,11 @@ data:
     nof_antennas = 1
 
     device_name = zmq
+    {{- if .Values.zmq.broker.enabled }}
+    device_args = tx_port=tcp://0.0.0.0:__UE_TX_PORT__,rx_port=tcp://{{ .Values.zmq.broker.serviceName }}:__UE_RX_PORT__,base_srate={{ .Values.radio.srate }}
+    {{- else }}
     device_args = tx_port=tcp://0.0.0.0:{{ .Values.zmq.duRxPort }},rx_port=tcp://ocudu-du:{{ .Values.zmq.duTxPort }},base_srate={{ .Values.radio.srate }}
+    {{- end }}
 
     [rat.eutra]
     dl_earfcn = 2850

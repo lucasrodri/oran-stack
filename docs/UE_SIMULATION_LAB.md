@@ -12,8 +12,9 @@ UE1 / UE2 / UE3 (perfis) -- um por vez --> srsUE -- ZMQ --> O-DU/O-CU
 
 Não escale o Deployment `srsue` para três réplicas. O DU atual oferece um único
 par `tx_port/rx_port` ZMQ; réplicas concorrentes não representam três rádios e
-produzem uma topologia inválida. Para UEs simultâneos será necessário um rádio
-real com capacidade multi-UE ou um emulador/broker RF apropriado.
+produzem uma topologia inválida. Dois UEs ao mesmo tempo usam o broker de IQ
+descrito abaixo, com `zmq.broker.enabled=true`. Sem esse broker, o laboratório
+continua com um único peer.
 
 ## Perfis
 
@@ -59,5 +60,63 @@ sudo env KUBECONFIG=/etc/kubernetes/admin.conf \
 
 O KPI atual (`DRB.UEThpDl`, Report Style 1) é agregado no O-DU. Portanto, a xApp
 prova a carga do rádio, mas não atribui a medição a um IMSI. Identificação KPM
-por UE é uma evolução separada e depende de outro Report Style e do suporte da
-implementação RAN.
+por UE usa o Report Style 4 e a chave `gNB-CU-UE-F1AP-ID`, não o IMSI.
+
+## Dois UEs e a ação E2 de cota de PRB
+
+O OCUDU 26.04 aceita um único RIC Control: E2SM-RC Style 2 Action 6 (cota de
+PRB por UE). RRC Connection Release é Style 4 Action 4 e este RAN não o
+implementa. A validação da ação E2 é zerar a cota de PRB do UE anômalo.
+
+```text
+srsue-ue1 (normal) --+
+                     +--> zmq-broker (copia DL, soma UL) --> O-DU --> KPM Style 4
+srsue-ue2 (anomalia) --+                                      ^
+                                                              |
+                                    kpm-anomaly-prb: Style 2 Action 6, max PRB 0
+```
+
+O modo de um UE permanece o padrão (`zmq.broker.enabled: false`). Para os dois
+peers, no values do chart `ran`:
+
+```yaml
+zmq:
+  broker:
+    enabled: true
+```
+
+Isso sobe o broker e os Deployments `srsue-ue1` (IMSI `001010000000001`) e
+`srsue-ue2` (IMSI `001010000000002`). O segundo UE espera 8 s a mais antes do
+attach, para não usar a mesma ocasião de PRACH. O Deployment `srsue` único não
+é criado nesse modo, e `select-ue-lab-profile.sh` continua valendo só para o
+modo de um peer.
+
+A xApp vai num release separado do chart genérico, sem substituir o
+`r4-simple-mon`:
+
+```bash
+helm upgrade --install kpm-anomaly-prb helm/xapps/xapp \
+  -f helm/xapps/xapp/values/kpm-anomaly-prb.yaml \
+  --set xapp.e2NodeId=<e2_node_id do O-DU>
+```
+
+Ela assina `DRB.UEThpDl` no Report Style 4. Depois de ver dois
+`gNB-CU-UE-F1AP-ID`, envia Style 2 Action 6 uma vez para cada UE cuja média
+móvel fique em ou acima de 1000 kbps (`min`/`max`/`dedicated` PRB = 0) e
+registra `RIC_CONTROL_ACK` ou `RIC_CONTROL_FAILURE` para esse UE.
+
+Como conferir, com os dois `tun_srsue` já estabelecidos:
+
+1. Deixe `srsue-ue1` sem transferência.
+2. Gere downlink só no UE anômalo, no mesmo espírito de `scripts/demo-kpm.sh`:
+
+```bash
+kubectl -n ran exec deployment/srsue-ue2 -c srsue -- \
+  curl --interface tun_srsue -L --max-time 120 -sS -o /dev/null \
+  https://speed.cloudflare.com/__down?bytes=50000000
+```
+
+3. Nos logs de `kpm-anomaly-prb`, espere dois IDs F1AP, o controle só para o
+   ID ocupado, e `RIC_CONTROL_ACK ue_id=<id do ue2>`.
+4. O `DRB.UEThpDl` seguinte desse UE deve cair. `srsue-ue1` permanece
+   conectado.

@@ -375,7 +375,9 @@ spec:
       protocol: TCP
 ---
 # --- UE (User Equipment Simulator) -------------------------------------------
-{{- if .Values.deployUE }}
+# Single peer when the IQ broker is off. select-ue-lab-profile.sh targets this
+# Deployment by name, so the object names stay srsue / srsue.
+{{- if and .Values.deployUE (not .Values.zmq.broker.enabled) }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:

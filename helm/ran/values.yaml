@@ -108,10 +108,31 @@ f1uPort: 2153
 # entirely (P4). Re-validate this timing against OCUDU.
 duF1SetupHoldOffSec: 30
 
-# ZMQ ports (DU <-> UE virtual radio)
+# ZMQ ports (DU <-> UE virtual radio).
+# broker.enabled stays false so the existing single srsUE peer is unchanged.
+# Set it true to attach ue1 (normal) and ue2 (anomaly) through the IQ broker.
 zmq:
   duTxPort: 2000
   duRxPort: 2001
+  broker:
+    enabled: false
+    serviceName: zmq-broker
+    image: python:3.12-slim
+    peers:
+      - name: ue1
+        role: normal
+        imsi: "001010000000001"
+        imei: "353490069873319"
+        txPort: 2101
+        rxPort: 2100
+        startDelaySec: 0
+      - name: ue2
+        role: anomaly
+        imsi: "001010000000002"
+        imei: "353490069873320"
+        txPort: 2201
+        rxPort: 2200
+        startDelaySec: 8
 
 # How long (seconds) the UE initContainer waits after the DU ZMQ port opens
 # before starting srsUE. Must exceed duF1SetupHoldOffSec so the cell is active.
