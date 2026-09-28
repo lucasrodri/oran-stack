@@ -7,7 +7,7 @@ spec:
   upstream:
     repo: team-blueprints
     package: kpm-mon-tmt
-    workspaceName: v1
+    workspaceName: v2
   downstream:
     repo: nmi
     package: kpm-mon-tmt-nmi
