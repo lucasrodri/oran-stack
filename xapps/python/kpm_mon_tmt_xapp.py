@@ -13,7 +13,7 @@ from lib.xAppBase import xAppBase
 class StudentKpmXapp(xAppBase):
     """Subscribe to one node-level KPM report and keep logs bounded."""
 
-    STATES = ("unknown", "below_threshold", "healthy")
+    STATES = ("unknown", "idle", "active")
 
     def __init__(
         self,
@@ -22,25 +22,27 @@ class StudentKpmXapp(xAppBase):
         rmr_port,
         log_every,
         window_size,
-        success_threshold,
+        activity_threshold,
     ):
         if window_size < 1:
             raise ValueError("window_size must be positive")
-        if not math.isfinite(success_threshold):
-            raise ValueError("success_threshold must be finite")
+        if not math.isfinite(activity_threshold):
+            raise ValueError("activity_threshold must be finite")
 
-        super(StudentKpmXapp, self).__init__(config, http_server_port, rmr_port)
+        # xAppBase starts the HTTP server during initialization. Build the
+        # state first so an early Prometheus scrape cannot race _state_lock.
         self.log_every = max(1, log_every)
         self.indication_count = 0
         self.window_size = window_size
-        self.success_threshold = float(success_threshold)
+        self.activity_threshold = float(activity_threshold)
         self._samples = deque(maxlen=self.window_size)
         self._sample_sum = 0.0
         self._sample_count = 0
-        self._below_threshold_count = 0
+        self._idle_count = 0
         self._state = "unknown"
         self._state_transitions = 0
         self._state_lock = threading.Lock()
+        super(StudentKpmXapp, self).__init__(config, http_server_port, rmr_port)
 
     def _observe(self, value):
         """Update the bounded moving average and return a stable snapshot."""
@@ -52,18 +54,14 @@ class StudentKpmXapp(xAppBase):
             self._sample_count += 1
 
             average = self._sample_sum / len(self._samples)
-            new_state = (
-                "healthy"
-                if average >= self.success_threshold
-                else "below_threshold"
-            )
+            new_state = "active" if average >= self.activity_threshold else "idle"
             if new_state != self._state and self._state != "unknown":
                 self._state = new_state
                 self._state_transitions += 1
             else:
                 self._state = new_state
-            if new_state == "below_threshold":
-                self._below_threshold_count += 1
+            if new_state == "idle":
+                self._idle_count += 1
             return self._snapshot(average)
 
     def _snapshot(self, average=None):
@@ -74,7 +72,7 @@ class StudentKpmXapp(xAppBase):
         return {
             "average": average,
             "samples": self._sample_count,
-            "below_threshold": self._below_threshold_count,
+            "idle": self._idle_count,
             "state": self._state,
             "transitions": self._state_transitions,
         }
@@ -88,21 +86,21 @@ class StudentKpmXapp(xAppBase):
 
         payload = response["payload"]
         payload += (
-            "# HELP oran_kpm_mon_tmt_success_rate_average Moving-average packet success rate.\n"
-            "# TYPE oran_kpm_mon_tmt_success_rate_average gauge\n"
-            "oran_kpm_mon_tmt_success_rate_average {:.12g}\n"
+            "# HELP oran_kpm_mon_tmt_uplink_throughput_average_kbps Moving-average uplink throughput.\n"
+            "# TYPE oran_kpm_mon_tmt_uplink_throughput_average_kbps gauge\n"
+            "oran_kpm_mon_tmt_uplink_throughput_average_kbps {:.12g}\n"
             "# HELP oran_kpm_mon_tmt_samples_total Valid samples processed.\n"
             "# TYPE oran_kpm_mon_tmt_samples_total counter\n"
             "oran_kpm_mon_tmt_samples_total {}\n"
-            "# HELP oran_kpm_mon_tmt_below_threshold_total Samples whose moving average was below the threshold.\n"
-            "# TYPE oran_kpm_mon_tmt_below_threshold_total counter\n"
-            "oran_kpm_mon_tmt_below_threshold_total {}\n"
-            "# HELP oran_kpm_mon_tmt_state Current packet-success classification.\n"
+            "# HELP oran_kpm_mon_tmt_idle_samples_total Samples whose moving average was below the activity threshold.\n"
+            "# TYPE oran_kpm_mon_tmt_idle_samples_total counter\n"
+            "oran_kpm_mon_tmt_idle_samples_total {}\n"
+            "# HELP oran_kpm_mon_tmt_state Current uplink-activity classification.\n"
             "# TYPE oran_kpm_mon_tmt_state gauge\n"
         ).format(
             snapshot["average"],
             snapshot["samples"],
-            snapshot["below_threshold"],
+            snapshot["idle"],
         )
         for state in self.STATES:
             payload += 'oran_kpm_mon_tmt_state{{state="{}"}} {}\n'.format(
@@ -112,10 +110,10 @@ class StudentKpmXapp(xAppBase):
             "# HELP oran_kpm_mon_tmt_state_transitions_total Classification transitions.\n"
             "# TYPE oran_kpm_mon_tmt_state_transitions_total counter\n"
             "oran_kpm_mon_tmt_state_transitions_total {}\n"
-            "# HELP oran_kpm_mon_tmt_success_threshold Configured success-rate threshold.\n"
-            "# TYPE oran_kpm_mon_tmt_success_threshold gauge\n"
-            "oran_kpm_mon_tmt_success_threshold {:.12g}\n"
-        ).format(snapshot["transitions"], self.success_threshold)
+            "# HELP oran_kpm_mon_tmt_activity_threshold_kbps Configured uplink-activity threshold.\n"
+            "# TYPE oran_kpm_mon_tmt_activity_threshold_kbps gauge\n"
+            "oran_kpm_mon_tmt_activity_threshold_kbps {:.12g}\n"
+        ).format(snapshot["transitions"], self.activity_threshold)
         response["payload"] = payload
         return response
 
@@ -130,7 +128,7 @@ class StudentKpmXapp(xAppBase):
         measurements = self.e2sm_kpm.extract_meas_data(indication_message)
         value = self._latest_numeric(
             measurements.get("measData", {}).get(
-                "DRB.PacketSuccessRateUlgNBUu", []
+                "DRB.UEThpUl", []
             )
         )
         if value is None:
@@ -146,7 +144,7 @@ class StudentKpmXapp(xAppBase):
         header = self.e2sm_kpm.extract_hdr_info(indication_header)
         print(
             "kpm-mon-tmt: indication={} node={} subscription={} time={} "
-            "success_rate={:.3f} moving_average={:.3f} state={}".format(
+            "uplink_kbps={:.3f} moving_average_kbps={:.3f} state={}".format(
                 self.indication_count,
                 e2_agent_id,
                 subscription_id,
@@ -183,12 +181,12 @@ def parse_args():
     parser.add_argument("--e2_node_id", required=True)
     parser.add_argument("--ran_func_id", type=int, default=2)
     parser.add_argument("--kpm_report_style", type=int, choices=[1], default=1)
-    parser.add_argument("--metrics", default="DRB.PacketSuccessRateUlgNBUu")
+    parser.add_argument("--metrics", default="DRB.UEThpUl")
     parser.add_argument("--report_period", type=int, default=2000)
     parser.add_argument("--granul_period", type=int, default=2000)
     parser.add_argument("--log_every", type=int, default=30)
     parser.add_argument("--window_size", type=int, default=5)
-    parser.add_argument("--success_threshold", type=float, default=99.0)
+    parser.add_argument("--activity_threshold", type=float, default=1.0)
     return parser.parse_args()
 
 
@@ -200,7 +198,7 @@ if __name__ == "__main__":
         args.rmr_port,
         args.log_every,
         args.window_size,
-        args.success_threshold,
+        args.activity_threshold,
     )
     app.e2sm_kpm.set_ran_func_id(args.ran_func_id)
 
