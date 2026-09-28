@@ -20,10 +20,7 @@ from .e2sm_kpm_module import e2sm_types, e2sm_kpm_module
 from .e2sm_rc_module import e2sm_rc_module
 
 
-KPM_METRIC_UNITS = {
-    "DRB.PacketSuccessRateUlgNBUu": "-",
-    "DRB.UEThpUl": "kbps",
-}
+KPM_METRIC_UNITS = {"DRB.UEThpUl": "kbps"}
 
 
 class SubscriptionWrapper(object):
@@ -297,8 +294,8 @@ class xAppBase(object):
             '# TYPE oran_xapp_kpm_measurement_timestamp_seconds gauge\n'
             '# HELP oran_xapp_kpm_measurement_updates_total Number of decoded updates for a KPM series.\n'
             '# TYPE oran_xapp_kpm_measurement_updates_total counter\n'
-            '# HELP oran_kpm_drb_packet_success_rate_ul Latest DRB.PacketSuccessRateUlgNBUu value reported by the RAN.\n'
-            '# TYPE oran_kpm_drb_packet_success_rate_ul gauge\n'
+            '# HELP oran_kpm_drb_ue_throughput_ul_kbps Latest DRB.UEThpUl value reported by the RAN.\n'
+            '# TYPE oran_kpm_drb_ue_throughput_ul_kbps gauge\n'
         )
         for key, sample in sorted(kpm_measurements):
             metric_name, e2_node, scope, ue_id = key
@@ -322,8 +319,8 @@ class xAppBase(object):
             payload += 'oran_xapp_kpm_measurement_updates_total{{{}}} {}\n'.format(
                 labels, sample["updates"]
             )
-            if metric_name == "DRB.PacketSuccessRateUlgNBUu":
-                payload += 'oran_kpm_drb_packet_success_rate_ul{{{}}} {:.12g}\n'.format(
+            if metric_name == "DRB.UEThpUl":
+                payload += 'oran_kpm_drb_ue_throughput_ul_kbps{{{}}} {:.12g}\n'.format(
                     series_labels, sample["value"]
                 )
         response['payload'] = payload

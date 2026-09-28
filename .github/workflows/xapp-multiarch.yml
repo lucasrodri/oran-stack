@@ -8,11 +8,15 @@ on:
       - 'aluno/**'
       - 'student/**'
       - 'lab/**'
+      - 'codex/**'
     paths:
       - .github/workflows/xapp-multiarch.yml
       - dockerfiles/xapp/**
       - xapps/python/**
       - xapps/templates/**
+      - packages/nephio/kpm-mon-tmt/**
+      - infra/nephio/blueprints/kpm-mon-tmt-nmi-variant.yaml
+      - helm/monitoring/templates/grafana-dashboard.yaml
       - scripts/new-kpm-xapp.sh
       - tests/test_load_classifier.py
       - tests/test_kpm_mon_tmt_xapp.py

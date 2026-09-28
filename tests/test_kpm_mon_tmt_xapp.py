@@ -53,82 +53,82 @@ def _load_xapp_class():
 StudentKpmXapp = _load_xapp_class()
 
 
-def _xapp(window_size=5, success_threshold=99.0):
-    return StudentKpmXapp("", 8091, 4561, 30, window_size, success_threshold)
+def _xapp(window_size=5, activity_threshold=10.0):
+    return StudentKpmXapp("", 8091, 4561, 30, window_size, activity_threshold)
 
 
 class KpmMonTmtClassifierTest(unittest.TestCase):
-    def test_classifies_a_moving_average_as_healthy_or_below_threshold(self):
-        xapp = _xapp(window_size=2, success_threshold=99.0)
+    def test_classifies_uplink_activity_from_a_moving_average(self):
+        xapp = _xapp(window_size=2, activity_threshold=10.0)
 
         first = xapp._observe(100.0)
         self.assertEqual(100.0, first["average"])
-        self.assertEqual("healthy", first["state"])
+        self.assertEqual("active", first["state"])
         self.assertEqual(0, first["transitions"])
-        self.assertEqual(0, first["below_threshold"])
+        self.assertEqual(0, first["idle"])
 
-        # [100, 98] averages to the threshold and stays healthy.
-        boundary = xapp._observe(98.0)
-        self.assertEqual(99.0, boundary["average"])
-        self.assertEqual("healthy", boundary["state"])
+        # [100, 0] stays active at the configured boundary.
+        boundary = xapp._observe(0.0)
+        self.assertEqual(50.0, boundary["average"])
+        self.assertEqual("active", boundary["state"])
         self.assertEqual(0, boundary["transitions"])
 
-        # The oldest sample leaves the window: [98, 96] -> 97.
-        below = xapp._observe(96.0)
-        self.assertEqual(97.0, below["average"])
-        self.assertEqual("below_threshold", below["state"])
+        # The oldest sample leaves the window: [0, 0] -> idle.
+        below = xapp._observe(0.0)
+        self.assertEqual(0.0, below["average"])
+        self.assertEqual("idle", below["state"])
         self.assertEqual(1, below["transitions"])
-        self.assertEqual(1, below["below_threshold"])
+        self.assertEqual(1, below["idle"])
 
-        still = xapp._observe(96.0)
-        self.assertEqual(96.0, still["average"])
-        self.assertEqual("below_threshold", still["state"])
+        still = xapp._observe(0.0)
+        self.assertEqual(0.0, still["average"])
+        self.assertEqual("idle", still["state"])
         self.assertEqual(1, still["transitions"])
-        self.assertEqual(2, still["below_threshold"])
+        self.assertEqual(2, still["idle"])
         self.assertEqual(4, still["samples"])
 
-        # [96, 102] returns to the threshold without counting the old miss.
-        recovered = xapp._observe(102.0)
-        self.assertEqual(99.0, recovered["average"])
-        self.assertEqual("healthy", recovered["state"])
+        # [0, 20] returns to the threshold without counting the old idle sample.
+        recovered = xapp._observe(20.0)
+        self.assertEqual(10.0, recovered["average"])
+        self.assertEqual("active", recovered["state"])
         self.assertEqual(2, recovered["transitions"])
-        self.assertEqual(2, recovered["below_threshold"])
+        self.assertEqual(2, recovered["idle"])
 
         # Leaving "unknown" is not a transition.
-        cold = _xapp(window_size=1, success_threshold=99.0)
-        cold_below = cold._observe(98.0)
-        self.assertEqual("below_threshold", cold_below["state"])
+        cold = _xapp(window_size=1, activity_threshold=10.0)
+        cold_below = cold._observe(0.0)
+        self.assertEqual("idle", cold_below["state"])
         self.assertEqual(0, cold_below["transitions"])
-        self.assertEqual(1, cold_below["below_threshold"])
-        cold_healthy = cold._observe(99.0)
-        self.assertEqual("healthy", cold_healthy["state"])
+        self.assertEqual(1, cold_below["idle"])
+        cold_healthy = cold._observe(10.0)
+        self.assertEqual("active", cold_healthy["state"])
         self.assertEqual(1, cold_healthy["transitions"])
-        self.assertEqual(1, cold_healthy["below_threshold"])
+        self.assertEqual(1, cold_healthy["idle"])
 
     def test_metrics_report_the_average_and_current_state(self):
-        xapp = _xapp(window_size=2, success_threshold=99.0)
-        xapp._observe(100.0)
-        xapp._observe(96.0)
+        xapp = _xapp(window_size=2, activity_threshold=10.0)
+        xapp._observe(20.0)
+        xapp._observe(0.0)
 
         payload = xapp._metrics_handler("metrics", "/metrics", "", "")["payload"]
-        self.assertIn("oran_kpm_mon_tmt_success_rate_average 98\n", payload)
+        self.assertIn("oran_kpm_mon_tmt_uplink_throughput_average_kbps 10\n", payload)
         self.assertIn("oran_kpm_mon_tmt_samples_total 2\n", payload)
-        self.assertIn("oran_kpm_mon_tmt_below_threshold_total 1\n", payload)
-        self.assertIn('oran_kpm_mon_tmt_state{state="healthy"} 0\n', payload)
+        self.assertIn("oran_kpm_mon_tmt_idle_samples_total 0\n", payload)
+        self.assertIn('oran_kpm_mon_tmt_state{state="active"} 1\n', payload)
         self.assertIn(
-            'oran_kpm_mon_tmt_state{state="below_threshold"} 1\n', payload
+            'oran_kpm_mon_tmt_state{state="idle"} 0\n', payload
         )
         self.assertIn('oran_kpm_mon_tmt_state{state="unknown"} 0\n', payload)
-        self.assertIn("oran_kpm_mon_tmt_state_transitions_total 1\n", payload)
-        self.assertIn("oran_kpm_mon_tmt_success_threshold 99\n", payload)
+        self.assertIn("oran_kpm_mon_tmt_state_transitions_total 0\n", payload)
+        self.assertIn("oran_kpm_mon_tmt_activity_threshold_kbps 10\n", payload)
 
     def test_rejects_invalid_window_and_threshold(self):
         with self.assertRaises(ValueError):
             _xapp(window_size=0)
         with self.assertRaises(ValueError):
-            _xapp(success_threshold=float("nan"))
+            _xapp(activity_threshold=float("nan"))
         with self.assertRaises(ValueError):
-            _xapp(success_threshold=float("inf"))
+            _xapp(activity_threshold=float("inf"))
 
 
 if __name__ == "__main__":

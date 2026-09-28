@@ -60,7 +60,7 @@ spec:
               echo "gNB ${GNB} connected — starting xApp"
       containers:
         - name: xapp
-          image: ghcr.io/lucasrodri/oran-stack/oran-xapps@sha256:54bdcbac96283da11a6562fa8c9c6e98453589b57ea2366f29b998bb6dbf2cd8
+          image: ghcr.io/lucasrodri/oran-stack/oran-xapps@sha256:7631095fea1557f705554f6f4b83686497165a3ca9410a7720158351974edd05
           imagePullPolicy: IfNotPresent
           command:
             - sh
@@ -87,7 +87,7 @@ spec:
             - name: E2_NODE_ID
               value: gnbd_001_001_00019b_e2
             - name: KPM_METRIC
-              value: DRB.PacketSuccessRateUlgNBUu
+              value: DRB.UEThpUl
             - name: KPM_REPORT_PERIOD
               value: "1000"
             - name: RMR_RTG_SVC
