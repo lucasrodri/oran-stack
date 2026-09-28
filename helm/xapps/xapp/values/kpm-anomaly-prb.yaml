@@ -3,14 +3,15 @@ xapp:
   rmrPort: 4563
   httpPort: 8093
   args:
-    # Style 4 reports DRB.UEThpDl per gNB-CU-UE-F1AP-ID. The xApp sends
-    # E2SM-RC Style 2 Action 6 (max PRB 0) once for a UE at or above the
-    # anomaly threshold, and only after two UE IDs have been seen.
+    # Style 4 reports DRB.RlcPacketDropRateDl per gNB-CU-UE-F1AP-ID.
+    # The DU metric is the downlink RLC SDU drop rate. The xApp sends
+    # E2SM-RC Style 2 Action 6 (max PRB 0) once for a UE whose moving
+    # average reaches the threshold, and only after two UE IDs have been seen.
     # ranFuncId is the KPM function. The RC module keeps its default of 3.
-    - "--metrics=DRB.UEThpDl"
+    - "--metrics=DRB.RlcPacketDropRateDl"
     - "--kpm_report_style=4"
     - "--rmr_port=4563"
     - "--http_server_port=8093"
-    - "--anomaly_threshold_kbps=1000"
+    - "--anomaly_threshold=1"
     - "--min_ues=2"
   ranFuncId: "2"

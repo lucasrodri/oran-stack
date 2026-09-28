@@ -85,7 +85,7 @@ class _ControlRecorder(object):
 
 
 def _xapp():
-    app = AnomalyPrbXapp("", 8093, 4563, window_size=2, anomaly_threshold_kbps=1000.0, min_ues=2)
+    app = AnomalyPrbXapp("", 8093, 4563, window_size=2, anomaly_threshold=1.0, min_ues=2)
     app.e2sm_rc = _ControlRecorder()
     return app
 
@@ -94,10 +94,10 @@ class AnomalyPrbXappTest(unittest.TestCase):
     def test_controls_only_the_ue_over_threshold_and_only_once(self):
         app = _xapp()
 
-        self.assertEqual([], app.observe_ues("gnb", {1: 5000.0}))
+        self.assertEqual([], app.observe_ues("gnb", {1: 5.0}))
         self.assertEqual([], app.e2sm_rc.calls)
 
-        acted = app.observe_ues("gnb", {1: 5000.0, 2: 10.0})
+        acted = app.observe_ues("gnb", {1: 5.0, 2: 0.0})
         self.assertEqual([1], acted)
         self.assertEqual(1, len(app.e2sm_rc.calls))
         call = app.e2sm_rc.calls[0]
@@ -107,7 +107,7 @@ class AnomalyPrbXappTest(unittest.TestCase):
         self.assertEqual(0, call["dedicated_prb_ratio"])
         self.assertEqual(1, call["ack_request"])
 
-        app.observe_ues("gnb", {1: 8000.0, 2: 10.0})
+        app.observe_ues("gnb", {1: 8.0, 2: 0.0})
         self.assertEqual(1, len(app.e2sm_rc.calls))
 
         self.assertEqual(1, app._on_control_outcome("ack"))
@@ -115,8 +115,8 @@ class AnomalyPrbXappTest(unittest.TestCase):
 
     def test_second_anomalous_ue_is_controlled_separately(self):
         app = _xapp()
-        app.observe_ues("gnb", {1: 5000.0, 2: 50.0})
-        app.observe_ues("gnb", {1: 5000.0, 2: 4000.0})
+        app.observe_ues("gnb", {1: 5.0, 2: 0.0})
+        app.observe_ues("gnb", {1: 5.0, 2: 4.0})
         self.assertEqual([1, 2], [call["ue_id"] for call in app.e2sm_rc.calls])
 
 

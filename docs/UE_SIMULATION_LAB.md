@@ -100,23 +100,28 @@ helm upgrade --install kpm-anomaly-prb helm/xapps/xapp \
   --set xapp.e2NodeId=<e2_node_id do O-DU>
 ```
 
-Ela assina `DRB.UEThpDl` no Report Style 4. Depois de ver dois
-`gNB-CU-UE-F1AP-ID`, envia Style 2 Action 6 uma vez para cada UE cuja média
-móvel fique em ou acima de 1000 kbps (`min`/`max`/`dedicated` PRB = 0) e
-registra `RIC_CONTROL_ACK` ou `RIC_CONTROL_FAILURE` para esse UE.
+Ela assina `DRB.RlcPacketDropRateDl` no Report Style 4. Essa métrica do O-DU
+é a taxa de descarte de SDU RLC no downlink ([Supported E2 Metrics](https://docs.ocudu.org/knowledge_base/e2sm_kpm_metrics/)).
+Depois de ver dois `gNB-CU-UE-F1AP-ID`, envia Style 2 Action 6 uma vez para
+cada UE cuja média móvel dessa taxa fique em ou acima de 1
+(`min`/`max`/`dedicated` PRB = 0) e registra `RIC_CONTROL_ACK` ou
+`RIC_CONTROL_FAILURE` para esse UE. O peer `ue2` apaga cerca de 5% dos
+quadros de downlink (`lossRatio: 0.05`); `ue1` permanece com rádio limpo.
 
 Como conferir, com os dois `tun_srsue` já estabelecidos:
 
-1. Deixe `srsue-ue1` sem transferência.
-2. Gere downlink só no UE anômalo, no mesmo espírito de `scripts/demo-kpm.sh`:
-
 ```bash
-kubectl -n ran exec deployment/srsue-ue2 -c srsue -- \
-  curl --interface tun_srsue -L --max-time 120 -sS -o /dev/null \
-  https://speed.cloudflare.com/__down?bytes=50000000
+sudo env KUBECONFIG=/etc/kubernetes/admin.conf ./scripts/demo-anomaly-prb.sh
 ```
 
-3. Nos logs de `kpm-anomaly-prb`, espere dois IDs F1AP, o controle só para o
-   ID ocupado, e `RIC_CONTROL_ACK ue_id=<id do ue2>`.
-4. O `DRB.UEThpDl` seguinte desse UE deve cair. `srsue-ue1` permanece
-   conectado.
+O script não degrada o rádio de `srsue-ue1`. Ele faz um download limitado só
+em `srsue-ue2`, para haver SDU RLC que possam ser descartados, imprime
+`DRB.RlcPacketDropRateDl` por `ue_id` e exige `RIC_CONTROL_ACK` para o UE
+cuja taxa subiu. `srsue-ue1` precisa continuar com `tun_srsue`. No Grafana:
+
+```promql
+oran_xapp_kpm_measurement{metric="DRB.RlcPacketDropRateDl",service="service-ricxapp-kpm-anomaly-prb-http"}
+```
+
+A série do `ue_id` anômalo sobe durante o download. A do UE normal permanece
+em zero.

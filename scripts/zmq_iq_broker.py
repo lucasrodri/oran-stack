@@ -10,6 +10,7 @@ length contributes zeros so the DU clock still advances.
 
 import argparse
 import array
+import random
 
 
 COMPLEX64_BYTES = 8
@@ -49,9 +50,26 @@ def copy_downlink(downlink, ue_count):
     return [bytes(downlink) for _ in range(ue_count)]
 
 
+def erase_downlink(frame, erase):
+    """Replace one UE's downlink frame with silence when erase is true."""
+    if not erase:
+        return bytes(frame)
+    return b"\x00" * len(frame)
+
+
 def _parse_ue(value):
-    host, ul_port, dl_port = value.split(":")
-    return host, int(ul_port), int(dl_port)
+    parts = value.split(":")
+    if len(parts) == 3:
+        host, ul_port, dl_port = parts
+        loss_ratio = 0.0
+    elif len(parts) == 4:
+        host, ul_port, dl_port, loss_ratio = parts
+        loss_ratio = float(loss_ratio)
+    else:
+        raise ValueError("UE must be host:ul_port:dl_port[:loss_ratio]")
+    if loss_ratio < 0 or loss_ratio > 1:
+        raise ValueError("loss_ratio must be between 0 and 1")
+    return host, int(ul_port), int(dl_port), loss_ratio
 
 
 def _run(du_tx, du_rx_bind, ues):
@@ -67,7 +85,8 @@ def _run(du_tx, du_rx_bind, ues):
 
     ue_pubs = []
     ue_subs = []
-    for host, ul_port, dl_port in ues:
+    loss_ratios = []
+    for host, ul_port, dl_port, loss_ratio in ues:
         pub = context.socket(zmq.PUB)
         pub.bind("tcp://0.0.0.0:{0}".format(dl_port))
         ue_pubs.append(pub)
@@ -75,6 +94,7 @@ def _run(du_tx, du_rx_bind, ues):
         sub.setsockopt(zmq.SUBSCRIBE, b"")
         sub.connect("tcp://{0}:{1}".format(host, ul_port))
         ue_subs.append(sub)
+        loss_ratios.append(loss_ratio)
 
     print(
         "zmq-iq-broker: du_tx={0} du_rx_bind={1} ues={2}".format(
@@ -85,8 +105,10 @@ def _run(du_tx, du_rx_bind, ues):
     try:
         while True:
             downlink = du_sub.recv()
-            for pub, payload in zip(ue_pubs, copy_downlink(downlink, len(ue_pubs))):
-                pub.send(payload)
+            for pub, payload, loss_ratio in zip(
+                ue_pubs, copy_downlink(downlink, len(ue_pubs)), loss_ratios
+            ):
+                pub.send(erase_downlink(payload, loss_ratio > 0 and random.random() < loss_ratio))
             uplinks = []
             for sub in ue_subs:
                 frame = None
@@ -113,7 +135,7 @@ def main(argv=None):
         "--ue",
         action="append",
         required=True,
-        help="UE as host:ul_port:dl_port (repeat per UE)",
+        help="UE as host:ul_port:dl_port[:loss_ratio] (repeat per UE)",
     )
     args = parser.parse_args(argv)
     _run(args.du_tx, args.du_rx_bind, [_parse_ue(item) for item in args.ue])

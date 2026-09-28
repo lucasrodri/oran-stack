@@ -60,6 +60,15 @@ class SumUplinkTest(unittest.TestCase):
         self.assertEqual([downlink, downlink], copies)
         self.assertEqual(2, len(copies))
 
+    def test_erase_downlink_replaces_one_frame_with_silence(self):
+        frame = _frame((1.0, 2.0))
+        self.assertEqual(frame, MODULE.erase_downlink(frame, False))
+        self.assertEqual(b"\x00" * len(frame), MODULE.erase_downlink(frame, True))
+
+    def test_parse_ue_accepts_an_optional_loss_ratio(self):
+        self.assertEqual(("ue", 2101, 2100, 0.0), MODULE._parse_ue("ue:2101:2100"))
+        self.assertEqual(("ue", 2201, 2200, 0.05), MODULE._parse_ue("ue:2201:2200:0.05"))
+
     def test_helm_chart_copy_matches_the_script(self):
         chart_copy = (
             pathlib.Path(__file__).parents[1]

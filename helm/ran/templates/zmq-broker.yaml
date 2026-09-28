@@ -54,7 +54,7 @@ spec:
                 --du-tx tcp://ocudu-du:{{ .Values.zmq.duTxPort }} \
                 --du-rx-bind tcp://0.0.0.0:{{ .Values.zmq.duRxPort }} \
                 {{- range .Values.zmq.broker.peers }}
-                --ue srsue-{{ .name }}:{{ .txPort }}:{{ .rxPort }} \
+                --ue srsue-{{ .name }}:{{ .txPort }}:{{ .rxPort }}:{{ .lossRatio }} \
                 {{- end }}
           ports:
             - name: du-ul

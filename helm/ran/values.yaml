@@ -126,6 +126,8 @@ zmq:
         txPort: 2101
         rxPort: 2100
         startDelaySec: 0
+        # Fraction of downlink frames replaced by silence. Zero keeps a clean radio.
+        lossRatio: 0
       - name: ue2
         role: anomaly
         imsi: "001010000000002"
@@ -133,6 +135,9 @@ zmq:
         txPort: 2201
         rxPort: 2200
         startDelaySec: 8
+        # Erase about 5% of downlink frames so the DU can report RLC SDU drops
+        # for this UE while ue1 stays clean.
+        lossRatio: 0.05
 
 # How long (seconds) the UE initContainer waits after the DU ZMQ port opens
 # before starting srsUE. Must exceed duF1SetupHoldOffSec so the cell is active.

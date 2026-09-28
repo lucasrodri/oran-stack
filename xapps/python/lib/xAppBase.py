@@ -23,6 +23,7 @@ from .e2sm_rc_module import e2sm_rc_module
 KPM_METRIC_UNITS = {
     "DRB.UEThpDl": "kbps",
     "DRB.UEThpUl": "kbps",
+    "DRB.RlcPacketDropRateDl": "ratio",
 }
 
 

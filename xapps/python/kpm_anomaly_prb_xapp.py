@@ -2,10 +2,10 @@
 """Per-UE KPM monitor that starves an anomalous UE via E2SM-RC.
 
 OCUDU 26.04 accepts one RIC Control: E2SM-RC Style 2 Action 6 (slice PRB
-quota). This xApp subscribes to KPM Report Style 4 so each connected UE has
-its own DRB.UEThpDl, and sends that control once for a UE whose moving
-average stays at or above the anomaly threshold. RRC Connection Release is
-not implemented by this RAN.
+quota). This xApp subscribes to KPM Report Style 4 for DRB.RlcPacketDropRateDl,
+the downlink RLC SDU drop rate reported by the DU. A UE is anomalous when the
+moving average of that rate stays at or above the threshold. RRC Connection
+Release is not implemented by this RAN.
 """
 
 import argparse
@@ -21,15 +21,17 @@ class AnomalyPrbXapp(xAppBase):
         http_server_port,
         rmr_port,
         window_size,
-        anomaly_threshold_kbps,
+        anomaly_threshold,
         min_ues,
+        metric_name="DRB.RlcPacketDropRateDl",
     ):
         super(AnomalyPrbXapp, self).__init__(config, http_server_port, rmr_port)
         if window_size < 1:
             raise ValueError("window_size must be >= 1")
         self.window_size = window_size
-        self.anomaly_threshold_kbps = float(anomaly_threshold_kbps)
+        self.anomaly_threshold = float(anomaly_threshold)
         self.min_ues = min_ues
+        self.metric_name = metric_name
         self._samples = {}
         self._seen = set()
         self._controlled = set()
@@ -48,7 +50,7 @@ class AnomalyPrbXapp(xAppBase):
     def observe_ues(self, e2_agent_id, samples):
         """Update per-UE averages and send Style 2 Action 6 at most once.
 
-        samples maps gNB-CU-UE-F1AP-ID to the latest DRB.UEThpDl in kbps.
+        samples maps gNB-CU-UE-F1AP-ID to the latest drop rate.
         No control is sent until at least min_ues distinct IDs have been seen.
         """
         acted = []
@@ -63,8 +65,8 @@ class AnomalyPrbXapp(xAppBase):
             self._seen.add(ue_id)
             average = sum(window) / float(len(window))
             print(
-                "kpm-anomaly-prb: ue_id={0} throughput_kbps={1:.1f} "
-                "average_kbps={2:.1f}".format(ue_id, latest, average),
+                "kpm-anomaly-prb: ue_id={0} drop_rate={1:.1f} "
+                "average_drop_rate={2:.1f}".format(ue_id, latest, average),
                 flush=True,
             )
 
@@ -75,12 +77,12 @@ class AnomalyPrbXapp(xAppBase):
             if not window or ue_id in self._controlled:
                 continue
             average = sum(window) / float(len(window))
-            if average < self.anomaly_threshold_kbps:
+            if average < self.anomaly_threshold:
                 continue
             self._controlled.add(ue_id)
             self._pending_controls.append(ue_id)
             print(
-                "kpm-anomaly-prb: anomaly ue_id={0} average_kbps={1:.1f} "
+                "kpm-anomaly-prb: anomaly ue_id={0} average_drop_rate={1:.1f} "
                 "-> RIC Control Style 2 Action 6 max_prb=0".format(ue_id, average),
                 flush=True,
             )
@@ -99,7 +101,7 @@ class AnomalyPrbXapp(xAppBase):
         measurements = self.e2sm_kpm.extract_meas_data(indication_msg)
         samples = {}
         for ue_id, ue_meas_data in measurements.get("ueMeasData", {}).items():
-            values = ue_meas_data.get("measData", {}).get("DRB.UEThpDl")
+            values = ue_meas_data.get("measData", {}).get(self.metric_name)
             if values is None:
                 continue
             samples[ue_id] = values
@@ -142,11 +144,11 @@ def parse_args():
     parser.add_argument("--e2_node_id", required=True)
     parser.add_argument("--ran_func_id", type=int, default=2)
     parser.add_argument("--kpm_report_style", type=int, choices=[4], default=4)
-    parser.add_argument("--metrics", default="DRB.UEThpDl")
+    parser.add_argument("--metrics", default="DRB.RlcPacketDropRateDl")
     parser.add_argument("--report_period", type=int, default=1000)
     parser.add_argument("--granul_period", type=int, default=1000)
     parser.add_argument("--window_size", type=int, default=5)
-    parser.add_argument("--anomaly_threshold_kbps", type=float, default=1000.0)
+    parser.add_argument("--anomaly_threshold", type=float, default=1.0)
     parser.add_argument("--min_ues", type=int, default=2)
     return parser.parse_args()
 
@@ -158,8 +160,9 @@ if __name__ == "__main__":
         args.http_server_port,
         args.rmr_port,
         args.window_size,
-        args.anomaly_threshold_kbps,
+        args.anomaly_threshold,
         args.min_ues,
+        args.metrics.split(",")[0],
     )
     app.e2sm_kpm.set_ran_func_id(args.ran_func_id)
 
