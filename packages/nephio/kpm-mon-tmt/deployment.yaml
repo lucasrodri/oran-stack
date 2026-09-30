@@ -9,7 +9,7 @@ metadata:
     app.kubernetes.io/managed-by: Nephio
     nephio.org/site: nmi
   annotations:
-    nephio.org/package-revision: blueprint-v1
+    nephio.org/package-revision: blueprint-v2
     nephio.org/demo-state: student-lab-ready
 spec:
   replicas: 1
@@ -28,8 +28,8 @@ spec:
         app.kubernetes.io/managed-by: Nephio
         nephio.org/site: nmi
       annotations:
-        checksum/runtime-override: 4ff2ae9d3b75edaeffdea94998d42d25622d43f684edc9d10a0467897c26c699
-        nephio.org/package-revision: blueprint-v1
+        checksum/runtime-override: 77f8fcaaa969e7f1e3df88a380b38356e432a611ca4dba1650ec3fad6e0358ea
+        nephio.org/package-revision: blueprint-v2
         nephio.org/demo-state: student-lab-ready
     spec:
       nodeSelector:
@@ -60,7 +60,7 @@ spec:
               echo "gNB ${GNB} connected — starting xApp"
       containers:
         - name: xapp
-          image: ghcr.io/lucasrodri/oran-stack/oran-xapps@sha256:54bdcbac96283da11a6562fa8c9c6e98453589b57ea2366f29b998bb6dbf2cd8
+          image: ghcr.io/lucasrodri/oran-stack/oran-xapps@sha256:7631095fea1557f705554f6f4b83686497165a3ca9410a7720158351974edd05
           imagePullPolicy: IfNotPresent
           command:
             - sh
@@ -115,7 +115,7 @@ spec:
             - name: PYTHONFAULTHANDLER
               value: "1"
             - name: NEPHIO_PACKAGE_REVISION
-              value: blueprint-v1
+              value: blueprint-v2
             - name: NEPHIO_DEMO_STATE
               value: student-lab-ready
           volumeMounts:

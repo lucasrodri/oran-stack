@@ -34,15 +34,18 @@ NodePorts e bridges RMR exclusivos. O aluno não deve inventar portas no pfSense
 - acesso ao repositório, ao GitHub Actions e ao control plane NMI. O Nephio
   está no mesmo cluster e seus pods são agendados no worker
   `nephio-k8s-w01`; ele não é um segundo cluster.
+- conta individual na VM 102 (`192.168.71.100`) com kubeconfig restrito. As
+  etapas de publicação que exigem administração são realizadas por um revisor
+  da infraestrutura.
 - nome DNS único, em minúsculas, por exemplo `kpm-latency-lab`.
 
 Verifique o estado antes de programar:
 
 ```bash
-ssh aluno@192.168.72.10
-sudo kubectl -n near-rt-ric get pods
-sudo kubectl -n ran get pods
-curl -fsS http://127.0.0.1:30380/v1/nodeb/states
+ssh SEU_USUARIO@192.168.71.100
+kubectl -n near-rt-ric get pods
+kubectl -n ran get pods
+kubectl -n ricxapp get pods
 ```
 
 Critério: E2Term Ready, O-DU conectado e UE Ready. Não continue mascarando uma
@@ -148,12 +151,13 @@ O último `rg` deve retornar vazio. Faça commit e push do digest.
 
 ## 6. Publicar o Team Blueprint e gerar o pacote NMI
 
-No worker Nephio do mesmo cluster NMI, com um checkout do mesmo commit. O uso
-desse worker é apenas porque `porchctl` e o kubeconfig administrativo root-only
-estão instalados nele; não existe um segundo cluster de management:
+Esta etapa é executada por um revisor administrativo. No worker Nephio do mesmo
+cluster NMI, use um checkout do mesmo commit. O uso desse worker é apenas porque
+`porchctl` e o kubeconfig administrativo root-only estão instalados nele; não
+existe um segundo cluster de management:
 
 ```bash
-ssh -J aluno@192.168.72.10 aluno@192.168.71.30
+ssh ADMINISTRADOR@192.168.71.30
 cd /caminho/para/oran-stack
 export KUBECONFIG=/etc/nephio/nmi-admin.conf
 
@@ -196,7 +200,7 @@ A identidade pode gerenciar apenas Deployment, Service e ConfigMap em
 
 ## 8. Aceite funcional da xApp
 
-No control plane NMI:
+No control plane NMI, pelo revisor administrativo:
 
 ```bash
 sudo kubectl -n ricxapp rollout status deployment/kpm-latency-lab \

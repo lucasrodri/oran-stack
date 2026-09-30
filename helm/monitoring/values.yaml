@@ -237,6 +237,19 @@ kube-prometheus-stack:
   nodeExporter:
     enabled: true
 
+  # Scrape node-exporter through each Flannel Pod IP. The exporter still
+  # mounts the host's /proc and /sys, so the collected node metrics are
+  # unchanged, but Prometheus no longer needs a hairpin connection from its
+  # Pod on nmi-srv03 to that server's public host IP.
+  prometheus-node-exporter:
+    hostNetwork: false
+    # The nmi-srv03 BMC exposes a very slow hwmon tree (about 25 s per
+    # collection), which exceeds Prometheus' 10 s scrape timeout and hides all
+    # otherwise healthy node metrics. Temperature sensors are not required for
+    # this lab, so keep the useful CPU, memory, disk and network collectors.
+    extraArgs:
+      - --no-collector.hwmon
+
   # --------------------------------------------------------------------------
   # kube-state-metrics — tracks Deployment/Pod status
   # --------------------------------------------------------------------------

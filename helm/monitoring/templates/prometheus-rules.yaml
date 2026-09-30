@@ -93,7 +93,21 @@ spec:
     - name: oran.telemetry
       rules:
         - alert: ORANKPMTelemetryStale
-          expr: absent(oran_xapp_kpm_indications_total) or increase(oran_xapp_kpm_indications_total[10m]) < 1
+          # Join the counter with the currently active scrape target. Without
+          # this guard, Prometheus keeps a removed pod's range vector long
+          # enough to raise a false stale-telemetry alert after every rollout.
+          expr: |
+            (
+              increase(oran_xapp_kpm_indications_total[10m]) < 1
+              and on (instance, job, namespace, pod, service)
+                up{namespace="ricxapp", service=~"service-ricxapp-(r4-simple-mon|kpm-load-watch)-http"} == 1
+            )
+            or
+            (
+              up{namespace="ricxapp", service=~"service-ricxapp-(r4-simple-mon|kpm-load-watch)-http"} == 1
+              unless on (instance, job, namespace, pod, service)
+                oran_xapp_kpm_indications_total
+            )
           for: 5m
           labels:
             severity: warning
