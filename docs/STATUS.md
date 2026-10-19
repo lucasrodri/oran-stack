@@ -1,10 +1,28 @@
 # O-RAN Lab Stack — Status
 
-_Last updated: 2026-08-31_
+_Last updated: 2026-10-19_
 
 ---
 
 ## 0. Recent Changes
+
+### 2026-10-19 — deterministic RTMgr recovery and student uplink xApp validated
+
+- Recovered the five-node NMI cluster after the power/network interruption;
+  Open5GS, CU, DU, UE, E2Term and the three NMI xApps are healthy again.
+- Integrated `kpm-mon-tmt`, preserved the student's moving-average algorithm
+  and used the O-DU-supported `DRB.UEThpUl` metric. A controlled uplink test
+  sent 1,000 packets with zero loss and reached a 492.8 kbps moving average.
+- Fixed the actual intermittent RMR failure. Receive-only xApps keep a single
+  listener (`RMR_FLAGS=1`), process RTMgr message type 20 in the application
+  loop and return the standard type 22 acknowledgement. This avoids the two
+  `SO_REUSEPORT` listeners that could deliver KPM to the wrong queue.
+- Reconciled all three packages from Gitea commit `73cdf0b` through Flux. The
+  Kustomizations are no longer suspended, all subscriptions are active and
+  RMR/KPM counters advance after a clean GitOps rollout.
+- Revalidated downlink through `tun_srsue`: HTTP 200, 50,000,000 bytes and a
+  `DRB.UEThpDl` peak of 28,841 kbps. Added `scripts/recover-ric-kpm.sh` and the
+  operator procedure in `docs/LAB_RECOVERY.md`.
 
 ### 2026-08-31 — first student xApp created and delivered through Nephio
 

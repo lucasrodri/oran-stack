@@ -28,7 +28,7 @@ spec:
         app.kubernetes.io/managed-by: Nephio
         nephio.org/site: nmi
       annotations:
-        checksum/runtime-override: 77f8fcaaa969e7f1e3df88a380b38356e432a611ca4dba1650ec3fad6e0358ea
+        checksum/runtime-override: fa312157b91fc05b389e7cda20e4407a2d6188f6cbdf9d1e0c78c0957c56e992
         nephio.org/package-revision: blueprint-v2
         nephio.org/demo-state: student-lab-ready
     spec:

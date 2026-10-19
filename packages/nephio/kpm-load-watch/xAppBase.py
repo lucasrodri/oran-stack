@@ -25,6 +25,10 @@ KPM_METRIC_UNITS = {
     "DRB.UEThpUl": "kbps",
 }
 
+RMR_ROUTE_TABLE_UPDATE = 20
+RMR_ROUTE_TABLE_STATE = 22
+RMR_ROUTE_TABLE_ACK = b"OK <id-missing>\n"
+
 
 class SubscriptionWrapper(object):
     def __init__(self):
@@ -415,6 +419,36 @@ class xAppBase(object):
         #print("Pre send summary: {}".format(rmr.message_summary(sbuf)))
         sbuf = rmr.rmr_send_msg(self.rmr_client, sbuf)
 
+    def _ack_route_table_update(self, sbuf):
+        """Acknowledge an RTMgr route push on the xApp's single RMR listener.
+
+        These monitoring xApps submit subscriptions through SubMgr's REST API
+        and only receive RIC indications over RMR.  They therefore do not need
+        a local outbound route table, but RTMgr still requires the standard
+        message-type 22 acknowledgement for every message-type 20 update.
+
+        Handling that exchange here lets the xApp run with RMRFL_NOTHREAD and
+        exactly one listener on port 4561.  Starting RMR's route collector on
+        that same port creates a second SO_REUSEPORT listener and can dispatch
+        indications to the collector instead of the application receive loop.
+        """
+        rmr.set_payload_and_length(RMR_ROUTE_TABLE_ACK, sbuf)
+        sbuf.contents.mtype = RMR_ROUTE_TABLE_STATE
+        sbuf.contents.sub_id = -1
+        sbuf.contents.state = 0
+        sbuf = rmr.rmr_rts_msg(self.rmr_client, sbuf)
+        if not sbuf:
+            raise RuntimeError("RMR returned a NULL buffer while acknowledging route update")
+        ack = rmr.message_summary(sbuf)
+        if ack[rmr.RMR_MS_MSG_STATE] != 0:
+            raise RuntimeError(
+                "route-table acknowledgement failed with RMR state {}".format(
+                    ack[rmr.RMR_MS_MSG_STATE]
+                )
+            )
+        print("xAppBase: acknowledged RTMgr route-table update", flush=True)
+        return sbuf
+
     def _run(self):
         # Request a fresh buffer for each timed receive. With RMR 4.9.4, reusing
         # an old buffer can leave the caller blocked on its condition variable
@@ -450,6 +484,18 @@ class xAppBase(object):
                 continue
 
             if summary[rmr.RMR_MS_MSG_STATE] == 0: # RMR_OK
+                if summary['message type'] == RMR_ROUTE_TABLE_UPDATE:
+                    try:
+                        sbuf = self._ack_route_table_update(sbuf)
+                    except Exception as e:
+                        print(
+                            "xAppBase: failed to acknowledge RTMgr route-table update: {}".format(e),
+                            flush=True,
+                        )
+                    if sbuf:
+                        rmr.rmr_free_msg(sbuf)
+                    continue
+
                 # Check if RIC INDICATION message
                 if (summary['message type'] == 12050):
                     with self._metrics_lock:

@@ -6,7 +6,7 @@ set -euo pipefail
 
 XAPP_NAMESPACE="${XAPP_NAMESPACE:-ricxapp}"
 E2MGR_URL="${E2MGR_URL:-http://127.0.0.1:30380/v1/nodeb/states}"
-XAPP_DEPLOYMENTS="${XAPP_DEPLOYMENTS:-r4-simple-mon kpm-load-watch}"
+XAPP_DEPLOYMENTS="${XAPP_DEPLOYMENTS:-r4-simple-mon kpm-load-watch kpm-mon-tmt}"
 
 kubectl_args=()
 if [[ -n "${KUBECONFIG:-}" ]]; then

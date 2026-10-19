@@ -223,6 +223,8 @@ Critérios:
 - os contadores RMR e KPM aumentam entre duas leituras;
 - `RMR_FLAGS=1` e exatamente um listener TCP em `4561` para esta xApp de
   monitoramento receive-only;
+- o log contém `acknowledged RTMgr route-table update`, pois a própria xApp
+  responde ao update tipo 20 com o ACK tipo 22 sem abrir um segundo listener;
 - RTMgr não registra falha ao atualizar a rota dessa xApp.
 
 Prometheus descobre qualquer Service `ricxapp` com `monitoring="true"`. No
@@ -327,11 +329,14 @@ edite um PackageRevision já Published.
 | assinatura ativa, contadores congelados após restart do DU | associação E2 mudou; recrie apenas os pods stateless das xApps |
 | contadores avançam, KPI zero | UE ocioso ou métrica não implementada pelo E2 node escolhido |
 | duas xApps compartilham o mesmo ID e só uma recebe | métrica e período idênticos; use período distinto |
-| RMR intermitente com dois listeners em `4561` | use `RMR_FLAGS=1` na xApp receive-only e confirme um único listener |
+| RMR intermitente com dois listeners em `4561` | use `RMR_FLAGS=1`, um único listener e o ACK tipo 22 implementado em `xAppBase` |
 | RMR não recebe indicação | RTMgr, rota `12050`, porta `4561` e subscription ID |
 | Flux `Ready=False` | caminho Git, RBAC, imagem/digest ou manifesto inválido |
 | imagem funciona no NMI, não no CIC | índice sem `linux/arm64` ou dependência nativa não portada |
 | Grafana `No Data` | Service sem `monitoring=true`, target Prometheus down ou scrape recente |
+
+Após uma queda geral do laboratório, use o procedimento administrativo em
+[`LAB_RECOVERY.md`](LAB_RECOVERY.md) antes de repetir o teste da xApp.
 
 ## 13. Checklist para entrega do aluno
 
