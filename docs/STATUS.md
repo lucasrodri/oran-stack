@@ -1,10 +1,28 @@
 # O-RAN Lab Stack — Status
 
-_Last updated: 2026-10-19_
+_Last updated: 2026-10-26_
 
 ---
 
 ## 0. Recent Changes
+
+### 2026-10-26 — CIC ARM KPM restored after inter-site connectivity returned
+
+- Confirmed both CIC ARM nodes Ready and the NMI–CIC network reachable. The
+  ARM pod still used the older runtime and retained a callback for a
+  subscription no longer present in NMI SubMgr.
+- Published the single-listener RTMgr ACK fix to the CIC deployment repository
+  (`b5e24a5`). Flux applied it without suspension; refreshed RTMgr's xApp
+  inventory and recreated the CIC pod to obtain a valid E2 subscription.
+- Recovered the stale simulated UE session with the existing DU/UE procedure
+  and refreshed local and remote subscriptions. The UE obtained `10.45.0.10`
+  and reached the UPF gateway with zero packet loss.
+- Verified native `aarch64`, exactly one listener on 4561, and advancing KPM
+  counters. The bounded 50 MB test returned HTTP 200 and identical 28,841 kbps
+  peaks in NMI/CIC, ending with `DEMO_KPM_MULTISITE_OK`.
+- Prometheus target `cic-simple-mon` is UP and contains recent decoded KPM
+  timestamps. Strengthened the CIC acceptance script to reject frozen
+  historical counters and documented the cross-site recovery order.
 
 ### 2026-10-19 — deterministic RTMgr recovery and student uplink xApp validated
 

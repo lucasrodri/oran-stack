@@ -43,7 +43,7 @@ fi
 
 metrics=""
 for attempt in $(seq 1 30); do
-  metrics=$(curl --fail --silent --show-error \
+  metrics=$(curl --fail --silent --show-error --max-time 5 \
     http://192.168.0.211:30691/metrics)
   if grep -Eq '^oran_xapp_active_subscriptions 1(\.0)?$' <<<"${metrics}" && \
      grep -Eq '^oran_xapp_kpm_indications_total [1-9][0-9]*(\.0)?$' \
@@ -54,6 +54,27 @@ for attempt in $(seq 1 30); do
 done
 grep -Eq '^oran_xapp_active_subscriptions 1(\.0)?$' <<<"${metrics}"
 grep -Eq '^oran_xapp_kpm_indications_total [1-9][0-9]*(\.0)?$' <<<"${metrics}"
+
+# A positive counter can be left over from an old, disconnected subscription.
+# Require new indications, rather than accepting only a Running pod/history.
+initial_count=$(awk '$1 == "oran_xapp_kpm_indications_total" { print $2 }' <<<"${metrics}")
+advancing=0
+for attempt in $(seq 1 6); do
+  sleep 5
+  metrics=$(curl --fail --silent --show-error --max-time 5 \
+    http://192.168.0.211:30691/metrics)
+  current_count=$(awk '$1 == "oran_xapp_kpm_indications_total" { print $2 }' <<<"${metrics}")
+  if awk -v initial="${initial_count}" -v current="${current_count}" \
+      'BEGIN { exit !(current > initial) }'; then
+    advancing=1
+    break
+  fi
+done
+if [[ "${advancing}" != "1" ]]; then
+  echo 'CIC KPM counter is frozen; verify RTMgr inventory, ACK and subscription.' >&2
+  exit 1
+fi
+printf 'KPM indications advancing: %s -> %s\n' "${initial_count}" "${current_count}"
 
 printf 'CIC xApp pod=%s node=%s architecture=%s rmr_flags=%s listeners=%s\n' \
   "${pod}" "${node}" "${architecture}" "${rmr_flags}" "${rmr_listeners}"

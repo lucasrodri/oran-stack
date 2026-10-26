@@ -172,6 +172,13 @@ collector also guarantees that only one process listener owns port `4561`;
 otherwise the SI95 collector and application listener both use `SO_REUSEPORT`
 and an E2Term connection can be consumed by the wrong queue.
 
+The application receive loop must also acknowledge RTMgr message type `20`
+with the standard type `22` response. That correction was deployed through
+CIC GitOps commit `b5e24a5` on 2026-10-26. Without it, a Running ARM pod and
+`active_subscriptions=1` can coexist with no valid subscription in NMI SubMgr.
+The acceptance script now requires the KPM counter to increase between two
+readings, rather than accepting historical counters as proof of health.
+
 ```text
 NMI RTMgr/AppMgr/SubMgr
   -> service-ricxapp-r4-simple-mon-cic-rmr:4561/8091

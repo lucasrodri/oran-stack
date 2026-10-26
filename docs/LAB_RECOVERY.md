@@ -58,3 +58,37 @@ Use `RESET_APPMGR=0` quando apenas a DU ou o UE reiniciou e os endpoints do
 AppMgr continuam válidos. O reset é apropriado no laboratório porque o AppMgr é
 sem estado, mas ele remove temporariamente também o registro de uma xApp remota
 do CIC; essa xApp deve registrar-se de novo quando o enlace CIC–NMI voltar.
+
+## Quando o CIC volta depois do NMI
+
+Confirme primeiro que a VM 105 alcança `192.168.0.211:30691/metrics` e que o
+Flux CIC aplicou o runtime com `_ack_route_table_update`. Execute na VM 120:
+
+```bash
+# Recria o pod sem mudar o template administrado pelo Flux.
+kubectl -n ricxapp delete pod -l app=r4-simple-mon
+kubectl -n ricxapp rollout status deploy/r4-simple-mon --timeout=180s
+```
+
+Na VM 105, confirme o registro `r4-simple-mon-cic` no AppMgr e atualize o
+inventário do RTMgr:
+
+```bash
+curl -fsS http://127.0.0.1:30080/ric/v1/xapps
+kubectl -n near-rt-ric rollout restart deploy/ric-rtmgr
+kubectl -n near-rt-ric rollout status deploy/ric-rtmgr --timeout=180s
+```
+
+Na VM 120, recrie novamente somente o pod da xApp para abrir sua assinatura
+com o inventário pronto. Depois execute o verificador:
+
+```bash
+kubectl -n ricxapp delete pod -l app=r4-simple-mon
+kubectl -n ricxapp rollout status deploy/r4-simple-mon --timeout=180s
+bash infra/nephio/cic-onboarding/verify-cic-xapp.sh
+```
+
+Na VM 105, `./scripts/demo-kpm-multisite.sh` deve terminar com
+`DEMO_KPM_MULTISITE_OK`. Se a DU também reiniciou, renove primeiro as xApps
+locais com `./scripts/refresh-kpm-xapps.sh` e depois a xApp CIC. Use os
+scripts a partir de um checkout atualizado do repositório.
