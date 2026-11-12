@@ -9,6 +9,7 @@ on:
       - 'student/**'
       - 'lab/**'
       - 'codex/**'
+      - tokarski-e2-action
     paths:
       - .github/workflows/xapp-multiarch.yml
       - dockerfiles/xapp/**
@@ -18,8 +19,11 @@ on:
       - infra/nephio/blueprints/kpm-mon-tmt-nmi-variant.yaml
       - helm/monitoring/templates/grafana-dashboard.yaml
       - scripts/new-kpm-xapp.sh
+      - packages/nephio/kpm-anomaly-prb/**
+      - infra/nephio/blueprints/kpm-anomaly-prb-nmi-variant.yaml
       - tests/test_load_classifier.py
       - tests/test_kpm_mon_tmt_xapp.py
+      - tests/test_kpm_anomaly_prb_xapp.py
 
 permissions:
   contents: read
@@ -46,7 +50,8 @@ jobs:
             "${scaffold_root}/xapps/python/kpm_ci_sample_xapp.py"
           python3 -m unittest \
             tests/test_load_classifier.py \
-            tests/test_kpm_mon_tmt_xapp.py
+            tests/test_kpm_mon_tmt_xapp.py \
+            tests/test_kpm_anomaly_prb_xapp.py
           grep -Fq 'exec ./kpm_ci_sample_xapp.py' \
             "${scaffold_root}/packages/nephio/kpm-ci-sample/deployment.yaml"
           grep -Fq 'package: kpm-ci-sample-nmi' \
