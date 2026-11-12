@@ -1,0 +1,138 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kpm-anomaly-prb
+  labels:
+    app: kpm-anomaly-prb
+    release: kpm-anomaly-prb
+    app.kubernetes.io/name: kpm-anomaly-prb
+    app.kubernetes.io/managed-by: Nephio
+    nephio.org/site: nmi
+  annotations:
+    nephio.org/package-revision: blueprint-v1
+    nephio.org/demo-state: student-lab-ready
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: kpm-anomaly-prb
+      release: kpm-anomaly-prb
+  template:
+    metadata:
+      labels:
+        app: kpm-anomaly-prb
+        release: kpm-anomaly-prb
+        app.kubernetes.io/name: kpm-anomaly-prb
+        app.kubernetes.io/managed-by: Nephio
+        nephio.org/site: nmi
+      annotations:
+        checksum/runtime-override: eca2c8cfdcc63e60699da30dd984607f1efb6942c48b26e3ad0c6134c9936f9f
+        nephio.org/package-revision: blueprint-v1
+        nephio.org/demo-state: student-lab-ready
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: oran-k8s-w02
+      hostname: kpm-anomaly-prb
+      initContainers:
+        - name: wait-for-gnb
+          image: curlimages/curl@sha256:08e466006f0860e54fc299378de998935333e0e130a15f6f98482e9f8dab3058
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: E2_NODE_ID
+              value: gnbd_001_001_00019b_e2
+            - name: E2MGR_URI
+              value: http://ric-e2mgr.near-rt-ric:3800/v1/nodeb/states
+          command:
+            - sh
+            - -c
+            - |
+              GNB="${E2_NODE_ID}"
+              echo "Waiting for connected gNB ${GNB} in e2mgr..."
+              until curl -sf "${E2MGR_URI}" | \
+                sed 's/},{"inventoryName"/}\n{"inventoryName"/g' | \
+                grep -F "\"inventoryName\":\"${GNB}\"" | \
+                grep -Fq '"connectionStatus":"CONNECTED"'; do
+                echo "gNB is absent or disconnected, retrying in 10s..."
+                sleep 10
+              done
+              echo "gNB ${GNB} connected — starting xApp"
+      containers:
+        - name: xapp
+          image: REPLACE_WITH_MULTIARCH_IMAGE_DIGEST
+          imagePullPolicy: IfNotPresent
+          command:
+            - sh
+            - -c
+          args:
+            - |
+              exec ./kpm_anomaly_prb_xapp.py \
+                --metrics="${KPM_METRIC}" \
+                --kpm_report_style=4 \
+                --rmr_port=4561 \
+                --http_server_port=8091 \
+                --e2_node_id="${E2_NODE_ID}" \
+                --ran_func_id=2 \
+                --report_period="${KPM_REPORT_PERIOD}" \
+                --granul_period="${KPM_REPORT_PERIOD}" \
+                --window_size="${ANOMALY_WINDOW}" \
+                --anomaly_threshold="${ANOMALY_THRESHOLD}" \
+                --min_ues="${ANOMALY_MIN_UES}"
+          ports:
+            - name: rmr
+              containerPort: 4561
+              protocol: TCP
+            - name: http
+              containerPort: 8091
+              protocol: TCP
+          env:
+            - name: E2_NODE_ID
+              value: gnbd_001_001_00019b_e2
+            - name: KPM_METRIC
+              value: DRB.RlcPacketDropRateDl
+            - name: KPM_REPORT_PERIOD
+              value: "1000"
+            - name: ANOMALY_WINDOW
+              value: "5"
+            - name: ANOMALY_THRESHOLD
+              value: "1"
+            - name: ANOMALY_MIN_UES
+              value: "2"
+            - name: RMR_RTG_SVC
+              value: ""
+            - name: RMR_FLAGS
+              value: "1"
+            - name: XAPP_NAME
+              value: kpm-anomaly-prb
+            - name: XAPP_NAMESPACE
+              value: ricxapp
+            - name: XAPP_IP
+              value: service-ricxapp-kpm-anomaly-prb-rmr.ricxapp
+            - name: XAPP_RMR_ENDPOINT
+              value: service-ricxapp-kpm-anomaly-prb-rmr.ricxapp:4561
+            - name: XAPP_HTTP_ENDPOINT
+              value: service-ricxapp-kpm-anomaly-prb-http.ricxapp:8091
+            - name: XAPP_ADVERTISED_RMR_PORT
+              value: "4561"
+            - name: XAPP_ADVERTISED_HTTP_PORT
+              value: "8091"
+            - name: SUB_MGR_URI
+              value: http://ric-submgr.near-rt-ric:8088/ric/v1
+            - name: APP_MGR_REGISTER_URI
+              value: http://ric-appmgr.near-rt-ric:8080/ric/v1/register
+            - name: PYTHONFAULTHANDLER
+              value: "1"
+            - name: NEPHIO_PACKAGE_REVISION
+              value: blueprint-v1
+            - name: NEPHIO_DEMO_STATE
+              value: student-lab-ready
+          volumeMounts:
+            - name: runtime-override
+              mountPath: /opt/xApps/lib/xAppBase.py
+              subPath: xAppBase.py
+              readOnly: true
+      volumes:
+        - name: runtime-override
+          configMap:
+            name: kpm-anomaly-prb-runtime

@@ -1,0 +1,36 @@
+apiVersion: infra.nephio.org/v1alpha1
+kind: WorkloadCluster
+metadata:
+  name: workload-cluster
+  annotations:
+    config.kubernetes.io/local-config: "true"
+    kpt.dev/config-injection: required
+    oran.unb.br/site: nmi
+    oran.unb.br/architecture: amd64
+    oran.unb.br/xapp-node: oran-k8s-w02
+    oran.unb.br/xapp-image: REPLACE_WITH_MULTIARCH_IMAGE_DIGEST
+    oran.unb.br/e2-node-id: gnbd_001_001_00019b_e2
+    oran.unb.br/kpm-metric: DRB.RlcPacketDropRateDl
+    oran.unb.br/kpm-report-period: "1000"
+    oran.unb.br/anomaly-window: "5"
+    oran.unb.br/anomaly-threshold: "1"
+    oran.unb.br/anomaly-min-ues: "2"
+    # Style 4 indications come in on one RMR listener. The xApp also sends
+    # E2SM-RC Style 2 Action 6 on that same context. RMR_FLAGS=1 keeps the
+    # private route collector from opening a second listener on 4561.
+    oran.unb.br/rmr-flags: "1"
+    oran.unb.br/e2mgr-uri: http://ric-e2mgr.near-rt-ric:3800/v1/nodeb/states
+    oran.unb.br/xapp-name: kpm-anomaly-prb
+    oran.unb.br/xapp-ip: service-ricxapp-kpm-anomaly-prb-rmr.ricxapp
+    oran.unb.br/xapp-rmr-endpoint: service-ricxapp-kpm-anomaly-prb-rmr.ricxapp:4561
+    oran.unb.br/xapp-http-endpoint: service-ricxapp-kpm-anomaly-prb-http.ricxapp:8091
+    oran.unb.br/xapp-advertised-rmr-port: "4561"
+    oran.unb.br/xapp-advertised-http-port: "8091"
+    oran.unb.br/submgr-uri: http://ric-submgr.near-rt-ric:8088/ric/v1
+    oran.unb.br/appmgr-register-uri: http://ric-appmgr.near-rt-ric:8080/ric/v1/register
+spec:
+  clusterName: nmi
+  cnis:
+    - flannel
+    - multus
+    - ovs-cni
