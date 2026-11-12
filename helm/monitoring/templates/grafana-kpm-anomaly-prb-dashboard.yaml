@@ -1,0 +1,278 @@
+# Grafana dashboard for the kpm-anomaly-prb xApp.
+# The sidecar loads every ConfigMap labeled grafana_dashboard=1.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kpm-anomaly-prb-dashboard
+  namespace: {{ .Values.namespace }}
+  labels:
+    grafana_dashboard: "1"
+    app.kubernetes.io/part-of: oran-stack
+data:
+  kpm-anomaly-prb.json: |
+    {
+      "title": "kpm-anomaly-prb",
+      "uid": "kpm-anomaly-prb",
+      "schemaVersion": 38,
+      "version": 1,
+      "refresh": "15s",
+      "time": { "from": "now-30m", "to": "now" },
+      "tags": ["oran", "kpm", "xapp"],
+      "panels": [
+        {
+          "id": 1,
+          "type": "stat",
+          "title": "KPM indications/s",
+          "description": "Style 4 indications decoded by kpm-anomaly-prb. A live subscription is about one report per second.",
+          "gridPos": { "x": 0, "y": 0, "w": 5, "h": 4 },
+          "options": {
+            "reduceOptions": { "calcs": ["lastNotNull"] },
+            "colorMode": "background",
+            "graphMode": "area"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "ops",
+              "decimals": 2,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "red", "value": null },
+                  { "color": "green", "value": 0.01 }
+                ]
+              }
+            }
+          },
+          "targets": [
+            {
+              "expr": "sum(rate(oran_xapp_kpm_indications_total{service=\"service-ricxapp-kpm-anomaly-prb-http\"}[1m]))",
+              "legendFormat": "indications",
+              "refId": "A"
+            }
+          ],
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        },
+        {
+          "id": 2,
+          "type": "stat",
+          "title": "Active subscription",
+          "description": "One means the Style 4 subscription callback is registered.",
+          "gridPos": { "x": 5, "y": 0, "w": 5, "h": 4 },
+          "options": {
+            "reduceOptions": { "calcs": ["lastNotNull"] },
+            "colorMode": "background",
+            "graphMode": "none"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "decimals": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "red", "value": null },
+                  { "color": "green", "value": 1 }
+                ]
+              }
+            }
+          },
+          "targets": [
+            {
+              "expr": "oran_xapp_active_subscriptions{service=\"service-ricxapp-kpm-anomaly-prb-http\"}",
+              "legendFormat": "subscriptions",
+              "refId": "A"
+            }
+          ],
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        },
+        {
+          "id": 3,
+          "type": "stat",
+          "title": "UEs seen",
+          "description": "Distinct gNB-CU-UE-F1AP-ID values. No PRB control is sent before two IDs.",
+          "gridPos": { "x": 10, "y": 0, "w": 4, "h": 4 },
+          "options": {
+            "reduceOptions": { "calcs": ["lastNotNull"] },
+            "colorMode": "background",
+            "graphMode": "none"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "decimals": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "red", "value": null },
+                  { "color": "yellow", "value": 1 },
+                  { "color": "green", "value": 2 }
+                ]
+              }
+            }
+          },
+          "targets": [
+            {
+              "expr": "oran_kpm_anomaly_prb_ues_seen{service=\"service-ricxapp-kpm-anomaly-prb-http\"}",
+              "legendFormat": "ues",
+              "refId": "A"
+            }
+          ],
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        },
+        {
+          "id": 4,
+          "type": "stat",
+          "title": "PRB controls",
+          "description": "E2SM-RC Style 2 Action 6 requests sent. Each anomalous UE is controlled once.",
+          "gridPos": { "x": 14, "y": 0, "w": 5, "h": 4 },
+          "options": {
+            "reduceOptions": { "calcs": ["lastNotNull"] },
+            "colorMode": "background",
+            "graphMode": "area"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "decimals": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "blue", "value": null },
+                  { "color": "red", "value": 1 }
+                ]
+              }
+            }
+          },
+          "targets": [
+            {
+              "expr": "oran_kpm_anomaly_prb_controls_total{service=\"service-ricxapp-kpm-anomaly-prb-http\"}",
+              "legendFormat": "controls",
+              "refId": "A"
+            }
+          ],
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        },
+        {
+          "id": 5,
+          "type": "stat",
+          "title": "State",
+          "description": "unknown until the first sample, monitoring while UE IDs are below the minimum or under the threshold, acted after the first zero-PRB control.",
+          "gridPos": { "x": 19, "y": 0, "w": 5, "h": 4 },
+          "options": {
+            "reduceOptions": { "calcs": ["lastNotNull"] },
+            "colorMode": "background",
+            "graphMode": "none",
+            "textMode": "value"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "blue", "value": null },
+                  { "color": "yellow", "value": 1 },
+                  { "color": "red", "value": 2 }
+                ]
+              },
+              "mappings": [
+                {
+                  "type": "value",
+                  "options": {
+                    "0": { "text": "UNKNOWN" },
+                    "1": { "text": "MONITORING" },
+                    "2": { "text": "ACTED" }
+                  }
+                }
+              ]
+            }
+          },
+          "targets": [
+            {
+              "expr": "max(oran_kpm_anomaly_prb_state{service=\"service-ricxapp-kpm-anomaly-prb-http\",state=\"acted\"}) * 2 + max(oran_kpm_anomaly_prb_state{service=\"service-ricxapp-kpm-anomaly-prb-http\",state=\"monitoring\"})",
+              "legendFormat": "state",
+              "refId": "A"
+            }
+          ],
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        },
+        {
+          "id": 6,
+          "type": "timeseries",
+          "title": "Downlink RLC drop rate by UE",
+          "description": "DRB.RlcPacketDropRateDl from KPM Style 4, one series per gNB-CU-UE-F1AP-ID. The anomalous UE should rise while the normal UE stays near zero.",
+          "gridPos": { "x": 0, "y": 4, "w": 16, "h": 8 },
+          "options": {
+            "tooltip": { "mode": "multi" },
+            "legend": { "displayMode": "table", "placement": "bottom" }
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "none",
+              "min": 0,
+              "custom": { "lineWidth": 3, "fillOpacity": 12, "spanNulls": false }
+            }
+          },
+          "targets": [
+            {
+              "expr": "oran_xapp_kpm_measurement{metric=\"DRB.RlcPacketDropRateDl\",service=\"service-ricxapp-kpm-anomaly-prb-http\"}",
+              "legendFormat": "ue {{ "{{" }}ue_id{{ "}}" }}",
+              "refId": "A"
+            }
+          ],
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        },
+        {
+          "id": 7,
+          "type": "timeseries",
+          "title": "Moving average and threshold",
+          "description": "Highest per-UE window average against the configured threshold. A control is sent when the average reaches the threshold after two UE IDs have been seen.",
+          "gridPos": { "x": 16, "y": 4, "w": 8, "h": 8 },
+          "options": {
+            "tooltip": { "mode": "multi" },
+            "legend": { "displayMode": "table", "placement": "bottom" }
+          },
+          "fieldConfig": {
+            "defaults": {
+              "min": 0,
+              "custom": { "lineWidth": 3, "fillOpacity": 10, "spanNulls": false }
+            }
+          },
+          "targets": [
+            {
+              "expr": "oran_kpm_anomaly_prb_drop_rate_average{service=\"service-ricxapp-kpm-anomaly-prb-http\"}",
+              "legendFormat": "moving average",
+              "refId": "A"
+            },
+            {
+              "expr": "oran_kpm_anomaly_prb_anomaly_threshold{service=\"service-ricxapp-kpm-anomaly-prb-http\"}",
+              "legendFormat": "threshold",
+              "refId": "B"
+            }
+          ],
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        },
+        {
+          "id": 8,
+          "type": "timeseries",
+          "title": "Controls sent",
+          "description": "The counter steps once per UE when Style 2 Action 6 sets the PRB quota to zero.",
+          "gridPos": { "x": 0, "y": 12, "w": 24, "h": 6 },
+          "options": {
+            "tooltip": { "mode": "multi" },
+            "legend": { "displayMode": "list", "placement": "bottom" }
+          },
+          "fieldConfig": {
+            "defaults": {
+              "decimals": 0,
+              "min": 0,
+              "custom": { "lineWidth": 3, "fillOpacity": 8, "spanNulls": false }
+            }
+          },
+          "targets": [
+            {
+              "expr": "oran_kpm_anomaly_prb_controls_total{service=\"service-ricxapp-kpm-anomaly-prb-http\"}",
+              "legendFormat": "controls",
+              "refId": "A"
+            }
+          ],
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        }
+      ]
+    }
