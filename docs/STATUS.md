@@ -1,10 +1,27 @@
 # O-RAN Lab Stack — Status
 
-_Last updated: 2026-10-26_
+_Last updated: 2026-11-18_
 
 ---
 
 ## 0. Recent Changes
+
+### 2026-11-18 — CU E2 association recovered and multisite traffic validated
+
+- Diagnosed CU `DISCONNECTED` despite its Running pod: its log recorded the
+  E2 connection closing on 2026-11-12 when E2Term was replaced. The CU had not
+  re-established E2; the DU continued delivering KPM independently.
+- Confirmed the current E2Term registration, stopped UE/DU, recreated the CU,
+  then restored DU and UE in order. Both CU and DU are now `CONNECTED`.
+  E2Term was not restarted during this recovery.
+- Renewed all three NMI xApps and the ARM CIC xApp. Verified one subscription
+  each, decoded KPM delivery and zero RMR receive errors.
+- UE established `10.45.0.13` and reached the UPF gateway with zero packet
+  loss. The bounded 50 MB download returned HTTP 200 and
+  `DEMO_KPM_MULTISITE_OK`, with observed peaks of 28,841 kbps (NMI) and
+  28,840 kbps (CIC).
+- Documented the CU-specific recovery sequence and the distinction between
+  pod readiness, E2 connectivity and an established UE PDU session.
 
 ### 2026-10-26 — CIC ARM KPM restored after inter-site connectivity returned
 
