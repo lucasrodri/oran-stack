@@ -1,7 +1,7 @@
 # kpm-anomaly-prb blueprint
 
 Reusable Nephio KRM blueprint for the per-UE anomaly xApp. It subscribes to
-KPM Report Style 4 for `DRB.RlcPacketDropRateDl` and, once two UE IDs have
+KPM Report Style 4 for `DRB.RlcPacketDropRateDl` and, once one UE ID has
 been seen, sends E2SM-RC Style 2 Action 6 with a zero PRB quota to each UE
 whose moving average reaches the threshold.
 

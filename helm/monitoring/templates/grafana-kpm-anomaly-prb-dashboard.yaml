@@ -88,7 +88,7 @@ data:
           "id": 3,
           "type": "stat",
           "title": "UEs seen",
-          "description": "Distinct gNB-CU-UE-F1AP-ID values. No PRB control is sent before two IDs.",
+          "description": "Distinct gNB-CU-UE-F1AP-ID values. One ID is enough to send a PRB control.",
           "gridPos": { "x": 10, "y": 0, "w": 4, "h": 4 },
           "options": {
             "reduceOptions": { "calcs": ["lastNotNull"] },
@@ -222,7 +222,7 @@ data:
           "id": 7,
           "type": "timeseries",
           "title": "Moving average and threshold",
-          "description": "Highest per-UE window average against the configured threshold. A control is sent when the average reaches the threshold after two UE IDs have been seen.",
+          "description": "Highest per-UE window average against the configured threshold. A control is sent when that UE's average reaches the threshold. One UE ID is enough.",
           "gridPos": { "x": 16, "y": 4, "w": 8, "h": 8 },
           "options": {
             "tooltip": { "mode": "multi" },

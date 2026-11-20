@@ -3,9 +3,9 @@
 
 OCUDU 26.04 accepts one RIC Control: E2SM-RC Style 2 Action 6 (slice PRB
 quota). This xApp subscribes to KPM Report Style 4 for DRB.RlcPacketDropRateDl,
-the downlink RLC SDU drop rate reported by the DU. A UE is anomalous when the
-moving average of that rate stays at or above the threshold. RRC Connection
-Release is not implemented by this RAN.
+the downlink RLC SDU drop rate reported by the DU. One observed UE is enough.
+A UE is anomalous when the moving average of that rate stays at or above the
+threshold. RRC Connection Release is not implemented by this RAN.
 """
 
 import argparse
@@ -120,7 +120,8 @@ class AnomalyPrbXapp(xAppBase):
         """Update per-UE averages and send Style 2 Action 6 at most once.
 
         samples maps gNB-CU-UE-F1AP-ID to the latest drop rate.
-        No control is sent until at least min_ues distinct IDs have been seen.
+        One observed UE is enough when min_ues is 1. No control is sent until
+        at least min_ues distinct IDs have been seen.
         """
         acted = []
         with self._state_lock:
@@ -237,7 +238,7 @@ def parse_args():
     parser.add_argument("--log_every", type=int, default=30)
     parser.add_argument("--window_size", type=int, default=5)
     parser.add_argument("--anomaly_threshold", type=float, default=1.0)
-    parser.add_argument("--min_ues", type=int, default=2)
+    parser.add_argument("--min_ues", type=int, default=1)
     return parser.parse_args()
 
 

@@ -14,7 +14,7 @@ metadata:
     oran.unb.br/kpm-report-period: "1000"
     oran.unb.br/anomaly-window: "5"
     oran.unb.br/anomaly-threshold: "1"
-    oran.unb.br/anomaly-min-ues: "2"
+    oran.unb.br/anomaly-min-ues: "1"
     # Style 4 indications come in on one RMR listener. The xApp also sends
     # E2SM-RC Style 2 Action 6 on that same context. RMR_FLAGS=1 keeps the
     # private route collector from opening a second listener on 4561.

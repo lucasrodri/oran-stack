@@ -91,7 +91,7 @@ def _xapp(**kwargs):
     params = dict(
         window_size=2,
         anomaly_threshold=1.0,
-        min_ues=2,
+        min_ues=1,
     )
     params.update(kwargs)
     app = AnomalyPrbXapp("", 8091, 4561, **params)
@@ -101,13 +101,15 @@ def _xapp(**kwargs):
 
 class AnomalyPrbXappTest(unittest.TestCase):
     def test_controls_only_the_ue_at_or_above_threshold_and_only_once(self):
-        app = _xapp()
+        app = _xapp(window_size=2, anomaly_threshold=5.0, min_ues=1)
 
-        self.assertEqual([], app.observe_ues("gnb", {1: 1.0}))
+        # One UE below the threshold does not act. [4, 4] averages to 4.
+        self.assertEqual([], app.observe_ues("gnb", {1: 4.0}))
+        self.assertEqual([], app.observe_ues("gnb", {1: 4.0}))
         self.assertEqual([], app.e2sm_rc.calls)
 
-        # [1, 1] averages to the threshold and is anomalous.
-        acted = app.observe_ues("gnb", {1: 1.0, 2: 0.0})
+        # The next sample pulls the window across the line: [4, 6] averages to 5.
+        acted = app.observe_ues("gnb", {1: 6.0})
         self.assertEqual([1], acted)
         self.assertEqual(1, len(app.e2sm_rc.calls))
         call = app.e2sm_rc.calls[0]
@@ -117,7 +119,7 @@ class AnomalyPrbXappTest(unittest.TestCase):
         self.assertEqual(0, call["dedicated_prb_ratio"])
         self.assertEqual(1, call["ack_request"])
 
-        app.observe_ues("gnb", {1: 8.0, 2: 0.0})
+        app.observe_ues("gnb", {1: 8.0})
         self.assertEqual(1, len(app.e2sm_rc.calls))
 
         self.assertEqual(1, app._on_control_outcome("ack"))
@@ -130,25 +132,25 @@ class AnomalyPrbXappTest(unittest.TestCase):
         self.assertEqual([1, 2], [call["ue_id"] for call in app.e2sm_rc.calls])
 
     def test_expired_window_sample_can_keep_a_ue_below_threshold(self):
-        app = _xapp(window_size=2, anomaly_threshold=5.0, min_ues=2)
+        app = _xapp(window_size=2, anomaly_threshold=6.0, min_ues=1)
 
-        # One UE is not enough to act, so the high samples only fill the window.
-        self.assertEqual([], app.observe_ues("gnb", {1: 9.0}))
-        self.assertEqual([], app.observe_ues("gnb", {1: 9.0}))
+        # No prefix average reaches the threshold, so the higher sample stays stored.
+        self.assertEqual([], app.observe_ues("gnb", {1: 4.0}))
+        self.assertEqual([], app.observe_ues("gnb", {1: 5.0}))
 
-        # The oldest 9 leaves: [9, 0] averages to 4.5, under the threshold.
-        acted = app.observe_ues("gnb", {1: 0.0, 2: 0.0})
+        # The 4 leaves: [5, 0] averages to 2.5, still under the threshold.
+        acted = app.observe_ues("gnb", {1: 0.0})
         self.assertEqual([], acted)
         self.assertEqual([], app.e2sm_rc.calls)
 
     def test_metrics_report_the_average_and_current_state(self):
         app = _xapp()
-        app.observe_ues("gnb", {1: 5.0, 2: 0.0})
+        app.observe_ues("gnb", {1: 5.0})
 
         payload = app._metrics_handler("metrics", "/metrics", "", "")["payload"]
         self.assertIn("oran_kpm_anomaly_prb_drop_rate_average 5\n", payload)
-        self.assertIn("oran_kpm_anomaly_prb_samples_total 2\n", payload)
-        self.assertIn("oran_kpm_anomaly_prb_ues_seen 2\n", payload)
+        self.assertIn("oran_kpm_anomaly_prb_samples_total 1\n", payload)
+        self.assertIn("oran_kpm_anomaly_prb_ues_seen 1\n", payload)
         self.assertIn("oran_kpm_anomaly_prb_controls_total 1\n", payload)
         self.assertIn('oran_kpm_anomaly_prb_state{state="unknown"} 0\n', payload)
         self.assertIn('oran_kpm_anomaly_prb_state{state="monitoring"} 0\n', payload)
