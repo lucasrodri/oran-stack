@@ -7,7 +7,7 @@ spec:
   upstream:
     repo: team-blueprints
     package: kpm-anomaly-prb
-    workspaceName: v1
+    workspaceName: v2
   downstream:
     repo: nmi
     package: kpm-anomaly-prb-nmi
