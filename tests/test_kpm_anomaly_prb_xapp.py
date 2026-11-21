@@ -171,8 +171,8 @@ class AnomalyPrbXappTest(unittest.TestCase):
             {},
             {
                 "ueMeasData": {
-                    1: {"measData": {"DRB.RlcPacketDropRateDl": [5.0]}},
-                    2: {"measData": {"DRB.RlcPacketDropRateDl": [0.0]}},
+                    1: {"measData": {"DRB.RlcSduTransmittedVolumeDL": [5.0]}},
+                    2: {"measData": {"DRB.RlcSduTransmittedVolumeDL": [0.0]}},
                 }
             },
         )
