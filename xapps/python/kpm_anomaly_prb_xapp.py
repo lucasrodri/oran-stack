@@ -7,6 +7,10 @@ DRB.RlcSduTransmittedVolumeDL, the downlink RLC SDU volume in kbit reported
 by the DU. One observed UE is enough. A UE is anomalous when the moving
 average of that volume stays at or above the threshold. RRC Connection
 Release is not implemented by this RAN.
+
+Every seen UE is exported as oran_kpm_anomaly_prb_quota_ratio. Until this
+xApp sends Style 2 Action 6, the UE stays at the unconstrained quota
+(max 100). After the control, min, max and dedicated are 0.
 """
 
 import argparse
@@ -19,6 +23,10 @@ from lib.xAppBase import xAppBase
 
 class AnomalyPrbXapp(xAppBase):
     STATES = ("unknown", "monitoring", "acted")
+    QUOTA_RATIOS = ("min", "max", "dedicated")
+    # No Style 2 Action 6 has been sent, so the xApp has not capped the UE.
+    UNCONSTRAINED_QUOTA = {"min": 0, "max": 100, "dedicated": 0}
+    ZERO_QUOTA = {"min": 0, "max": 0, "dedicated": 0}
 
     def __init__(
         self,
@@ -48,6 +56,7 @@ class AnomalyPrbXapp(xAppBase):
         self.metric_name = metric_name
         self._samples = {}
         self._seen = set()
+        self._quotas = {}
         self._controlled = set()
         self._pending_controls = []
         self._sample_count = 0
@@ -75,7 +84,14 @@ class AnomalyPrbXapp(xAppBase):
             "ues_seen": len(self._seen),
             "controls": self._controls_sent,
             "state": self._state,
+            "quotas": {
+                ue_id: dict(quota) for ue_id, quota in self._quotas.items()
+            },
         }
+
+    @staticmethod
+    def _label(value):
+        return str(value).replace("\\", "\\\\").replace("\n", "\\n").replace('"', '\\"')
 
     def _metrics_handler(self, name, path, data, ctype):
         response = super(AnomalyPrbXapp, self)._metrics_handler(
@@ -114,6 +130,16 @@ class AnomalyPrbXapp(xAppBase):
             "# TYPE oran_kpm_anomaly_prb_anomaly_threshold gauge\n"
             "oran_kpm_anomaly_prb_anomaly_threshold {:.12g}\n"
         ).format(self.anomaly_threshold)
+        payload += (
+            "# HELP oran_kpm_anomaly_prb_quota_ratio Style 2 Action 6 PRB ratio for one UE, as a percent of cell PRBs. max is 100 until a control caps the UE.\n"
+            "# TYPE oran_kpm_anomaly_prb_quota_ratio gauge\n"
+        )
+        for ue_id in sorted(snapshot["quotas"], key=str):
+            quota = snapshot["quotas"][ue_id]
+            for ratio in self.QUOTA_RATIOS:
+                payload += (
+                    'oran_kpm_anomaly_prb_quota_ratio{{ue_id="{}",ratio="{}"}} {:.12g}\n'
+                ).format(self._label(ue_id), ratio, quota[ratio])
         response["payload"] = payload
         return response
 
@@ -135,6 +161,7 @@ class AnomalyPrbXapp(xAppBase):
                 if len(window) > self.window_size:
                     del window[0]
                 self._seen.add(ue_id)
+                self._quotas.setdefault(ue_id, dict(self.UNCONSTRAINED_QUOTA))
                 self._sample_count += 1
                 average = sum(window) / float(len(window))
                 if self._state == "unknown":
@@ -166,6 +193,7 @@ class AnomalyPrbXapp(xAppBase):
                 if average < self.anomaly_threshold:
                     continue
                 self._controlled.add(ue_id)
+                self._quotas[ue_id] = dict(self.ZERO_QUOTA)
                 self._pending_controls.append(ue_id)
                 self._controls_sent += 1
                 self._state = "acted"
@@ -182,9 +210,9 @@ class AnomalyPrbXapp(xAppBase):
             self.e2sm_rc.control_slice_level_prb_quota(
                 e2_agent_id,
                 ue_id,
-                min_prb_ratio=0,
-                max_prb_ratio=0,
-                dedicated_prb_ratio=0,
+                min_prb_ratio=self.ZERO_QUOTA["min"],
+                max_prb_ratio=self.ZERO_QUOTA["max"],
+                dedicated_prb_ratio=self.ZERO_QUOTA["dedicated"],
                 ack_request=1,
             )
         return [ue_id for ue_id, _average in acted]

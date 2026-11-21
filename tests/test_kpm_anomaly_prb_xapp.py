@@ -156,6 +156,41 @@ class AnomalyPrbXappTest(unittest.TestCase):
         self.assertIn('oran_kpm_anomaly_prb_state{state="monitoring"} 0\n', payload)
         self.assertIn('oran_kpm_anomaly_prb_state{state="acted"} 1\n', payload)
         self.assertIn("oran_kpm_anomaly_prb_anomaly_threshold 1\n", payload)
+        self.assertIn(
+            'oran_kpm_anomaly_prb_quota_ratio{ue_id="1",ratio="min"} 0\n',
+            payload,
+        )
+        self.assertIn(
+            'oran_kpm_anomaly_prb_quota_ratio{ue_id="1",ratio="max"} 0\n',
+            payload,
+        )
+        self.assertIn(
+            'oran_kpm_anomaly_prb_quota_ratio{ue_id="1",ratio="dedicated"} 0\n',
+            payload,
+        )
+
+    def test_metrics_keep_an_uncapped_ue_at_the_full_prb_quota(self):
+        app = _xapp(window_size=1, anomaly_threshold=5.0, min_ues=1)
+        app.observe_ues("gnb", {1: 5.0, 2: 0.0})
+
+        payload = app._metrics_handler("metrics", "/metrics", "", "")["payload"]
+        self.assertIn(
+            'oran_kpm_anomaly_prb_quota_ratio{ue_id="1",ratio="max"} 0\n',
+            payload,
+        )
+        self.assertIn(
+            'oran_kpm_anomaly_prb_quota_ratio{ue_id="2",ratio="min"} 0\n',
+            payload,
+        )
+        self.assertIn(
+            'oran_kpm_anomaly_prb_quota_ratio{ue_id="2",ratio="max"} 100\n',
+            payload,
+        )
+        self.assertIn(
+            'oran_kpm_anomaly_prb_quota_ratio{ue_id="2",ratio="dedicated"} 0\n',
+            payload,
+        )
+        self.assertEqual([1], [call["ue_id"] for call in app.e2sm_rc.calls])
 
     def test_indication_callback_reads_style_4_ue_measurements(self):
         app = _xapp()

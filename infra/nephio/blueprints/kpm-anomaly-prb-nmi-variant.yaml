@@ -7,7 +7,7 @@ spec:
   upstream:
     repo: team-blueprints
     package: kpm-anomaly-prb
-    workspaceName: v2
+    workspaceName: v3
   downstream:
     repo: nmi
     package: kpm-anomaly-prb-nmi
@@ -27,7 +27,7 @@ spec:
           oran.unb.br/site: nmi
           oran.unb.br/architecture: amd64
           oran.unb.br/xapp-node: oran-k8s-w02
-          oran.unb.br/xapp-image: ghcr.io/lucasrodri/oran-stack/oran-xapps@sha256:3875cb53ff7c0c2cfbaa505f856d8679dbff0d36f7827d3822d7833af78ce2c0
+          oran.unb.br/xapp-image: ghcr.io/lucasrodri/oran-stack/oran-xapps@sha256:e24be95790717ccc6f1a39bc8b60618b24a288bd0681ef541a0fba05fedd2f97
           oran.unb.br/e2-node-id: gnbd_001_001_00019b_e2
           oran.unb.br/kpm-metric: DRB.RlcSduTransmittedVolumeDL
           oran.unb.br/kpm-report-period: "1000"

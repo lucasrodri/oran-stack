@@ -167,6 +167,11 @@ class xAppBase(object):
                 ns=ns, name=self.XAPP_NAME, port=self.MY_HTTP_SERVER_PORT,
             ),
         )
+        tx_messages, rx_messages = self._rmr_message_lists()
+        print(
+            "xAppBase: registering tx={} rx={}".format(tx_messages, rx_messages),
+            flush=True,
+        )
         payload = {
             "appName": self.XAPP_NAME,
             "appVersion": "0.1.0",
@@ -182,34 +187,79 @@ class xAppBase(object):
             # next full `newrt` update.
             "config": json.dumps({
                 "rmr": {
-                    "txMessages": ["RIC_SUB_REQ", "RIC_SUB_DEL_REQ"],
-                    "rxMessages": [
-                        "RIC_SUB_RESP",
-                        "RIC_SUB_FAILURE",
-                        "RIC_SUB_DEL_RESP",
-                        "RIC_INDICATION",
-                    ],
+                    "txMessages": tx_messages,
+                    "rxMessages": rx_messages,
                     "policies": [],
                 }
             }),
         }
+        # Register refuses to replace an existing record, so drop the previous
+        # one first. Otherwise a restarted pod keeps the old message list and
+        # RTMgr never adds the control routes.
+        self._post_appmgr(
+            self.APP_MGR_REGISTER_URI.rsplit("/", 1)[0] + "/deregister",
+            {
+                "appName": self.XAPP_NAME,
+                "appInstanceName": self.XAPP_NAME,
+            },
+            "deregister",
+        )
+        self._post_appmgr(self.APP_MGR_REGISTER_URI, payload, "register")
+        if os.environ.get("RMR_CONTROL", "") == "1":
+            self._control_wormhole()
+        # rtmgr polls appmgr ~every 10s; wait so the route exists before
+        # the xApp issues its first SubscriptionRequest.
+        time.sleep(12)
+
+    @staticmethod
+    def _rmr_message_lists():
+        """Messages this xApp asks RTMgr to route.
+
+        Monitoring xApps only need the subscription and indication names.
+        RMR_CONTROL=1 adds the control request and its two outcomes so a
+        RIC Control can reach E2 termination and the answer can come back.
+        """
+        tx_messages = ["RIC_SUB_REQ", "RIC_SUB_DEL_REQ"]
+        rx_messages = [
+            "RIC_SUB_RESP",
+            "RIC_SUB_FAILURE",
+            "RIC_SUB_DEL_RESP",
+            "RIC_INDICATION",
+        ]
+        if os.environ.get("RMR_CONTROL", "") == "1":
+            tx_messages.append("RIC_CONTROL_REQ")
+            rx_messages.extend(["RIC_CONTROL_ACK", "RIC_CONTROL_FAILURE"])
+        return tx_messages, rx_messages
+
+    def _post_appmgr(self, uri, payload, action):
         req = urllib.request.Request(
-            self.APP_MGR_REGISTER_URI,
+            uri,
             data=json.dumps(payload).encode(),
             headers={"Content-Type": "application/json"},
             method="POST",
         )
         try:
             with urllib.request.urlopen(req, timeout=5) as resp:
-                print("xAppBase: appmgr register {} -> HTTP {}".format(self.XAPP_NAME, resp.status))
+                print(
+                    "xAppBase: appmgr {} {} -> HTTP {}".format(
+                        action, self.XAPP_NAME, resp.status
+                    ),
+                    flush=True,
+                )
         except urllib.error.HTTPError as e:
-            # already registered → 400/409 are expected on restart
-            print("xAppBase: appmgr register {} -> HTTP {} ({})".format(self.XAPP_NAME, e.code, e.reason))
+            print(
+                "xAppBase: appmgr {} {} -> HTTP {} ({})".format(
+                    action, self.XAPP_NAME, e.code, e.reason
+                ),
+                flush=True,
+            )
         except Exception as e:
-            print("xAppBase: appmgr register {} failed: {}".format(self.XAPP_NAME, e))
-        # rtmgr polls appmgr ~every 10s; wait so the route exists before
-        # the xApp issues its first SubscriptionRequest.
-        time.sleep(12)
+            print(
+                "xAppBase: appmgr {} {} failed: {}".format(
+                    action, self.XAPP_NAME, e
+                ),
+                flush=True,
+            )
 
     @classmethod
     def start_function(cls, fun):
@@ -414,7 +464,51 @@ class xAppBase(object):
         for e2_event_instance_id, subscriptionObj in self.my_subscriptions.items():
             self.unsubscribe(subscriptionObj.subscription_id)
 
-    def rmr_send(self, e2_node_id, payload, mtype, retries=1):
+    def _control_wormhole(self):
+        """Open a direct RMR connection to E2 termination.
+
+        RMR_FLAGS=1 disables the route-table thread, and the receive loop
+        only acknowledges table pushes. This process therefore has no local
+        route for RIC_CONTROL_REQ. A wormhole reaches the headless E2
+        termination service without that route. The answer still depends on
+        RTMgr routing RIC_CONTROL_ACK and RIC_CONTROL_FAILURE back here.
+        """
+        whid = getattr(self, "_e2term_whid", None)
+        if whid is not None:
+            return whid
+        endpoint = os.environ.get(
+            "E2TERM_RMR_ENDPOINT",
+            "ric-e2term.near-rt-ric.svc.cluster.local:38000",
+        )
+        opener = getattr(rmr, "rmr_wh_open", None)
+        if opener is None:
+            print(
+                "xAppBase: ricxappframe has no rmr_wh_open; control cannot be sent",
+                flush=True,
+            )
+            self._e2term_whid = -1
+            return -1
+        whid = opener(self.rmr_client, endpoint.encode("utf-8"))
+        try:
+            whid = int(whid)
+        except (TypeError, ValueError):
+            whid = -1
+        self._e2term_whid = whid
+        if whid < 0:
+            print(
+                "xAppBase: unable to open an RMR wormhole to {}".format(endpoint),
+                flush=True,
+            )
+        else:
+            print(
+                "xAppBase: RMR wormhole to {} is open".format(endpoint),
+                flush=True,
+            )
+        return whid
+
+    def rmr_send(self, e2_node_id, payload, mtype, retries=40):
+        sender = getattr(rmr, "rmr_wh_send_msg", None)
+        whid = self._control_wormhole()
         sbuf = rmr.rmr_alloc_msg(self.rmr_client, len(payload), mtype=mtype)
         rmr.set_payload_and_length(payload, sbuf)
         rmr.generate_and_set_transaction_id(sbuf)
@@ -422,8 +516,44 @@ class xAppBase(object):
         sbuf.contents.mtype = mtype
         sbuf.contents.sub_id = -1
         rmr.rmr_set_meid(sbuf, e2_node_id.encode("utf8"))
-        #print("Pre send summary: {}".format(rmr.message_summary(sbuf)))
-        sbuf = rmr.rmr_send_msg(self.rmr_client, sbuf)
+        if sender is None or whid < 0:
+            print(
+                "xAppBase: did not send mtype={} to {}".format(mtype, e2_node_id),
+                flush=True,
+            )
+            if sbuf:
+                rmr.rmr_free_msg(sbuf)
+            return False
+        state = -1
+        for _attempt in range(max(1, retries)):
+            sbuf = sender(self.rmr_client, whid, sbuf)
+            if not sbuf:
+                print(
+                    "xAppBase: RMR wormhole send of mtype={} returned no buffer".format(
+                        mtype
+                    ),
+                    flush=True,
+                )
+                return False
+            state = rmr.message_summary(sbuf)[rmr.RMR_MS_MSG_STATE]
+            if state == 0:
+                print(
+                    "xAppBase: sent mtype={} to {} via E2Term".format(
+                        mtype, e2_node_id
+                    ),
+                    flush=True,
+                )
+                rmr.rmr_free_msg(sbuf)
+                return True
+            time.sleep(0.1)
+        print(
+            "xAppBase: E2Term did not accept mtype={} for {} (RMR state {})".format(
+                mtype, e2_node_id, state
+            ),
+            flush=True,
+        )
+        rmr.rmr_free_msg(sbuf)
+        return False
 
     def _ack_route_table_update(self, sbuf):
         """Acknowledge an RTMgr route push on the xApp's single RMR listener.
