@@ -90,13 +90,13 @@ spec:
             - name: E2_NODE_ID
               value: gnbd_001_001_00019b_e2
             - name: KPM_METRIC
-              value: DRB.RlcPacketDropRateDl
+              value: DRB.RlcSduTransmittedVolumeDL
             - name: KPM_REPORT_PERIOD
               value: "1000"
             - name: ANOMALY_WINDOW
               value: "5"
             - name: ANOMALY_THRESHOLD
-              value: "1"
+              value: "1000"
             - name: ANOMALY_MIN_UES
               value: "1"
             - name: RMR_RTG_SVC

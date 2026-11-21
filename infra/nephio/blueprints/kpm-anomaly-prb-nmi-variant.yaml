@@ -29,10 +29,10 @@ spec:
           oran.unb.br/xapp-node: oran-k8s-w02
           oran.unb.br/xapp-image: ghcr.io/lucasrodri/oran-stack/oran-xapps@sha256:d7ddb1f8051912c5bc1ea887bb3b66fb6fbba413cd3db2aed3e4fd18b7f4b8bf
           oran.unb.br/e2-node-id: gnbd_001_001_00019b_e2
-          oran.unb.br/kpm-metric: DRB.RlcPacketDropRateDl
+          oran.unb.br/kpm-metric: DRB.RlcSduTransmittedVolumeDL
           oran.unb.br/kpm-report-period: "1000"
           oran.unb.br/anomaly-window: "5"
-          oran.unb.br/anomaly-threshold: "1"
+          oran.unb.br/anomaly-threshold: "1000"
           oran.unb.br/anomaly-min-ues: "1"
           oran.unb.br/rmr-flags: "1"
           oran.unb.br/e2mgr-uri: http://ric-e2mgr.near-rt-ric:3800/v1/nodeb/states
