@@ -14,7 +14,7 @@ data:
       "title": "kpm-anomaly-prb",
       "uid": "kpm-anomaly-prb",
       "schemaVersion": 38,
-      "version": 1,
+      "version": 2,
       "refresh": "15s",
       "time": { "from": "now-30m", "to": "now" },
       "tags": ["oran", "kpm", "xapp"],
@@ -193,11 +193,78 @@ data:
           "datasource": { "type": "prometheus", "uid": "prometheus" }
         },
         {
+          "id": 9,
+          "type": "bargauge",
+          "title": "PRB quota by UE",
+          "description": "Max PRB ratio from E2SM-RC Style 2 Action 6 for each gNB-CU-UE-F1AP-ID, as a percent of cell PRBs. 100 means the xApp has not capped that UE. 0 means the xApp sent a zero quota.",
+          "gridPos": { "x": 0, "y": 4, "w": 8, "h": 8 },
+          "options": {
+            "reduceOptions": { "calcs": ["lastNotNull"] },
+            "orientation": "horizontal",
+            "displayMode": "gradient",
+            "showUnfilled": true,
+            "minVizWidth": 0,
+            "minVizHeight": 10
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percent",
+              "min": 0,
+              "max": 100,
+              "decimals": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "red", "value": null },
+                  { "color": "yellow", "value": 1 },
+                  { "color": "green", "value": 100 }
+                ]
+              }
+            }
+          },
+          "targets": [
+            {
+              "expr": "oran_kpm_anomaly_prb_quota_ratio{ratio=\"max\",service=\"service-ricxapp-kpm-anomaly-prb-http\"}",
+              "legendFormat": "ue {{ "{{" }}ue_id{{ "}}" }}",
+              "refId": "A"
+            }
+          ],
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        },
+        {
+          "id": 10,
+          "type": "timeseries",
+          "title": "PRB quota over time",
+          "description": "Min, max and dedicated PRB ratios applied to each UE. The series stays at the unconstrained quota until Style 2 Action 6 sets all three to zero.",
+          "gridPos": { "x": 8, "y": 4, "w": 16, "h": 8 },
+          "options": {
+            "tooltip": { "mode": "multi" },
+            "legend": { "displayMode": "table", "placement": "bottom" }
+          },
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percent",
+              "min": 0,
+              "max": 100,
+              "decimals": 0,
+              "custom": { "lineWidth": 3, "fillOpacity": 10, "spanNulls": false }
+            }
+          },
+          "targets": [
+            {
+              "expr": "oran_kpm_anomaly_prb_quota_ratio{service=\"service-ricxapp-kpm-anomaly-prb-http\"}",
+              "legendFormat": "ue {{ "{{" }}ue_id{{ "}}" }} {{ "{{" }}ratio{{ "}}" }}",
+              "refId": "A"
+            }
+          ],
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        },
+        {
           "id": 6,
           "type": "timeseries",
           "title": "Downlink RLC volume by UE",
           "description": "DRB.RlcSduTransmittedVolumeDL from KPM Style 4, kbit, one series per gNB-CU-UE-F1AP-ID. Idle stays near zero. A downlink flood or file download raises the transmitted volume.",
-          "gridPos": { "x": 0, "y": 4, "w": 16, "h": 8 },
+          "gridPos": { "x": 0, "y": 12, "w": 16, "h": 8 },
           "options": {
             "tooltip": { "mode": "multi" },
             "legend": { "displayMode": "table", "placement": "bottom" }
@@ -223,7 +290,7 @@ data:
           "type": "timeseries",
           "title": "Moving average and threshold",
           "description": "Highest per-UE window average of DRB.RlcSduTransmittedVolumeDL against the threshold, both in kbit. A control is sent when that UE's average reaches the threshold. One UE ID is enough.",
-          "gridPos": { "x": 16, "y": 4, "w": 8, "h": 8 },
+          "gridPos": { "x": 16, "y": 12, "w": 8, "h": 8 },
           "options": {
             "tooltip": { "mode": "multi" },
             "legend": { "displayMode": "table", "placement": "bottom" }
@@ -254,7 +321,7 @@ data:
           "type": "timeseries",
           "title": "Controls sent",
           "description": "The counter steps once per UE when Style 2 Action 6 sets the PRB quota to zero.",
-          "gridPos": { "x": 0, "y": 12, "w": 24, "h": 6 },
+          "gridPos": { "x": 0, "y": 20, "w": 24, "h": 6 },
           "options": {
             "tooltip": { "mode": "multi" },
             "legend": { "displayMode": "list", "placement": "bottom" }
