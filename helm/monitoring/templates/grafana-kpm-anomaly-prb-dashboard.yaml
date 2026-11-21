@@ -195,8 +195,8 @@ data:
         {
           "id": 6,
           "type": "timeseries",
-          "title": "Downlink RLC drop rate by UE",
-          "description": "DRB.RlcPacketDropRateDl from KPM Style 4, one series per gNB-CU-UE-F1AP-ID. The anomalous UE should rise while the normal UE stays near zero.",
+          "title": "Downlink RLC volume by UE",
+          "description": "DRB.RlcSduTransmittedVolumeDL from KPM Style 4, kbit, one series per gNB-CU-UE-F1AP-ID. Idle stays near zero. A downlink flood or file download raises the transmitted volume.",
           "gridPos": { "x": 0, "y": 4, "w": 16, "h": 8 },
           "options": {
             "tooltip": { "mode": "multi" },
@@ -204,14 +204,14 @@ data:
           },
           "fieldConfig": {
             "defaults": {
-              "unit": "none",
+              "unit": "kbits",
               "min": 0,
               "custom": { "lineWidth": 3, "fillOpacity": 12, "spanNulls": false }
             }
           },
           "targets": [
             {
-              "expr": "oran_xapp_kpm_measurement{metric=\"DRB.RlcPacketDropRateDl\",service=\"service-ricxapp-kpm-anomaly-prb-http\"}",
+              "expr": "oran_xapp_kpm_measurement{metric=\"DRB.RlcSduTransmittedVolumeDL\",service=\"service-ricxapp-kpm-anomaly-prb-http\"}",
               "legendFormat": "ue {{ "{{" }}ue_id{{ "}}" }}",
               "refId": "A"
             }
@@ -222,7 +222,7 @@ data:
           "id": 7,
           "type": "timeseries",
           "title": "Moving average and threshold",
-          "description": "Highest per-UE window average against the configured threshold. A control is sent when that UE's average reaches the threshold. One UE ID is enough.",
+          "description": "Highest per-UE window average of DRB.RlcSduTransmittedVolumeDL against the threshold, both in kbit. A control is sent when that UE's average reaches the threshold. One UE ID is enough.",
           "gridPos": { "x": 16, "y": 4, "w": 8, "h": 8 },
           "options": {
             "tooltip": { "mode": "multi" },
@@ -230,6 +230,7 @@ data:
           },
           "fieldConfig": {
             "defaults": {
+              "unit": "kbits",
               "min": 0,
               "custom": { "lineWidth": 3, "fillOpacity": 10, "spanNulls": false }
             }
