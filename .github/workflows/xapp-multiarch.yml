@@ -9,7 +9,6 @@ on:
       - 'student/**'
       - 'lab/**'
       - 'codex/**'
-      - tokarski-e2-action
     paths:
       - .github/workflows/xapp-multiarch.yml
       - dockerfiles/xapp/**

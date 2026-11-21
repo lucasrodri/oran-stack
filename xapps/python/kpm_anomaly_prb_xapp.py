@@ -2,10 +2,11 @@
 """Per-UE KPM monitor that starves an anomalous UE via E2SM-RC.
 
 OCUDU 26.04 accepts one RIC Control: E2SM-RC Style 2 Action 6 (slice PRB
-quota). This xApp subscribes to KPM Report Style 4 for DRB.RlcPacketDropRateDl,
-the downlink RLC SDU drop rate reported by the DU. One observed UE is enough.
-A UE is anomalous when the moving average of that rate stays at or above the
-threshold. RRC Connection Release is not implemented by this RAN.
+quota). This xApp subscribes to KPM Report Style 4 for
+DRB.RlcSduTransmittedVolumeDL, the downlink RLC SDU volume in kbit reported
+by the DU. One observed UE is enough. A UE is anomalous when the moving
+average of that volume stays at or above the threshold. RRC Connection
+Release is not implemented by this RAN.
 """
 
 import argparse
@@ -27,7 +28,7 @@ class AnomalyPrbXapp(xAppBase):
         window_size,
         anomaly_threshold,
         min_ues,
-        metric_name="DRB.RlcPacketDropRateDl",
+        metric_name="DRB.RlcSduTransmittedVolumeDL",
         log_every=30,
     ):
         if window_size < 1:
@@ -84,7 +85,7 @@ class AnomalyPrbXapp(xAppBase):
             snapshot = self._snapshot()
         payload = response["payload"]
         payload += (
-            "# HELP oran_kpm_anomaly_prb_drop_rate_average Latest per-UE moving average of the downlink RLC drop rate.\n"
+            "# HELP oran_kpm_anomaly_prb_drop_rate_average Latest per-UE moving average of the subscribed KPM metric.\n"
             "# TYPE oran_kpm_anomaly_prb_drop_rate_average gauge\n"
             "oran_kpm_anomaly_prb_drop_rate_average {:.12g}\n"
             "# HELP oran_kpm_anomaly_prb_samples_total Valid per-UE samples processed.\n"
@@ -109,7 +110,7 @@ class AnomalyPrbXapp(xAppBase):
                 state, int(snapshot["state"] == state)
             )
         payload += (
-            "# HELP oran_kpm_anomaly_prb_anomaly_threshold Configured drop-rate threshold.\n"
+            "# HELP oran_kpm_anomaly_prb_anomaly_threshold Configured per-UE KPM threshold.\n"
             "# TYPE oran_kpm_anomaly_prb_anomaly_threshold gauge\n"
             "oran_kpm_anomaly_prb_anomaly_threshold {:.12g}\n"
         ).format(self.anomaly_threshold)
@@ -119,7 +120,7 @@ class AnomalyPrbXapp(xAppBase):
     def observe_ues(self, e2_agent_id, samples):
         """Update per-UE averages and send Style 2 Action 6 at most once.
 
-        samples maps gNB-CU-UE-F1AP-ID to the latest drop rate.
+        samples maps gNB-CU-UE-F1AP-ID to the latest metric value.
         One observed UE is enough when min_ues is 1. No control is sent until
         at least min_ues distinct IDs have been seen.
         """
@@ -140,8 +141,10 @@ class AnomalyPrbXapp(xAppBase):
                     self._state = "monitoring"
                 if self._sample_count == 1 or self._sample_count % self.log_every == 0:
                     print(
-                        "kpm-anomaly-prb: ue_id={0} drop_rate={1:.1f} "
-                        "average_drop_rate={2:.1f}".format(ue_id, latest, average),
+                        "kpm-anomaly-prb: ue_id={0} {1}={2:.1f} "
+                        "average={3:.1f}".format(
+                            ue_id, self.metric_name, latest, average
+                        ),
                         flush=True,
                     )
 
@@ -170,8 +173,10 @@ class AnomalyPrbXapp(xAppBase):
 
         for ue_id, average in acted:
             print(
-                "kpm-anomaly-prb: anomaly ue_id={0} average_drop_rate={1:.1f} "
-                "-> RIC Control Style 2 Action 6 max_prb=0".format(ue_id, average),
+                "kpm-anomaly-prb: anomaly ue_id={0} average_{1}={2:.1f} "
+                "-> RIC Control Style 2 Action 6 max_prb=0".format(
+                    ue_id, self.metric_name, average
+                ),
                 flush=True,
             )
             self.e2sm_rc.control_slice_level_prb_quota(
@@ -232,12 +237,12 @@ def parse_args():
     parser.add_argument("--e2_node_id", required=True)
     parser.add_argument("--ran_func_id", type=int, default=2)
     parser.add_argument("--kpm_report_style", type=int, choices=[4], default=4)
-    parser.add_argument("--metrics", default="DRB.RlcPacketDropRateDl")
+    parser.add_argument("--metrics", default="DRB.RlcSduTransmittedVolumeDL")
     parser.add_argument("--report_period", type=int, default=1000)
     parser.add_argument("--granul_period", type=int, default=1000)
     parser.add_argument("--log_every", type=int, default=30)
     parser.add_argument("--window_size", type=int, default=5)
-    parser.add_argument("--anomaly_threshold", type=float, default=1.0)
+    parser.add_argument("--anomaly_threshold", type=float, default=1000.0)
     parser.add_argument("--min_ues", type=int, default=1)
     return parser.parse_args()
 

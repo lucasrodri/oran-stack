@@ -24,6 +24,7 @@ KPM_METRIC_UNITS = {
     "DRB.UEThpDl": "kbps",
     "DRB.UEThpUl": "kbps",
     "DRB.RlcPacketDropRateDl": "ratio",
+    "DRB.RlcSduTransmittedVolumeDL": "kbit",
 }
 
 RMR_ROUTE_TABLE_UPDATE = 20
