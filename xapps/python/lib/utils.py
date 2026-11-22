@@ -82,11 +82,16 @@ def bcd_plmn_to_mnc(plmn):
     return mnc
 
 def plmn_to_bytes(plmn):
+    # 3GPP TS 24.008 10.5.1.3: MCC2|MCC1, MNC3|MCC3, MNC2|MNC1 (MNC3 is F for 2 digits).
     mcc = bcd_plmn_to_mcc(plmn)
     mnc = bcd_plmn_to_mnc(plmn)
+    if (mnc & 0xff00) == 0xff00:
+        mnc1, mnc2, mnc3 = (mnc & 0xf0) >> 4, mnc & 0xf, 0xf
+    else:
+        mnc1, mnc2, mnc3 = (mnc & 0xf00) >> 8, (mnc & 0xf0) >> 4, mnc & 0xf
     bytes_array = [
         ((mcc & 0xf00) >> 8) + (mcc & 0xf0),
-        (mcc & 0xf) + ((mnc & 0xf00) >> 4),
-        ((mnc & 0xf) << 4) + ((mnc & 0xf0) >> 4)
+        (mcc & 0xf) + (mnc3 << 4),
+        mnc1 + (mnc2 << 4)
     ]
     return bytes(bytes_array)
