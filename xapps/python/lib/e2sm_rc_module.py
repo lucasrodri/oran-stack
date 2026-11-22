@@ -1,6 +1,7 @@
 import datetime
 from enum import Enum
 from .asn1.e2sm_rc_packer import e2sm_rc_packer
+from .e2sm_rc_slice_quota import slice_level_prb_quota_message
 
 
 class e2sm_rc_module(object):
@@ -40,76 +41,15 @@ class e2sm_rc_module(object):
         return payload
 
     def send_control_request_style_2_action_6(self, e2_node_id, ue_id, min_prb_ratio, max_prb_ratio,
-                                              dedicated_prb_ratio, ack_request=1):
-        PLMN = b'00101'  # currently not exposed as parameter
-        # S-NSSAI
-        sst = b'1'  # currently not exposed as parameter
-        sd = b'0'  # currently not exposed as parameter
-        # ratios
-        min_prb_policy_ratio = max(0, min(min_prb_ratio, 100))
-        max_prb_policy_ratio = max(0, min(max_prb_ratio, 100))
-        dedicated_prb_policy_ratio = max(0, min(dedicated_prb_ratio, 100))
-
+                                              dedicated_prb_ratio, ack_request=1, plmn="00101", sst=1, sd=0):
+        # plmn, sst and sd must be the serving cell and one DRB of this UE.
+        # The DU rejects the control when the first policy group names anything else.
         ue_id = ('gNB-DU-UEID', {'gNB-CU-UE-F1AP-ID': ue_id})
         control_header = self.e2sm_rc_compiler.pack_ric_control_header_f1(style_type=2, control_action_id=6,
                                                                           ue_id_tuple=ue_id)
-
-        control_msg_dict = {'ric-controlMessage-formats':
-                                ('controlMessage-Format1',
-                                 {'ranP-List': [
-                                     {'ranParameter-ID': 1, 'ranParameter-valueType':
-                                         ('ranP-Choice-List', {'ranParameter-List': {
-                                             'list-of-ranParameter': [{'sequence-of-ranParameters': [
-                                                 {'ranParameter-ID': 3, 'ranParameter-valueType': (
-                                                     'ranP-Choice-Structure',
-                                                     {'ranParameter-Structure': {'sequence-of-ranParameters': [
-                                                         {'ranParameter-ID': 4, 'ranParameter-valueType': (
-                                                             'ranP-Choice-List', {'ranParameter-List': {
-                                                                 'list-of-ranParameter': [
-                                                                     {'sequence-of-ranParameters': [
-                                                                         {'ranParameter-ID': 6,
-                                                                          'ranParameter-valueType': (
-                                                                              'ranP-Choice-ElementFalse',
-                                                                              {'ranParameter-value': (
-                                                                                  'valueOctS', PLMN)})},
-                                                                         {'ranParameter-ID': 7,
-                                                                          'ranParameter-valueType': (
-                                                                              'ranP-Choice-Structure',
-                                                                              {'ranParameter-Structure':
-                                                                                  {'sequence-of-ranParameters':
-                                                                                      [
-                                                                                          {'ranParameter-ID': 8,
-                                                                                           'ranParameter-valueType': (
-                                                                                               'ranP-Choice-ElementFalse',
-                                                                                               {'ranParameter-value': (
-                                                                                                   'valueOctS', sst)})},
-                                                                                          {'ranParameter-ID': 9,
-                                                                                           'ranParameter-valueType': (
-                                                                                               'ranP-Choice-ElementFalse',
-                                                                                               {'ranParameter-value': (
-                                                                                                   'valueOctS', sd)})}
-                                                                                      ]
-                                                                                  }})}]}]}})
-                                                          }]}})
-                                                  },
-                                                 {'ranParameter-ID': 10, 'ranParameter-valueType': (
-                                                     'ranP-Choice-ElementFalse',
-                                                     {'ranParameter-value': ('valueInt', min_prb_policy_ratio)})},
-                                                 {'ranParameter-ID': 11, 'ranParameter-valueType': (
-                                                     'ranP-Choice-ElementFalse',
-                                                     {'ranParameter-value': ('valueInt', max_prb_policy_ratio)})},
-                                                 {'ranParameter-ID': 12, 'ranParameter-valueType': (
-                                                     'ranP-Choice-ElementFalse',
-                                                     {'ranParameter-value': ('valueInt', dedicated_prb_policy_ratio)})}
-
-                                             ]}]}}
-                                          )
-                                      }
-
-                                 ]}
-                                 )
-                            }
-
+        control_msg_dict = slice_level_prb_quota_message(
+            plmn, sst, sd, min_prb_ratio, max_prb_ratio, dedicated_prb_ratio
+        )
         control_msg = self.e2sm_rc_compiler.pack_ric_control_msg(control_msg_dict)
         payload = self._build_ric_control_request(control_header, control_msg, ack_request)
         self.parent.rmr_send(e2_node_id, payload, 12040, retries=1)
