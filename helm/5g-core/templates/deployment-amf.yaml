@@ -37,6 +37,7 @@ spec:
         # Attach a secondary interface on the n2br OVS bridge with a static IP.
         # The CU connects to this IP directly over L2 for N2/NGAP SCTP.
         k8s.v1.cni.cncf.io/networks: '[{"name":"{{ .Values.secondaryNetworks.n2.nadName }}","ips":["{{ .Values.secondaryNetworks.n2.amfIP }}"]}]'
+        checksum/nf-configs: {{ include (print $.Template.BasePath "/configmap-nf-configs.yaml") . | sha256sum }}
     spec:
       {{- include "5g-core.imagePullSecrets" . | nindent 6 }}
       containers:

@@ -157,6 +157,8 @@ spec:
   template:
     metadata:
       labels: { app: nssf }
+      annotations:
+        checksum/nf-configs: {{ include (print $.Template.BasePath "/configmap-nf-configs.yaml") . | sha256sum }}
     spec:
       {{- include "5g-core.imagePullSecrets" . | nindent 6 }}
       containers:
