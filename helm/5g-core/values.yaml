@@ -88,6 +88,9 @@ mme:
 # ----------------------------------------------------------------------------
 nssai:
   sst: "1"
+  # Six hex digits. 000000 is SD 0, matching the DU slice and the PRB xApp.
+  # Must equal slice.sd in helm/ran/values.yaml, which is written in decimal.
+  sd: "000000"
 
 # ----------------------------------------------------------------------------
 # UE Data Networks (UPF / SMF subnets)

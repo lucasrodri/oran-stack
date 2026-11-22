@@ -24,6 +24,7 @@ cu_cp:
           - plmn: "00101"
             tai_slice_support_list:
               - sst: 1
+                sd: 0
 
   f1ap:
     bind_addr: 172.21.0.50            # CU's ran-network interface (F1-C)

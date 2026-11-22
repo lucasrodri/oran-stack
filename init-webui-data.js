@@ -44,6 +44,7 @@ try {
                 slice: [
                     {
                         sst: 1,
+                        sd: '000000',
                         default_indicator: true,
                         session: [{
                             name: 'internet',
@@ -71,6 +72,11 @@ try {
             }
         },
         { upsert: true }
+    );
+
+    db.subscribers.updateOne(
+        { imsi: '001010000000001' },
+        { $set: { 'slice.0.sst': 1, 'slice.0.sd': '000000' } }
     );
 
     if (sub5gResult.upsertedCount === 1) {

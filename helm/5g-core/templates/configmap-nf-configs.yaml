@@ -127,7 +127,8 @@ data:
             mcc: ${MCC}
             mnc: ${MNC}
           s_nssai:
-            - sst: 1
+            - sst: {{ .Values.nssai.sst }}
+              sd: "{{ .Values.nssai.sd }}"
       security:
         integrity_order:
           - NIA2
@@ -321,7 +322,8 @@ data:
           nsi:
             - uri: http://nrf:${NRF_SBI_PORT}
               s_nssai:
-                sst: 1
+                sst: {{ .Values.nssai.sst }}
+                sd: "{{ .Values.nssai.sd }}"
     logger:
       file:
         path: /var/log/open5gs/nssf.log

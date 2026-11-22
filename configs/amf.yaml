@@ -44,6 +44,7 @@ amf:
         mnc: ${MNC}
       s_nssai:
         - sst: 1
+          sd: "000000"
   security:
     integrity_order:
       - NIA2

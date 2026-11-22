@@ -34,6 +34,9 @@ for (const profile of profiles) {
   const document = Object.assign({}, base, profile);
   delete document._id;
   document.security = Object.assign({}, base.security, { sqn: NumberLong('0') });
+  if (Array.isArray(document.slice)) {
+    document.slice = document.slice.map((entry) => Object.assign({}, entry, { sd: '000000' }));
+  }
   document.updated_at = new Date();
   db.subscribers.updateOne(
     { imsi: profile.imsi },

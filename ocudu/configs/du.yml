@@ -64,6 +64,13 @@ cell_cfg:
     mcs_table: qam64
   prach:
     prach_config_index: 1
+  # The PRB xApp updates this slice. OCUDU creates it only from this file.
+  slicing:
+    - sst: 1
+      sd: 0
+      sched_cfg:
+        min_prb_policy_ratio: 0
+        max_prb_policy_ratio: 100
 
 log:
   filename: /mnt/ocudu/logs/du.log

@@ -85,6 +85,17 @@ plmn:
   mnc: "01"
   tac: "1"
 
+# S-NSSAI used by the CU and by the DU scheduler slice. OCUDU creates slices
+# only from the DU config file; the PRB xApp then changes that slice's PRB
+# quota. SD 0 is the value E2SM-RC Style 2 Action 6 sends for PLMN 00101.
+slice:
+  sst: 1
+  # Decimal. Must equal nssai.sd in helm/5g-core/values.yaml, which is six hex
+  # digits ("000000" here; e.g. sd 16 would be "000010" there).
+  sd: 0
+  minPrbPolicyRatio: 0
+  maxPrbPolicyRatio: 100
+
 # ----------------------------------------------------------------------------
 # UE credentials (must match Open5GS subscriber database)
 # ----------------------------------------------------------------------------

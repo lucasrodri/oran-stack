@@ -29,7 +29,8 @@ data:
             plmn_list:
               - plmn: "{{ .Values.plmn.mcc }}{{ .Values.plmn.mnc }}"
                 tai_slice_support_list:
-                  - sst: 1
+                  - sst: {{ .Values.slice.sst }}
+                    sd: {{ .Values.slice.sd }}
       f1ap:
         bind_addr: ${F1C_IP}
     cu_up:
@@ -110,6 +111,14 @@ data:
         # release_26_04 parses an explicit numeric value into the enum ordinal
         # (1 becomes one-fourth). Omit it to retain OCUDU's correct default: one.
         nof_cb_preambles_per_ssb: 64
+      # The PRB xApp can only change a slice that already exists. Start it
+      # unconstrained; Style 2 Action 6 sets the quota to zero.
+      slicing:
+        - sst: {{ .Values.slice.sst }}
+          sd: {{ .Values.slice.sd }}
+          sched_cfg:
+            min_prb_policy_ratio: {{ .Values.slice.minPrbPolicyRatio }}
+            max_prb_policy_ratio: {{ .Values.slice.maxPrbPolicyRatio }}
     log:
       filename: /dev/stdout
       all_level: {{ .Values.logging.level }}
