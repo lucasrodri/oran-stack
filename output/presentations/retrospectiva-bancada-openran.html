@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Infraestrutura da rede Open RAN na UNB em 2026</title>
+<style>
+  :root {
+    --blue: #0b3e75;
+    --green: #087c3a;
+    --teal: #0e7490;
+    --amber: #8a4b08;
+    --ink: #17212b;
+    --muted: #5c6b78;
+    --soft: #f4f7f9;
+    --line: #d5dee6;
+    --pale-blue: #e7f0f8;
+    --pale-green: #e7f4ec;
+    --pale-teal: #e5f4f7;
+    --pale-amber: #fbf3e4;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: #dfe6ec;
+    color: var(--ink);
+    font-family: Calibri, "Segoe UI", sans-serif;
+  }
+  .toolbar {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    padding: 10px 20px;
+    background: var(--blue);
+    color: #fff;
+    font-size: 14px;
+  }
+  .toolbar button {
+    border: 0;
+    background: #fff;
+    color: var(--blue);
+    font: inherit;
+    font-weight: 700;
+    padding: 6px 12px;
+    cursor: pointer;
+  }
+  .slide {
+    width: min(1100px, calc(100vw - 32px));
+    aspect-ratio: 16 / 9;
+    margin: 28px auto 0;
+    background: #fff;
+    position: relative;
+    overflow: hidden;
+    padding: 28px 48px 40px;
+    border-top: 6px solid var(--blue);
+  }
+  .slide.dark {
+    background: var(--blue);
+    color: #fff;
+    border-top: 0;
+    border-left: 10px solid var(--green);
+    padding: 72px 64px;
+  }
+  .kicker {
+    margin: 0;
+    color: var(--teal);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  h1 {
+    margin: 8px 0 14px;
+    color: var(--blue);
+    font-size: 34px;
+    line-height: 1.15;
+    font-weight: 700;
+  }
+  .dark h1 { color: #fff; font-size: 48px; margin-top: 18px; }
+  .lead { margin: 0 0 16px; font-size: 18px; line-height: 1.35; }
+  .dark .sub { color: #d6e6f2; font-size: 22px; line-height: 1.35; max-width: 28em; }
+  .dark .eyebrow { color: #9fc4e8; font-weight: 700; letter-spacing: 0.04em; font-size: 14px; }
+  .dark .when { position: absolute; left: 64px; bottom: 36px; color: #9fc4e8; }
+  .foot {
+    position: absolute;
+    left: 48px;
+    right: 48px;
+    bottom: 14px;
+    display: flex;
+    justify-content: space-between;
+    border-top: 1px solid var(--line);
+    padding-top: 6px;
+    color: var(--muted);
+    font-size: 13px;
+  }
+  .dark .foot { border-color: #1e5896; color: #c5d4e4; left: 64px; right: 64px; }
+  .stack { display: flex; flex-direction: column; gap: 12px; }
+  .item, .row, .card, .step, .limit, .point {
+    background: var(--soft);
+  }
+  .item { display: grid; grid-template-columns: 64px 180px 1fr; align-items: center; min-height: 72px; padding: 8px 16px; border-left: 6px solid var(--blue); }
+  .item.g { background: var(--pale-green); border-color: var(--green); }
+  .item.a { background: var(--pale-amber); border-color: var(--amber); }
+  .item strong, .row strong, .card h2, .step h2 { display: block; }
+  .num { font-size: 26px; font-weight: 700; color: var(--blue); }
+  .item.g .num { color: var(--green); }
+  .item.a .num { color: var(--amber); }
+  .muted { color: var(--muted); margin: 4px 0 0; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .card { padding: 16px 18px 18px; border-top: 6px solid var(--blue); }
+  .card h2 { margin: 0 0 8px; color: var(--blue); font-size: 20px; }
+  .card p, .row p, .step p, .limit p, .point p { margin: 0; line-height: 1.35; }
+  .rows { display: flex; flex-direction: column; gap: 8px; }
+  .row { display: grid; grid-template-columns: 148px 1fr; gap: 16px; align-items: center; min-height: 58px; padding: 8px 14px; border-left: 6px solid var(--blue); }
+  .row.wide { grid-template-columns: 220px 1fr; min-height: 78px; }
+  .row.t { border-color: var(--teal); }
+  .row.g { border-color: var(--green); }
+  .row.a { border-color: var(--amber); }
+  .row em { color: var(--teal); font-style: normal; font-weight: 700; font-size: 14px; }
+  .row.t em { color: var(--teal); }
+  .row.g em { color: var(--green); }
+  .row.a em { color: var(--amber); }
+  .cols3, .wide3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .step, .limit { padding: 12px 14px; }
+  .step.hot { background: var(--pale-amber); }
+  .step .n { font-weight: 700; color: var(--blue); }
+  .step.hot .n, .limit h3 { color: var(--amber); }
+  .limit h3, .point h3 { margin: 0 0 4px; font-size: 16px; }
+  .point h3 { color: var(--blue); }
+  .flow { padding: 14px 16px; min-height: 150px; }
+  .flow.b { background: var(--pale-blue); }
+  .flow.t { background: var(--pale-teal); }
+  .flow.g { background: var(--pale-green); }
+  .flow .tag { font-size: 12px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+  .flow.b .tag { color: var(--blue); }
+  .flow.t .tag { color: var(--teal); }
+  .flow.g .tag { color: var(--green); }
+  .flow h2 { margin: 6px 0; font-size: 22px; }
+  .band { background: var(--soft); padding: 12px 16px; margin-top: 12px; }
+  .band h2 { margin: 0 0 4px; color: var(--blue); font-size: 16px; }
+  .metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .metric { padding: 16px; min-height: 180px; }
+  .metric.g { background: var(--pale-green); }
+  .metric.b { background: var(--pale-blue); }
+  .metric.a { background: var(--pale-amber); }
+  .metric .tag { font-size: 12px; font-weight: 700; letter-spacing: 0.04em; }
+  .metric.g .tag { color: var(--green); }
+  .metric.b .tag { color: var(--blue); }
+  .metric.a .tag { color: var(--amber); }
+  .metric h2 { margin: 8px 0; font-size: 28px; }
+  .caveat { color: var(--muted); margin-top: 14px; }
+  .pipe { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; margin-bottom: 16px; }
+  .pipe span { display: grid; place-items: center; height: 42px; background: var(--pale-blue); color: var(--blue); font-weight: 700; }
+  .pipe span.end { background: var(--blue); color: #fff; }
+  .time { display: grid; grid-template-columns: repeat(5, 1fr); text-align: center; gap: 8px; margin-top: 8px; }
+  .time .dot { width: 14px; height: 14px; border-radius: 50%; background: var(--blue); margin: 8px auto; }
+  .time .dot.a { background: var(--amber); }
+  .time h2 { margin: 0; font-size: 18px; }
+  .call { background: var(--pale-blue); padding: 14px 18px; margin-top: 18px; }
+  .call h2 { margin: 0 0 6px; color: var(--blue); font-size: 18px; }
+  .call.a { background: var(--pale-amber); }
+  .call.a h2 { color: var(--amber); }
+  .grid2.fit .tall { min-height: 0; padding: 12px 14px 14px; }
+  .grid2.fit .tall h2 { font-size: 20px; margin-bottom: 6px; }
+  .fronts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+  .front h2 { margin: 0 0 8px; font-size: 20px; }
+  .front p { margin: 0 0 14px; line-height: 1.35; }
+  .front ul { margin: 0; padding: 0; list-style: none; }
+  .front li { margin: 0 0 14px; line-height: 1.35; }
+  .reasons { margin: 8px 0 0; padding: 0; list-style: none; }
+  .reasons li { margin: 0 0 12px; padding: 12px 16px; background: var(--soft); border-left: 6px solid var(--blue); line-height: 1.35; }
+  .reasons.tight { margin-top: 4px; }
+  .reasons.tight li { margin: 0 0 6px; padding: 7px 16px; }
+  .shot { display: block; width: min(920px, 100%); margin: 8px auto 0; }
+  .shot.small { width: min(760px, 92%); }
+  .tall { padding: 18px 18px 20px; min-height: 250px; }
+  .tall.b { background: var(--pale-blue); border-top: 6px solid var(--blue); }
+  .tall.a { background: var(--pale-amber); border-top: 6px solid var(--amber); }
+  .tall.g { background: var(--pale-green); border-top: 6px solid var(--green); }
+  .tall.t { background: var(--pale-teal); border-top: 6px solid var(--teal); }
+  .tall h2 { margin: 0 0 10px; font-size: 24px; }
+  body.present { background: #111; }
+  body.present .toolbar, body.present .slide { display: none; }
+  body.present .slide.active {
+    display: block;
+    position: fixed;
+    inset: 0;
+    margin: auto;
+    width: min(100vw, calc(100vh * 16 / 9));
+    height: min(100vh, calc(100vw * 9 / 16));
+  }
+</style>
+</head>
+<body>
+<div class="toolbar">
+  <button type="button" id="mode">Apresentar</button>
+  <span>Revisão: role a página. Apresentar: setas ou espaço. Esc volta.</span>
+</div>
+
+<section class="slide dark" id="s1">
+  <p class="eyebrow">Grupo Open RAN UNB</p>
+  <h1>Infraestrutura da rede Open RAN UNB em 2026</h1>
+  <p class="when">Novembro de 2026</p>
+  <div class="foot"><span>Infraestrutura de rede Open RAN · UnB</span><span>1 / 18</span></div>
+</section>
+
+
+<section class="slide" id="s3">
+  <p class="kicker">Retrospectiva · março de 2026</p>
+  <h1>Março</h1>
+  <p class="lead">Começamos pelo Docker Compose. No fim do mês a pilha sobe mas o UE ainda não faz attach.</p>
+  <div class="grid2">
+    <article class="card"><h2>Core</h2><p>A mesma imagem do Open5GS virava um container por função: NRF, AMF, SMF, UPF e as outras. MongoDB e WebUI ficavam ao lado, cada um com o IP do .env.</p></article>
+    <article class="card"><h2>RAN</h2><p>A mesma imagem virava dois containers, CU e DU. O CU ficava na rede do core e na do RAN. O DU, na do RAN e na do RIC. Com o E2 ligado e o RIC fora, a conexão recusada derrubava o DU, e ele reiniciava em loop.</p></article>
+    <article class="card"><h2>UE</h2><p>Um container na rede do RAN, com rádio ZMQ até o DU. O UE só sincroniza se a célula já está ativa. Subir os dois juntos deixa os dois esperando o primeiro quadro, e o attach não acontece nesse mês.</p></article>
+    <article class="card"><h2>RIC</h2><p>Compose próprio, um container por componente, todos na mesma rede. O trabalho do deploy foi a ordem de subida. O E2Term se anuncia uma vez. Reiniciar ele no meio derruba a associação, e o CU fica desconectado.</p></article>
+  </div>
+  <div class="band">
+    <h2>Condições de corrida</h2>
+    <p>Vários anúncios saem uma vez só. Se o destinatário ainda não está pronto, a mensagem se perde e ninguém tenta de novo.</p>
+  </div>
+  <div class="foot"><span>Infraestrutura de rede Open RAN · UnB</span><span>2 / 18</span></div>
+</section>
+
+<section class="slide" id="s-cloud">
+  <p class="kicker">Retrospectiva · a nuvem</p>
+  <h1>Abril</h1>
+  <p class="lead">Em abril a pilha saiu do Compose e foi para o GCP. A ideia era deixar a rede Open RAN de pé numa passada só.</p>
+  <div class="grid2 fit">
+    <article class="tall b"><h2>Terraform</h2><p>Descrevia rede e máquinas no GCP. O cluster era instalado em cima desse ambiente.</p></article>
+    <article class="tall t"><h2>kubeadm</h2><p>Instalava o Kubernetes nessas máquinas e deixava o cluster pronto para receber a pilha.</p></article>
+    <article class="tall g"><h2>Helm</h2><p>Instalava core, RIC e RAN por chart. Cada chart reunia os pods, os serviços e a configuração daquela parte.</p></article>
+    <article class="tall a"><h2>Playbook</h2><p>Executava a ordem: infraestrutura, cluster, charts. SCTP, F1 e E2 têm ordem, e a passada única ainda deixava a pilha pela metade.</p></article>
+  </div>
+  <div class="call a">
+    <h2>A conta</h2>
+    <p>Os custos se acumulavam sem resultado.</p>
+  </div>
+  <div class="foot"><span>Infraestrutura de rede Open RAN · UnB</span><span>3 / 18</span></div>
+</section>
+
+<section class="slide" id="s-maio">
+  <p class="kicker">Retrospectiva · maio de 2026</p>
+  <h1>Maio</h1>
+  <p class="lead">Ainda no GCP:</p>
+  <ul class="reasons">
+    <li>N2 e F1 completavam o setup e caíam em seguida. O NAT do cluster perde a associação SCTP. Esse tráfego foi para pontes OVS, fora do overlay, com IP estático, via Multus.</li>
+    <li>O CU mandava o E2 Setup e a resposta não voltava. A rota chamava o nome do serviço e o gerenciador atendia pelo nome do pod, então a mensagem não saía. O nome ficou o do serviço. O banco também não gravava o gNB conectado; entrou a imagem do RIC, que tem esse comando, e a resposta voltou.</li>
+    <li>Pod Running escondia a falha. O processo estava vivo e a interface, caída, e os dois apareciam prontos. A sonda passou a checar o processo. Prometheus e Grafana passaram a mostrar a interface.</li>
+    <li>O Vagrant não reproduzia o laboratório. A rede fora do overlay pede uma segunda placa e um IP fixo em cada máquina, e o Vagrant não tinha esse inventário.</li>
+  </ul>
+  <div class="foot"><span>Infraestrutura de rede Open RAN · UnB</span><span>4 / 18</span></div>
+</section>
+
+<section class="slide" id="s-jun-jul">
+  <p class="kicker">Retrospectiva · junho e julho de 2026</p>
+  <h1>Junho e julho</h1>
+  <ul class="reasons">
+    <li>Junho foi curto. A primeira xApp entra no repositório, e a ponte n2br é corrigida.</li>
+    <li>Julho leva o kubeadm para máquinas próprias. O deploy passa a iniciar o MongoDB e a semear o assinante.</li>
+    <li>A xApp só assina KPM depois que o gNB aparece registrado. O teste de pronto passa a exigir E2, não só pod Running.</li>
+    <li>O CU e o DU deixam o srsRAN e passam para o OCUDU 26.04. O UE continua o srsUE.</li>
+  </ul>
+  <div class="foot"><span>Infraestrutura de rede Open RAN · UnB</span><span>5 / 18</span></div>
+</section>
+
+<section class="slide" id="s-ago">
+  <p class="kicker">Retrospectiva · agosto de 2026</p>
+  <h1>Agosto</h1>
+  <ul class="reasons tight">
+    <li>A pilha sobe num nó só, no Proxmox do NMI. O Ansible descreve a máquina e o Helm sobe core, RAN, RIC e xApp.</li>
+    <li>O Nexus do RIC devolve licença inválida. A release M é reconstruída no CI, publicada no GHCR, e o chart passa a puxar de lá.</li>
+    <li>A subida espera o Routing Manager. O mediador A1 passa a se registrar com ele.</li>
+    <li>O UE completa a sessão e o ping ao gateway fecha sem perda. Grafana e Prometheus vão para um servidor à parte e mostram o throughput do UE.</li>
+    <li>O NMI ganha um worker em cada Proxmox. A RAN fica na VM do rádio. A xApp vai para o outro worker e continua recebendo KPM.</li>
+    <li>As pontes n2, F1 e E2 passam a ligar os dois Proxmox. O teste entre eles fecha sem perda, com o endereço de origem intacto.</li>
+    <li>O CIC entra como segundo cluster, em ARM. A mesma xApp é compilada para amd64 e para arm64.</li>
+    <li>O Nephio entrega o pacote nos dois sites. O Flux aplica. A imagem fica fixada no digest, e os dois sites rodam o mesmo build.</li>
+  </ul>
+  <div class="foot"><span>Infraestrutura de rede Open RAN · UnB</span><span>6 / 18</span></div>
+</section>
+
+<section class="slide" id="s-set-nov">
+  <p class="kicker">Retrospectiva · setembro a novembro de 2026</p>
+  <h1>Setembro, outubro e novembro</h1>
+  <ul class="reasons">
+    <li>Setembro abre a infraestrutura para o aluno: guia, acesso restrito e a kpm-mon-tmt, no uplink DRB.UEThpUl.</li>
+    <li>Outubro é recuperação. O roteamento KPM volta a ser determinístico, e o CIC ARM volta a receber indicação depois da queda de rede entre os sites.</li>
+    <li>Novembro recupera o E2 do CU e repete o teste nos dois sites. A kpm-anomaly-prb mede volume RLC de downlink por UE e manda a cota de PRB a zero.</li>
+  </ul>
+  <div class="foot"><span>Infraestrutura de rede Open RAN · UnB</span><span>7 / 18</span></div>
+</section>
+
+<section class="slide" id="s6">
+  <p class="kicker">Onde estamos</p>
+  <h1>Dados, E2 e Git, cada um no seu caminho</h1>
+  <div class="cols3">
+    <article class="flow b"><p class="tag">Plano de dados</p><h2>UE → RAN → UPF</h2><p>Bytes do assinante. O SIM é cadastrado no Open5GS.</p></article>
+    <article class="flow t"><p class="tag">Telemetria E2</p><h2>O-DU → RIC → xApp</h2><p>Medição KPM. Nesta xApp nova, também volta um controle. O download segue pelo UPF.</p></article>
+    <article class="flow g"><p class="tag">Gestão</p><h2>Git → Nephio → Flux</h2><p>Configuração de cada site. Ansible sobe a máquina. Helm sobe a pilha base.</p></article>
+  </div>
+  <div class="band">
+    <h2>Onde isso roda</h2>
+    <p>NMI, cinco nós amd64: core e RAN no control plane, E2Term no primeiro worker, xApps no segundo, Grafana no servidor físico, Nephio na VM de gestão. CIC, dois nós Ampere, com a xApp ARM. O RIC fica no NMI.</p>
+  </div>
+  <div class="foot"><span>Infraestrutura de rede Open RAN · UnB</span><span>8 / 18</span></div>
+</section>
+
+<section class="slide" id="s7">
+  <p class="kicker">Onde estamos · o que já foi medido</p>
+  <h1>O que a gente mediu</h1>
+  <div class="metrics">
+    <article class="metric g"><p class="tag">SESSÃO</p><h2>PDU no ar</h2><p>O UE registra, autentica e recebe um endereço 10.45.0.x. A sessão era recusada: SMF e UPF anunciavam endereços diferentes. Os dois passaram a usar o IP do pod, e o ping ao gateway fecha com perda zero.</p></article>
+    <article class="metric b"><p class="tag">KPI</p><h2>28.841 kbps</h2><p>Numa transferência de 50 MB, HTTP 200, o pico de DRB.UEThpDl foi o mesmo no NMI e no CIC.</p></article>
+    <article class="metric a"><p class="tag">ENTREGA</p><h2>Um digest</h2><p>A imagem é publicada para amd64 e arm64. O pacote fixa o digest. Os dois sites rodam o mesmo build.</p></article>
+  </div>
+  <p class="caveat">Em agosto entraram o NMI, o Nephio e o CIC ARM, com sessão PDU e KPM ao vivo. Pronto passou a ser essa sessão, o KPM decodificado e o mesmo número nos dois sites.</p>
+  <div class="foot"><span>Infraestrutura de rede Open RAN · UnB</span><span>9 / 18</span></div>
+</section>
+
+<section class="slide" id="s-grafana">
+  <p class="kicker">Onde estamos · acompanhamento</p>
+  <h1>O Grafana mostra a rede e as xApps</h1>
+  <p class="lead">Pod Running só diz que o processo subiu. O painel diz se a rede está medindo e se a xApp está vendo isso.</p>
+  <div class="cols3">
+    <article class="tall b"><h2>A rede</h2><p>Core, RAN e RIC, nós do NMI e do CIC, reinício de pod. Os dois sites ficam no mesmo lugar.</p></article>
+    <article class="tall t"><h2>As xApps</h2><p>Throughput, carga, uplink e cota de PRB. Cada xApp publica a própria série enquanto o teste roda.</p></article>
+    <article class="tall g"><h2>O sinal</h2><p>Com tráfego, o KPI sobe. Sem tráfego, volta ao ocioso. É assim que a gente confirma que a xApp acompanha a rede.</p></article>
+  </div>
+  <div class="foot"><span>Infraestrutura de rede Open RAN · UnB</span><span>10 / 18</span></div>
+</section>
+
+<section class="slide" id="s-recovery">
+  <p class="kicker">Onde estamos · recuperação</p>
+  <h1>Três problemas que voltam</h1>
+  <p class="muted">Depois de uma queda de energia, de rede ou da DU, estes três estados não voltam sozinhos.</p>
+  <div class="rows">
+    <div class="row wide"><div><strong>recover-ran-zmq</strong><em>ZMQ</em></div><p>O UE fica no endpoint da DU anterior. O script desliga o UE, reinicia a DU e só então liga o UE. Pronto é o endereço em tun_srsue.</p></div>
+    <div class="row wide t"><div><strong>recover-ric-kpm</strong><em>Rotas</em></div><p>AppMgr e RTMgr perdem o inventário. A assinatura continua registrada e a indicação deixa de chegar. O script registra as xApps, recarrega o RTMgr e assina outra vez. O E2Term permanece no ar.</p></div>
+    <div class="row wide g"><div><strong>refresh-kpm-xapps</strong><em>Assinatura</em></div><p>A DU volta com outra associação E2. As xApps ainda assinam a anterior. O script espera o O-DU no E2Mgr e recria só as xApps de monitoramento.</p></div>
+  </div>
+  <div class="foot"><span>Infraestrutura de rede Open RAN · UnB</span><span>11 / 18</span></div>
+</section>
+
+<section class="slide" id="s8">
+  <p class="kicker">Trabalho atual · xApps</p>
+  <h1>As quatro xApps</h1>
+  <p class="muted">Cada uma foi feita em cima da anterior. O tráfego do assinante continua no UPF.</p>
+  <div class="rows">
+    <div class="row"><div><strong>r4-simple-mon</strong><em>Mede</em></div><p>Assina DRB.UEThpDl e publica a série. A indicação E2 chega no pod, no NMI e no CIC.</p></div>
+    <div class="row t"><div><strong>kpm-load-watch</strong><em>Classifica</em></div><p>Média móvel de cinco amostras. Três estados: idle, active, busy. Janela e limiares vêm do pacote.</p></div>
+    <div class="row g"><div><strong>kpm-mon-tmt</strong><em>Feita por um aluno</em></div><p>Média móvel no uplink, DRB.UEThpUl. Entrou pelo gerador e foi entregue pelo Flux.</p></div>
+    <div class="row a"><div><strong>kpm-anomaly-prb</strong><em>Age</em></div><p>Mede volume de downlink por UE. Passou do limiar, manda um controle E2SM-RC. É o que está em desenvolvimento.</p></div>
+  </div>
+  <div class="foot"><span>Infraestrutura de rede Open RAN · UnB</span><span>12 / 18</span></div>
+</section>
+
+<section class="slide" id="s9">
+  <p class="kicker">Trabalho atual · kpm-anomaly-prb</p>
+  <h1>A kpm-anomaly-prb manda um comando</h1>
+  <div class="cols3">
+    <article class="step"><p class="n">1</p><h2>Observa</h2><p>KPM Style 4, por UE: volume de SDU RLC no downlink, em kbit.</p></article>
+    <article class="step"><p class="n">2</p><h2>Calcula</h2><p>Média de 5 amostras. O limiar padrão é 1.000 kbit. Um UE parado fica abaixo.</p></article>
+    <article class="step hot"><p class="n">3</p><h2>Age</h2><p>E2SM-RC Style 2, Ação 6. A cota máxima de PRB do slice vai a zero.</p></article>
+  </div>
+  <div class="cols3" style="margin-top:14px">
+    <article class="limit"><h3>Uma ação</h3><p>Nesta versão do OCUDU, o controle RIC que existe é a cota de PRB do slice. Release de RRC não está implementado.</p></article>
+    <article class="limit"><h3>Uma vez</h3><p>A xApp manda o comando no máximo uma vez por UE. Para decidir de novo, o pod precisa ser recriado.</p></article>
+    <article class="limit"><h3>O ensaio</h3><p>Rajada de download não vira SDU RLC a tempo. O teste é um fluxo constante, saindo do UPF.</p></article>
+  </div>
+  <div class="foot"><span>Infraestrutura de rede Open RAN · UnB</span><span>13 / 18</span></div>
+</section>
+
+<section class="slide" id="s11">
+  <p class="kicker">Próximos desafios</p>
+  <h1>O que ainda falta</h1>
+  <div class="fronts">
+    <div class="front"><h2 style="color:var(--amber)">Controle</h2><p>O OCUDU já implementa a cota de PRB do slice e o handover. Falta validar que cada um deu certo.</p><ul><li>Ver a cota de PRB do slice mudar depois do comando.</li><li>Ver o handover pedido pelo RIC acontecer na RAN.</li><li>Registrar o antes e o depois de cada controle.</li></ul></div>
+    <div class="front"><h2 style="color:var(--blue)">Plataforma</h2><p>Nome, rota e arquitetura ainda estão gravados. Dá para evoluir para algo mais fluido e dinâmico.</p><ul><li>Ler o nome do gNB no E2Mgr quando ele conectar.</li><li>Registrar uma xApp nova no RTMgr com o E2Term no ar.</li><li>Publicar o RIC ARM como mais uma variante de pacote.</li></ul></div>
+    <div class="front"><h2 style="color:var(--green)">Rádio</h2><p>Hoje a célula atende um UE por vez. Precisamos evoluir para vários UEs ao mesmo tempo.</p><ul><li>Trocar o peer ZMQ por um emulador com UEs ao mesmo tempo.</li><li>Atribuir o KPI ao assinante.</li><li>Levar a mesma xApp para rádio e SIM físicos.</li></ul></div>
+  </div>
+  <div class="foot"><span>Infraestrutura de rede Open RAN · UnB</span><span>14 / 18</span></div>
+</section>
+
+<section class="slide" id="s13">
+  <p class="kicker">Próximos desafios · métricas E2</p>
+  <h1>Validar cada métrica que o OCUDU expõe</h1>
+  <p>A rede hoje exercita três KPIs. O OCUDU implementa E2SM-KPM v3.00 e lista 27 métricas suportadas, de 287 definidas. Queremos assinar, estimular e decodificar essas 27.</p>
+  <img class="shot" src="ocudu-metric-coverage.png" alt="Tabela Metric Coverage do OCUDU: 27 métricas suportadas de 287 definidas.">
+  <div class="foot"><span>Infraestrutura de rede Open RAN · UnB</span><span>15 / 18</span></div>
+</section>
+
+<section class="slide" id="s14">
+  <p class="kicker">Próximos desafios · expansão de métricas</p>
+  <h1>Uma esteira para cada métrica nova</h1>
+  <p>Os três passos estão em lib/e2/e2sm/e2sm_kpm/. No laboratório, a métrica entra na conta quando a xApp decodifica a indicação.</p>
+  <div class="cols3">
+    <article class="step"><p class="n">1 Confirmar</p><p>O DU, o CU-CP ou o CU-UP já calcula esse valor. O código E2 só lê o que já está na memória.</p></article>
+    <article class="step"><p class="n">2 Medir</p><p>O getter devolve um agregado, ou um registro por UE, a partir dos dados que o provider já recebe.</p></article>
+    <article class="step"><p class="n">3 Anunciar</p><p>O provider registra nome, rótulo e granularidade. O E2 Setup passa a oferecer a métrica ao RIC.</p></article>
+  </div>
+  <img class="shot small" src="ocudu-extending-metric-set.png" alt="Página Extending the Metric Set da documentação do OCUDU.">
+  <div class="foot"><span>Infraestrutura de rede Open RAN · UnB</span><span>16 / 18</span></div>
+</section>
+
+<section class="slide" id="s15">
+  <p class="kicker">Próximos desafios · slicing</p>
+  <h1>Incluir o controle de slicing</h1>
+  <p class="lead">A ação RIC que o OCUDU 26.04 implementa é a cota de PRB do slice. Hoje ela zera um UE. Queremos escolher os três percentuais e conseguir desfazer.</p>
+  <div class="cols3">
+    <article class="tall b"><h2>O que a RAN faz</h2><p>E2SM-RC Style 2, Ação 6. Três percentuais por UE: mínimo, máximo e dedicado. As outras ações recebem recusa.</p></article>
+    <article class="tall a"><h2>O que a xApp faz hoje</h2><p>A kpm-anomaly-prb manda os três para zero, uma vez. PLMN e S-NSSAI estão fixos no código. A rede tem um slice, SST 1.</p></article>
+    <article class="tall g"><h2>O que queremos</h2><p>A cota vira parâmetro da xApp. O Grafana mostra os três números, e um comando seguinte devolve a cota anterior.</p></article>
+  </div>
+  <div class="foot"><span>Infraestrutura de rede Open RAN · UnB</span><span>17 / 18</span></div>
+</section>
+
+<section class="slide" id="s16">
+  <p class="kicker">Próximos desafios · repositórios</p>
+  <h1>Uma xApp, um repositório</h1>
+  <p class="lead">Hoje o algoritmo, o pacote Nephio e a imagem nascem neste repositório. A ideia é cada xApp ter o seu.</p>
+  <div class="cols3">
+    <article class="tall b"><h2>O que fica aqui</h2><p>Core, RAN, RIC, Nephio e o contrato do xAppBase.</p></article>
+    <article class="tall t"><h2>O que vai para fora</h2><p>Código, teste, imagem e blueprint de cada xApp, num repositório próprio.</p></article>
+    <article class="tall g"><h2>A entrega</h2><p>Continua por digest, PackageVariant e Flux. A conta do aluno continua sem admin no cluster.</p></article>
+  </div>
+  <div class="foot"><span>Infraestrutura de rede Open RAN · UnB</span><span>18 / 18</span></div>
+</section>
+
+<script>
+  const slides = [...document.querySelectorAll(".slide")];
+  let index = 0;
+  const button = document.getElementById("mode");
+  function show(i) {
+    index = (i + slides.length) % slides.length;
+    slides.forEach((slide, n) => slide.classList.toggle("active", n === index));
+    if (document.body.classList.contains("present")) {
+      slides[index].scrollIntoView();
+    }
+  }
+  function present(on) {
+    document.body.classList.toggle("present", on);
+    button.textContent = on ? "Revisar" : "Apresentar";
+    if (on) show(index);
+  }
+  button.addEventListener("click", () => present(!document.body.classList.contains("present")));
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") present(false);
+    if (!document.body.classList.contains("present") && (event.key === "ArrowRight" || event.key === " ")) {
+      present(true);
+      return;
+    }
+    if (!document.body.classList.contains("present")) return;
+    if (event.key === "ArrowRight" || event.key === " " || event.key === "PageDown") {
+      event.preventDefault();
+      show(index + 1);
+    }
+    if (event.key === "ArrowLeft" || event.key === "PageUp") {
+      event.preventDefault();
+      show(index - 1);
+    }
+    if (event.key === "Home") show(0);
+    if (event.key === "End") show(slides.length - 1);
+  });
+</script>
+</body>
+</html>
